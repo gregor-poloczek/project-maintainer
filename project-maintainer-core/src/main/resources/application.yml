@@ -1,3 +1,8 @@
 spring:
   banner:
     location: banner.txt
+
+project-maintainer:
+  projects:
+    uris:
+      - https://github.com/gregor-poloczek/project-maintainer.git
