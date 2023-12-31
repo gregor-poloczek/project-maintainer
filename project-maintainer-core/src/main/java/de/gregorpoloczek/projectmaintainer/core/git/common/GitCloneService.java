@@ -2,7 +2,7 @@ package de.gregorpoloczek.projectmaintainer.core.git.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneTarget;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitSource;
-import de.gregorpoloczek.projectmaintainer.core.git.github.GithubCloneService;
+import de.gregorpoloczek.projectmaintainer.core.git.github.GithubCredentialProvider;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
@@ -14,10 +14,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class GitCloneService {
 
-  private final GithubCloneService githubCloneService;
+  private final GithubCredentialProvider githubCredentialProvider;
 
-  public GitCloneService(final GithubCloneService githubCloneService) {
-    this.githubCloneService = githubCloneService;
+  public GitCloneService(final GithubCredentialProvider githubCredentialProvider) {
+    this.githubCredentialProvider = githubCredentialProvider;
   }
 
   public void clone(CloneTarget cloneTarget) {
@@ -35,7 +35,7 @@ public class GitCloneService {
 
   private CredentialsProvider getCredentialProvider(final CloneTarget cloneTarget) {
     if (cloneTarget.getGitSource() == GitSource.GITHUB) {
-      return this.githubCloneService.getCredentialProvider();
+      return this.githubCredentialProvider.getCredentialProvider();
     } else {
       throw new IllegalStateException(cloneTarget.getGitSource().name());
     }
