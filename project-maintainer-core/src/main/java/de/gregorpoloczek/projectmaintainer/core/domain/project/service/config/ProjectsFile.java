@@ -12,5 +12,4 @@ public final class ProjectsFile {
   private String version;
   private List<Project> projects = new ArrayList<>();
 
-
 }

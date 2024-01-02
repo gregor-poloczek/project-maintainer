@@ -8,14 +8,12 @@ import lombok.Getter;
 @Getter
 public class CloneTarget {
 
-  public CloneTarget(final GitSource gitSource, final URI uri,
+  public CloneTarget(final URI uri,
       final Path path) {
-    this.gitSource = gitSource;
     this.uri = uri;
     this.path = path;
   }
 
-  private final GitSource gitSource;
   private final URI uri;
   private final Path path;
 

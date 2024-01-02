@@ -1,23 +1,25 @@
 package de.gregorpoloczek.projectmaintainer.core.git.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneTarget;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitSource;
-import de.gregorpoloczek.projectmaintainer.core.git.github.GithubCredentialProvider;
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class GitCloneService {
 
-  private final GithubCredentialProvider githubCredentialProvider;
+  private final List<GitCredentialsProvider> credentialsProviders;
 
-  public GitCloneService(final GithubCredentialProvider githubCredentialProvider) {
-    this.githubCredentialProvider = githubCredentialProvider;
+  public GitCloneService(
+      final List<GitCredentialsProvider> credentialsProviders) {
+    this.credentialsProviders = credentialsProviders;
   }
 
   public void clone(CloneTarget cloneTarget) {
@@ -28,33 +30,33 @@ public class GitCloneService {
       new ProjectAlreadyClonedException();
     }
 
-    final CredentialsProvider credentialProvider = this.getCredentialProvider(cloneTarget);
+    final CredentialsProvider credentialProvider = this.getCredentialsProvider(cloneTarget)
+        .getCredentialsProvider();
 
     this.clone(cloneTarget.getUri(), directory, credentialProvider);
   }
 
-  private CredentialsProvider getCredentialProvider(final CloneTarget cloneTarget) {
-    if (cloneTarget.getGitSource() == GitSource.GITHUB) {
-      return this.githubCredentialProvider.getCredentialProvider();
-    } else {
-      throw new IllegalStateException(cloneTarget.getGitSource().name());
-    }
+  private GitCredentialsProvider getCredentialsProvider(final CloneTarget cloneTarget) {
+    return this.credentialsProviders.stream().filter(cP -> cP.supports(cloneTarget.getUri()))
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException(
+            "Could not find a git credentials provider for uri " + cloneTarget.getUri()));
   }
 
-  public void clone(URI uri, File directory, CredentialsProvider credentialsProvider) {
+  private void clone(URI uri, File directory, CredentialsProvider credentialsProvider) {
     if (directory.exists()) {
       throw new ProjectAlreadyClonedException();
     }
 
     try {
+      log.info("Cloning \"{}\".", uri);
       Git.cloneRepository().setURI(uri.toString())
           .setDirectory(directory)
           .setCredentialsProvider(credentialsProvider)
           .call();
+      log.info("Cloned \"{}\" successfully.", uri);
     } catch (GitAPIException e) {
       throw new CloneFailedException(e);
     }
   }
-
-
 }

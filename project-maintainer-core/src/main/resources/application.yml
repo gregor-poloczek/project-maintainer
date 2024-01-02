@@ -5,4 +5,3 @@ spring:
 project-maintainer:
   projects:
     uris:
-      - https://github.com/gregor-poloczek/project-maintainer.git

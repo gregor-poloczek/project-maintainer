@@ -30,6 +30,8 @@ public class ProjectService {
 
   public static final Pattern GITHUB_PATTERN = Pattern.compile(
       "^\\Qhttps://github.com/\\E(?<owner>[^/]+)/(?<repository>[^.]+)\\.git$");
+  private static final Pattern AWS_CODE_COMMIT = Pattern.compile(
+      "^\\Qhttps://git-codecommit.\\E(?<region>[^.]+)\\Q.amazonaws.com\\E\\/v1\\/repos\\/(?<repository>.+)$");
 
   private final ApplicationProperties applicationProperties;
 
@@ -44,7 +46,6 @@ public class ProjectService {
   @PostConstruct
   private void init() {
     this.cloneProjects();
-    ;
   }
 
   @Autowired
@@ -93,10 +94,16 @@ public class ProjectService {
 
   private CloneTarget toCloneTarget(URI uri) {
     final Matcher github = GITHUB_PATTERN.matcher(uri.toString());
+    final Matcher awsCodeCommit = AWS_CODE_COMMIT.matcher(uri.toString());
     if (github.matches()) {
       final String owner = github.group("owner");
       final String repository = github.group("repository");
-      return new CloneTarget(GitSource.GITHUB, uri, Path.of("github", owner, repository));
+      return new CloneTarget(uri, Path.of("github", owner, repository));
+    } else if (awsCodeCommit.matches()) {
+      final String region = awsCodeCommit.group("region");
+      final String repository = awsCodeCommit.group("repository");
+      // TODO owner
+      return new CloneTarget(uri, Path.of("aws-codecommit", region, repository));
     } else {
       throw new IllegalStateException(uri.toString());
     }
