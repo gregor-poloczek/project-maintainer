@@ -51,12 +51,31 @@ public class AWSCodeCommitCredentialsProvider implements GitCredentialsProvider 
 
   @Override
   public String getFQPN(final URI uri) {
+    final String account;
+
+    try {
+      // TODO determine right credentials for uri
+      final Properties credentials = conversionService.convert(
+          this.credentials.getContentAsString(StandardCharsets.UTF_8),
+          Properties.class);
+      String username = credentials.getProperty("username");
+      final Matcher matcher = Pattern.compile("^(?<username>.+?)-at-(?<account>\\d+)$")
+          .matcher(username);
+
+      if (!matcher.matches()) {
+        throw new IllegalStateException("Cannot determined account from " + username);
+      }
+
+      account = matcher.group("account");
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
     final Matcher matcher = AWS_CODE_COMMIT.matcher(uri.toString());
     if (matcher.matches()) {
       final String region = matcher.group("region");
       final String repository = matcher.group("repository");
-      // TODO owner
-      return "aws-codecommit/" + region + "/" + repository;
+      return "aws-codecommit/" + account + "/" + region + "/" + repository;
     }
     throw new IllegalStateException(uri.toString());
   }
