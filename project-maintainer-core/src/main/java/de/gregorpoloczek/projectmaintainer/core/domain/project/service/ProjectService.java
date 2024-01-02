@@ -6,8 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.config.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.config.ProjectsFile;
-import de.gregorpoloczek.projectmaintainer.core.git.common.GitCloneService;
-import de.gregorpoloczek.projectmaintainer.core.git.common.ProjectAlreadyClonedException;
+import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -35,12 +34,12 @@ public class ProjectService {
 
   private final ApplicationProperties applicationProperties;
 
-  private final GitCloneService gitCloneService;
+  private final GitService gitService;
 
   public ProjectService(final ApplicationProperties applicationProperties,
-      final GitCloneService gitCloneService) {
+      final GitService gitService) {
     this.applicationProperties = applicationProperties;
-    this.gitCloneService = gitCloneService;
+    this.gitService = gitService;
   }
 
   @PostConstruct
@@ -52,10 +51,17 @@ public class ProjectService {
   private ObjectMapper objectMapper;
 
   public CloneProjectsResult cloneProjects() {
-    final File projectsFileRaw = Path.of(".projects", "projects.json").toFile();
+    final File cloneDirectory = applicationProperties.getProjects().getCloneDirectory();
+    final File projectsFileRaw = new File(cloneDirectory,
+        "projects.json");
 
     ProjectsFile projectsFile;
     if (!projectsFileRaw.exists()) {
+      if (cloneDirectory.exists()) {
+        throw new IllegalStateException("Clone directory " + cloneDirectory
+            + " already exists without a projects.file, cloning not possible.");
+      }
+
       projectsFile = new ProjectsFile();
       projectsFile.setVersion("1");
     } else {
@@ -74,11 +80,19 @@ public class ProjectService {
 
     final CloneProjectsResultImpl result = new CloneProjectsResultImpl();
     for (CloneTarget target : targets) {
-      try {
-        gitCloneService.clone(target);
-        projectsFile.getProjects().add(new Project(target.getFQPN(), target.getUri().toString()));
-      } catch (ProjectAlreadyClonedException e) {
-        log.info("Project \"{}\" already cloned ", target.getFQPN());
+      final File projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
+      final File directory = Path.of(projectsDirectory.toURI()).resolve(target.getPath())
+          .toFile();
+
+      final Project project = new Project(target.getUri().toString(), target.getFQPN());
+
+      final boolean alreadyKnown = projectsFile.getProjects().stream()
+          .anyMatch(p -> p.getFqpn().equals(target.getFQPN()));
+      if (alreadyKnown) {
+        gitService.pull(directory);
+      } else {
+        gitService.clone(target.getUri(), directory);
+        projectsFile.getProjects().add(project);
       }
     }
 
