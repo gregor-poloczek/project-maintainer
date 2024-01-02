@@ -13,8 +13,14 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
@@ -52,7 +58,7 @@ public class ProjectService {
     if (!projectsFileRaw.exists()) {
       if (projectsDirectory.exists()) {
         throw new IllegalStateException(
-            "Clone directory %s already exists without a %s, cloning not possible.".formatted(
+            "Projects directory \"%s\" already exists without a \"%s\", cloning not possible.".formatted(
                 projectsDirectory, PROJECTS_FILE));
       }
 
@@ -76,6 +82,31 @@ public class ProjectService {
         .getUris();
 
     final CloneProjectsResultImpl result = new CloneProjectsResultImpl();
+
+    SortedSet<String> existingClonedFQPNs = new TreeSet<>();
+
+    try {
+      Files.walkFileTree(Path.of(projectsDirectory.toURI()), new SimpleFileVisitor<>() {
+        @Override
+        public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
+            throws IOException {
+          if (Files.exists(dir.resolve(".git"))) {
+            existingClonedFQPNs.add(
+                Path.of(projectsDirectory.toURI()).relativize(dir).toString());
+          }
+          return super.preVisitDirectory(dir, attrs);
+        }
+
+        @Override
+        public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
+          return FileVisitResult.CONTINUE;
+        }
+      });
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
+    System.out.println(existingClonedFQPNs);
 
     // TODO delete projects that no longer exist
     // TODO reset to default branch
