@@ -1,6 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.git.common;
 
-import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -17,15 +16,12 @@ import org.springframework.stereotype.Service;
 public class GitService {
 
   private final List<GitCredentialsProvider> credentialsProviders;
-  private final ApplicationProperties applicationProperties;
   private final LogProgressMonitor logProgressMonitor;
 
   public GitService(
       final List<GitCredentialsProvider> credentialsProviders,
-      final ApplicationProperties applicationProperties,
       final LogProgressMonitor logProgressMonitor) {
     this.credentialsProviders = credentialsProviders;
-    this.applicationProperties = applicationProperties;
     this.logProgressMonitor = logProgressMonitor;
   }
 
@@ -80,5 +76,9 @@ public class GitService {
     } catch (IOException | GitAPIException | URISyntaxException e) {
       throw new PullFailedException(e);
     }
+  }
+
+  public String toFQPN(final URI uri) {
+    return this.getCredentialsProvider(uri).getFQPN(uri);
   }
 }

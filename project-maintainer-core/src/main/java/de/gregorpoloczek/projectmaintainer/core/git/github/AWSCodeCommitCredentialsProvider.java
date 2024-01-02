@@ -6,6 +6,8 @@ import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +17,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AWSCodeCommitCredentialsProvider implements GitCredentialsProvider {
+
+  private static final Pattern AWS_CODE_COMMIT = Pattern.compile(
+      "^\\Qhttps://git-codecommit.\\E(?<region>[^.]+)\\Q.amazonaws.com\\E\\/v1\\/repos\\/(?<repository>.+)$");
 
   @Value("file:./.credentials/aws-codecommit.properties")
   private Resource credentials;
@@ -43,4 +48,17 @@ public class AWSCodeCommitCredentialsProvider implements GitCredentialsProvider 
   public boolean supports(final URI uri) {
     return uri.toString().startsWith("https://git-codecommi");
   }
+
+  @Override
+  public String getFQPN(final URI uri) {
+    final Matcher matcher = AWS_CODE_COMMIT.matcher(uri.toString());
+    if (matcher.matches()) {
+      final String region = matcher.group("region");
+      final String repository = matcher.group("repository");
+      // TODO owner
+      return "aws-codecommit/" + region + "/" + repository;
+    }
+    throw new IllegalStateException(uri.toString());
+  }
+
 }
