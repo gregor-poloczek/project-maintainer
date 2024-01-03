@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.git.github;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.git.common.GitCredentialsProvider;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -50,7 +51,7 @@ public class AWSCodeCommitCredentialsProvider implements GitCredentialsProvider 
   }
 
   @Override
-  public String getFQPN(final URI uri) {
+  public FQPN getFQPN(final URI uri) {
     final String account;
 
     try {
@@ -75,7 +76,7 @@ public class AWSCodeCommitCredentialsProvider implements GitCredentialsProvider 
     if (matcher.matches()) {
       final String region = matcher.group("region");
       final String repository = matcher.group("repository");
-      return "aws-codecommit/" + account + "/" + region + "/" + repository;
+      return FQPN.of("aws-codecommit", account, region, repository);
     }
     throw new IllegalStateException(uri.toString());
   }

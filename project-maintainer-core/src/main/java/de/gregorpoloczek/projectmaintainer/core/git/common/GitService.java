@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.git.common;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -78,7 +79,7 @@ public class GitService {
     }
   }
 
-  public String toFQPN(final URI uri) {
+  public FQPN toFQPN(final URI uri) {
     return this.getCredentialsProvider(uri).getFQPN(uri);
   }
 }
