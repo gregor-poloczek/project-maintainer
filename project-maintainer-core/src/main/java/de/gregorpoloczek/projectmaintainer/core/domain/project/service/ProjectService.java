@@ -146,6 +146,7 @@ public class ProjectService {
         throw new UncheckedIOException(e);
       }
     }
+    projectsFile.getProjects().removeIf(p -> projectsToRemove.contains(p.getFqpn()));
 
     try {
       IOUtils.write(this.objectMapper.writeValueAsString(projectsFile),
