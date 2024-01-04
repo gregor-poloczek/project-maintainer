@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.config.Project;
@@ -23,6 +24,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -41,52 +43,74 @@ public class ProjectService {
   private final ApplicationProperties applicationProperties;
   private final GitService gitService;
   private final ObjectMapper objectMapper;
+  private final File projectsDirectory;
+  private final File projectsFileRaw;
 
   public ProjectService(final ApplicationProperties applicationProperties,
       final GitService gitService, final ObjectMapper objectMapper) {
     this.applicationProperties = applicationProperties;
     this.gitService = gitService;
     this.objectMapper = objectMapper;
+    this.projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
+    this.projectsFileRaw = new File(projectsDirectory, PROJECTS_FILE);
   }
 
   @PostConstruct
   private void init() {
     this.cloneProjects();
+    this.listProjects();
+  }
+
+  public ListProjectsResult listProjects() {
+    final ProjectsFile projectsFile = this.requireProjectsFile();
+
+    for (Project project : projectsFile.getProjects()) {
+      log.info("Found project \"{}\"", project.getFqpn());
+    }
+
+    return new ListProjectsResult() {
+    };
+  }
+
+  private ProjectsFile requireProjectsFile() {
+    return this.readProjectsFile().orElseThrow(() -> new IllegalStateException(
+        "Projects file not available, please clone projects firsts."));
+  }
+
+  private Optional<ProjectsFile> readProjectsFile() {
+    if (!this.projectsFileRaw.exists()) {
+      return Optional.empty();
+    }
+    try {
+      return Optional.of(this.objectMapper.readValue(projectsFileRaw, ProjectsFile.class));
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
+  private void writeProjectsFile(ProjectsFile projectsFile) {
+    try {
+      IOUtils.write(
+          this.objectMapper.writer(new DefaultPrettyPrinter()).writeValueAsString(projectsFile),
+          new FileOutputStream(projectsFileRaw), StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
 
   public CloneProjectsResult cloneProjects() {
-    final File projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
-    final File projectsFileRaw =
-        new File(projectsDirectory, PROJECTS_FILE);
-
     if (!projectsDirectory.exists()) {
       if (!projectsDirectory.mkdirs()) {
         throw new IllegalStateException("Cannot create projects directory.");
       }
     }
 
-    final ProjectsFile projectsFile;
-    if (!projectsFileRaw.exists()) {
-//      if (projectsDirectory.exists()) {
-//        throw new IllegalStateException(
-//            "Projects directory \"%s\" already exists without a \"%s\", cloning not possible.".formatted(
-//                projectsDirectory, PROJECTS_FILE));
-//      }
-      projectsFile = new ProjectsFile();
-      projectsFile.setVersion(SUPPORTED_VERSION);
-    } else {
-      try {
-        projectsFile = this.objectMapper.readValue(projectsFileRaw, ProjectsFile.class);
-        if (!projectsFile.getVersion().equals(SUPPORTED_VERSION)) {
-          throw new IllegalStateException(
-              "Found projects file with unsupported version %s".formatted(
-                  projectsFile.getVersion()));
-        }
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    }
+    final ProjectsFile projectsFile = this.readProjectsFile()
+        .orElseGet(() -> new ProjectsFile(SUPPORTED_VERSION));
+
+    // TODO test SUPPORTED VERSION with another conversion type, otherwise there will be
+    //  serialization problems
 
     final List<URI> uris = applicationProperties
         .getProjects()
@@ -148,13 +172,7 @@ public class ProjectService {
     }
     projectsFile.getProjects().removeIf(p -> projectsToRemove.contains(p.getFqpn()));
 
-    try {
-      IOUtils.write(this.objectMapper.writeValueAsString(projectsFile),
-          new FileOutputStream(projectsFileRaw), StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-
+    this.writeProjectsFile(projectsFile);
     if (failed > 0) {
       throw new IllegalStateException("Failed to clone %d projects.".formatted(failed));
     }

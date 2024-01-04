@@ -9,6 +9,13 @@ import lombok.Setter;
 @Setter
 public final class ProjectsFile {
 
+  public ProjectsFile(final String version) {
+    this.version = version;
+  }
+
+  public ProjectsFile() {
+  }
+
   private String version;
   private List<Project> projects = new ArrayList<>();
 

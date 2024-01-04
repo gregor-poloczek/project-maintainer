@@ -17,6 +17,7 @@ public class ApplicationConfiguration {
   @Primary
   public ObjectMapper objectMapper() {
     SimpleModule module = new SimpleModule();
+    // TODO @JsonComponent
     module.addSerializer(FQPN.class, new FQPNSerializer());
     module.addDeserializer(FQPN.class, new FQPNDeserializer());
 
