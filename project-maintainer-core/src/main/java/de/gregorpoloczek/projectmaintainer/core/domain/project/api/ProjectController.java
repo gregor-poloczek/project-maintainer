@@ -8,6 +8,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,6 +21,13 @@ public class ProjectController {
   public ProjectController(final ProjectService projectService) {
     this.projectService = projectService;
   }
+
+  @PostMapping("/operations/clone")
+  public ResponseEntity<Void> clone() {
+    this.projectService.cloneProjects();
+    return ResponseEntity.accepted().build();
+  }
+
 
   @GetMapping("/")
   public ResponseEntity<List<ProjectResource>> getProjects() {

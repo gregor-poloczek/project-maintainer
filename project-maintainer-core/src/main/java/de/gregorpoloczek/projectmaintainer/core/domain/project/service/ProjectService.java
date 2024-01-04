@@ -5,19 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectJSON;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectsFileJSON;
-import de.gregorpoloczek.projectmaintainer.core.git.common.CloneFailedException;
 import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
@@ -92,12 +91,8 @@ public class ProjectService {
       if (project.isCloned()) {
         continue;
       }
-      final URI uri = project.getURI();
-      try {
-        gitService.clone(uri, project.getDirectory());
-      } catch (CloneFailedException e) {
-        log.error("Failed to clone " + uri, e);
-      }
+      final CompletableFuture<Boolean> future = gitService.clone(project);
+      future.whenComplete((r, t) -> project.setCloned(t == null && r));
     }
 
 //    log.info("Pulling {} projects", projectsToPull.size());

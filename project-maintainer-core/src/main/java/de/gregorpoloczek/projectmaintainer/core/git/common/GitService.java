@@ -1,15 +1,18 @@
 package de.gregorpoloczek.projectmaintainer.core.git.common;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -26,18 +29,16 @@ public class GitService {
     this.logProgressMonitor = logProgressMonitor;
   }
 
-  public void clone(URI uri, File directory) {
-
+  @Async
+  public CompletableFuture<Boolean> clone(Project project) {
+    final File directory = project.getDirectory();
+    final URI uri = project.getURI();
     if (directory.exists()) {
       new ProjectAlreadyClonedException();
     }
 
     final CredentialsProvider credentialProvider = this.getCredentialsProvider(uri)
         .getCredentialsProvider();
-
-    if (directory.exists()) {
-      throw new ProjectAlreadyClonedException();
-    }
 
     try {
       log.info("Cloning \"{}\".", uri);
@@ -51,6 +52,7 @@ public class GitService {
     } catch (GitAPIException e) {
       throw new CloneFailedException(e);
     }
+    return CompletableFuture.completedFuture(true);
   }
 
   private GitCredentialsProvider getCredentialsProvider(final URI uri) {
