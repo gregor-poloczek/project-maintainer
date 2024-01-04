@@ -3,7 +3,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.api;
 import static java.util.stream.Collectors.toList;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.ProjectResource;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ListProjectsResult;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -23,9 +23,9 @@ public class ProjectController {
 
   @GetMapping("/")
   public ResponseEntity<List<ProjectResource>> getProjects() {
-    final ListProjectsResult result = this.projectService.listProjects();
+    final List<Project> result = this.projectService.getProjects();
 
-    return ResponseEntity.ok(result.getProjects().stream().map(ProjectResource::of).collect(
+    return ResponseEntity.ok(result.stream().map(ProjectResource::of).collect(
         toList()));
   }
 }

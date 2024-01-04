@@ -6,9 +6,11 @@ import java.net.URI;
 
 public interface Project {
 
+  boolean isCloned();
+
   File getDirectory();
 
-  URI getUri();
+  URI getURI();
 
   FQPN getFQPN();
 }

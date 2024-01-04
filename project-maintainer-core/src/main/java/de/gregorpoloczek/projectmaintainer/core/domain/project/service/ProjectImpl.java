@@ -4,9 +4,14 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQ
 import java.io.File;
 import java.net.URI;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+
 public class ProjectImpl implements Project {
+
+  @Setter
+  private volatile boolean cloned;
 
   public ProjectImpl(final File directory, final URI uri, final FQPN fqpn) {
     this.directory = directory;
@@ -18,8 +23,13 @@ public class ProjectImpl implements Project {
   private URI uri;
   private FQPN fqpn;
 
+  public URI getURI() {
+    return uri;
+  }
+
   @Override
   public FQPN getFQPN() {
     return this.fqpn;
   }
+
 }
