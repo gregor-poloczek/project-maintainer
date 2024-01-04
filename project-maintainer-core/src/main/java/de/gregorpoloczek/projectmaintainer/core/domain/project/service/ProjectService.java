@@ -66,7 +66,7 @@ public class ProjectService {
       }
     }
 
-    ProjectsFile projectsFile;
+    final ProjectsFile projectsFile;
     if (!projectsFileRaw.exists()) {
 //      if (projectsDirectory.exists()) {
 //        throw new IllegalStateException(
@@ -92,21 +92,21 @@ public class ProjectService {
         .getProjects()
         .getUris();
 
-    SortedSet<FQPN> existingClonedFQPNs = this.findExistingProjects(projectsDirectory);
+    final SortedSet<FQPN> existingClonedFQPNs = this.findExistingProjects(projectsDirectory);
     final Map<FQPN, URI> fqpnToUri = uris.stream()
         .collect(toMap(this.gitService::toFQPN, identity()));
     SortedSet<FQPN> configuredProjects = new TreeSet<>(fqpnToUri.keySet());
 
-    SortedSet<FQPN> projectsToClone = new TreeSet<>();
+    final SortedSet<FQPN> projectsToClone = new TreeSet<>();
     projectsToClone.addAll(configuredProjects);
     projectsToClone.removeAll(existingClonedFQPNs);
 
-    SortedSet<FQPN> projectsToPull =
+    final SortedSet<FQPN> projectsToPull =
         configuredProjects.stream()
             .filter(existingClonedFQPNs::contains)
             .collect(Collectors.toCollection(TreeSet::new));
 
-    SortedSet<FQPN> projectsToRemove =
+    final SortedSet<FQPN> projectsToRemove =
         existingClonedFQPNs.stream().filter(p -> !configuredProjects.contains(p))
             .collect(Collectors.toCollection(TreeSet::new));
 

@@ -9,7 +9,5 @@ public interface Project {
 
   URI getUri();
 
-  GitSource getSource();
-
-  String getFQPN();
+  FQPN getFQPN();
 }
