@@ -1,9 +1,21 @@
 package de.gregorpoloczek.projectmaintainer.core.common;
 
 
+import java.util.concurrent.Executor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.AsyncConfigurer;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
-public class ApplicationConfiguration {
+@EnableAsync
+public class ApplicationConfiguration implements AsyncConfigurer {
 
+  @Override
+  public Executor getAsyncExecutor() {
+    ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
+    threadPoolTaskExecutor.setCorePoolSize(10);
+    threadPoolTaskExecutor.initialize();
+    return threadPoolTaskExecutor;
+  }
 }

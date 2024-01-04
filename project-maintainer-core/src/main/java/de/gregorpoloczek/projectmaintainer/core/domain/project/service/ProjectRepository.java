@@ -44,7 +44,7 @@ public class ProjectRepository {
     this.projectsFileRaw = new File(projectsDirectory, PROJECTS_FILE);
   }
 
-  @Async
+  @Async()
   public void init() {
     if (!projectsDirectory.exists()) {
       try {
