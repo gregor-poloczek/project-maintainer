@@ -7,17 +7,25 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public final class Project {
+public final class ProjectJSON {
 
   private URI uri;
   private FQPN fqpn;
 
-  public Project(final URI uri, final FQPN fqpn) {
+  public ProjectJSON(final URI uri, final FQPN fqpn) {
     this.uri = uri;
     this.fqpn = fqpn;
   }
 
-  public Project() {
+  public URI getURI() {
+    return uri;
+  }
+
+  public FQPN getFQPN() {
+    return fqpn;
+  }
+
+  public ProjectJSON() {
 
   }
 

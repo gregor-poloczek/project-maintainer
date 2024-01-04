@@ -2,14 +2,15 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.Project;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectsFile;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectJSON;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectsFileJSON;
 import de.gregorpoloczek.projectmaintainer.core.git.common.CloneFailedException;
 import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
 import jakarta.annotation.PostConstruct;
@@ -24,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,33 +65,44 @@ public class ProjectService {
   }
 
   public ListProjectsResult listProjects() {
-    final ProjectsFile projectsFile = this.requireProjectsFile();
+    final ProjectsFileJSON projectsFile = this.requireProjectsFile();
 
-    for (Project project : projectsFile.getProjects()) {
-      log.info("Found project \"{}\"", project.getFqpn());
+    for (ProjectJSON project : projectsFile.getProjects()) {
+      log.info("Found project \"{}\"", project.getFQPN());
     }
 
     return new ListProjectsResult() {
+      @Override
+      public List<Project> getProjects() {
+        return projectsFile.getProjects().stream().map(p -> new ProjectImpl(
+            ProjectService.this.toDirectory(p.getFQPN()),
+            p.getURI(),
+            p.getFQPN()
+        )).collect(toList());
+      }
     };
   }
 
-  private ProjectsFile requireProjectsFile() {
+  private ProjectsFileJSON requireProjectsFile() {
     return this.readProjectsFile().orElseThrow(() -> new IllegalStateException(
         "Projects file not available, please clone projects firsts."));
   }
 
-  private Optional<ProjectsFile> readProjectsFile() {
+  private Optional<ProjectsFileJSON> readProjectsFile() {
     if (!this.projectsFileRaw.exists()) {
       return Optional.empty();
     }
     try {
-      return Optional.of(this.objectMapper.readValue(projectsFileRaw, ProjectsFile.class));
+      final ProjectsFileJSON file = this.objectMapper.readValue(projectsFileRaw,
+          ProjectsFileJSON.class);
+      Collections.sort(file.getProjects(), Comparator.comparing(ProjectJSON::getFQPN));
+      return Optional.of(file);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
-  private void writeProjectsFile(ProjectsFile projectsFile) {
+  private void writeProjectsFile(ProjectsFileJSON projectsFile) {
     try {
       IOUtils.write(
           this.objectMapper.writer(new DefaultPrettyPrinter()).writeValueAsString(projectsFile),
@@ -108,8 +122,8 @@ public class ProjectService {
       }
     }
 
-    final ProjectsFile projectsFile = this.readProjectsFile()
-        .orElseGet(() -> new ProjectsFile(SUPPORTED_VERSION));
+    final ProjectsFileJSON projectsFile = this.readProjectsFile()
+        .orElseGet(() -> new ProjectsFileJSON(SUPPORTED_VERSION));
 
     // TODO test SUPPORTED VERSION with another conversion type, otherwise there will be
     //  serialization problems
@@ -142,11 +156,11 @@ public class ProjectService {
     int failed = 0;
     for (FQPN fqpn : projectsToClone) {
       final File directory =
-          projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
+          toDirectory(fqpn);
       final URI uri = fqpnToUri.get(fqpn);
       try {
         gitService.clone(uri, directory);
-        final Project project = new Project(uri, fqpn);
+        final ProjectJSON project = new ProjectJSON(uri, fqpn);
         projectsFile.getProjects().add(project);
       } catch (CloneFailedException e) {
         failed++;
@@ -156,22 +170,18 @@ public class ProjectService {
 
     log.info("Pulling {} projects", projectsToPull.size());
     for (FQPN fqpn : projectsToPull) {
-      final File directory =
-          projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
-      gitService.pull(directory);
+      gitService.pull(this.toDirectory(fqpn));
     }
 
     log.info("Removing {} obsolete projects", projectsToRemove.size());
     for (FQPN fqpn : projectsToRemove) {
-      final File directory =
-          projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
       try {
-        FileUtils.deleteDirectory(directory);
+        FileUtils.deleteDirectory(this.toDirectory(fqpn));
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
     }
-    projectsFile.getProjects().removeIf(p -> projectsToRemove.contains(p.getFqpn()));
+    projectsFile.getProjects().removeIf(p -> projectsToRemove.contains(p.getFQPN()));
 
     this.writeProjectsFile(projectsFile);
     if (failed > 0) {
@@ -180,6 +190,10 @@ public class ProjectService {
 
     return new CloneProjectsResult() {
     };
+  }
+
+  private File toDirectory(final FQPN fqpn) {
+    return projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
   }
 
   private SortedSet<FQPN> findExistingProjects(final File projectsDirectory) {

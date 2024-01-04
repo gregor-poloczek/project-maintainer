@@ -7,16 +7,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public final class ProjectsFile {
+public final class ProjectsFileJSON {
 
   private String version;
-  private List<Project> projects = new ArrayList<>();
+  private List<ProjectJSON> projects = new ArrayList<>();
 
-  public ProjectsFile(final String version) {
+  public ProjectsFileJSON(final String version) {
     this.version = version;
   }
 
-  public ProjectsFile() {
+  public ProjectsFileJSON() {
   }
 
 
