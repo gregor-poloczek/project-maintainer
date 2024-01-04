@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.git.github;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.git.common.GitCredentialsProvider;
 import java.io.IOException;
 import java.io.UncheckedIOException;

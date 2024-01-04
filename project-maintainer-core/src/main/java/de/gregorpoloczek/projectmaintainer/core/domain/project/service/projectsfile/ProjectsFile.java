@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service.config;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +9,9 @@ import lombok.Setter;
 @Setter
 public final class ProjectsFile {
 
+  private String version;
+  private List<Project> projects = new ArrayList<>();
+
   public ProjectsFile(final String version) {
     this.version = version;
   }
@@ -16,7 +19,5 @@ public final class ProjectsFile {
   public ProjectsFile() {
   }
 
-  private String version;
-  private List<Project> projects = new ArrayList<>();
 
 }

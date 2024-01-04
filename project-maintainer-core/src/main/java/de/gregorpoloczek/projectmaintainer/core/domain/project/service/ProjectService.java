@@ -1,13 +1,15 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toMap;
 
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.config.Project;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.config.ProjectsFile;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectsFile;
 import de.gregorpoloczek.projectmaintainer.core.git.common.CloneFailedException;
 import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
 import jakarta.annotation.PostConstruct;
@@ -27,7 +29,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -39,7 +40,6 @@ public class ProjectService {
 
   public static final String PROJECTS_FILE = "projects.json";
   public static final String SUPPORTED_VERSION = "1";
-
   private final ApplicationProperties applicationProperties;
   private final GitService gitService;
   private final ObjectMapper objectMapper;
@@ -101,8 +101,10 @@ public class ProjectService {
 
   public CloneProjectsResult cloneProjects() {
     if (!projectsDirectory.exists()) {
-      if (!projectsDirectory.mkdirs()) {
-        throw new IllegalStateException("Cannot create projects directory.");
+      try {
+        Files.createDirectories(projectsDirectory.toPath());
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
       }
     }
 
@@ -128,24 +130,23 @@ public class ProjectService {
     final SortedSet<FQPN> projectsToPull =
         configuredProjects.stream()
             .filter(existingClonedFQPNs::contains)
-            .collect(Collectors.toCollection(TreeSet::new));
+            .collect(toCollection(TreeSet::new));
 
     final SortedSet<FQPN> projectsToRemove =
         existingClonedFQPNs.stream().filter(p -> !configuredProjects.contains(p))
-            .collect(Collectors.toCollection(TreeSet::new));
+            .collect(toCollection(TreeSet::new));
 
     log.info("Cloning {} projects", projectsToClone.size());
 
     // TODO reset to default branch
     int failed = 0;
-    final CloneProjectsResultImpl result = new CloneProjectsResultImpl();
     for (FQPN fqpn : projectsToClone) {
       final File directory =
-          Path.of(projectsDirectory.toURI()).resolve(fqpn.getValue()).toFile();
+          projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
       final URI uri = fqpnToUri.get(fqpn);
       try {
         gitService.clone(uri, directory);
-        final Project project = new Project(uri.toString(), fqpn);
+        final Project project = new Project(uri, fqpn);
         projectsFile.getProjects().add(project);
       } catch (CloneFailedException e) {
         failed++;
@@ -156,14 +157,14 @@ public class ProjectService {
     log.info("Pulling {} projects", projectsToPull.size());
     for (FQPN fqpn : projectsToPull) {
       final File directory =
-          Path.of(projectsDirectory.toURI()).resolve(fqpn.getValue()).toFile();
+          projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
       gitService.pull(directory);
     }
 
     log.info("Removing {} obsolete projects", projectsToRemove.size());
     for (FQPN fqpn : projectsToRemove) {
       final File directory =
-          Path.of(projectsDirectory.toURI()).resolve(fqpn.getValue()).toFile();
+          projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
       try {
         FileUtils.deleteDirectory(directory);
       } catch (IOException e) {
@@ -177,20 +178,21 @@ public class ProjectService {
       throw new IllegalStateException("Failed to clone %d projects.".formatted(failed));
     }
 
-    return result;
+    return new CloneProjectsResult() {
+    };
   }
 
   private SortedSet<FQPN> findExistingProjects(final File projectsDirectory) {
     SortedSet<FQPN> existingClonedFQPNs = new TreeSet<>();
 
     try {
-      Files.walkFileTree(Path.of(projectsDirectory.toURI()), new SimpleFileVisitor<>() {
+      Files.walkFileTree(projectsDirectory.toPath(), new SimpleFileVisitor<>() {
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
             throws IOException {
           if (Files.exists(dir.resolve(".git"))) {
             existingClonedFQPNs.add(
-                FQPN.of(Path.of(projectsDirectory.toURI()).relativize(dir).toString()));
+                FQPN.of(projectsDirectory.toPath().relativize(dir).toString()));
           }
           return super.preVisitDirectory(dir, attrs);
         }
