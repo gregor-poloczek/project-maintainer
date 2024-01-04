@@ -91,6 +91,7 @@ public class ProjectService {
       if (project.isCloned()) {
         continue;
       }
+      // TODO mutex
       final CompletableFuture<Boolean> future = gitService.clone(project);
       future.whenComplete((r, t) -> project.setCloned(t == null && r));
     }
