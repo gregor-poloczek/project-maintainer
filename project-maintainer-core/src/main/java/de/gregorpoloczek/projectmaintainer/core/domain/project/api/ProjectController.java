@@ -6,6 +6,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.Pro
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
@@ -28,6 +29,11 @@ public class ProjectController {
   @PostMapping("/operations/clone")
   public Flux<ServerSentEvent<CloneResult>> clone() {
     return this.projectService.cloneProjects().map(r -> ServerSentEvent.builder(r).build());
+  }
+
+  @PostMapping("/operations/pull")
+  public Flux<ServerSentEvent<PullResult>> pull() {
+    return this.projectService.pullProjects().map(r -> ServerSentEvent.builder(r).build());
   }
 
 

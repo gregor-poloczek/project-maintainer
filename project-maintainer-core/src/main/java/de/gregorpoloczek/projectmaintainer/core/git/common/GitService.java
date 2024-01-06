@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.core.git.common;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
 import java.io.IOException;
@@ -71,7 +72,9 @@ public class GitService {
             "Could not find a git credentials provider for uri " + uri));
   }
 
-  public void pull(File directory) {
+  @Async
+  public CompletableFuture<PullResult> pull(Project project) {
+    final File directory = project.getDirectory();
     try (Git git = Git.open(directory)) {
       log.info("Pulling \"{}\".", directory);
 
@@ -79,11 +82,18 @@ public class GitService {
       final CredentialsProvider cP = this.getCredentialsProvider(new URI(remoteUrl))
           .getCredentialsProvider();
 
-      git.pull()
+      var p = git.pull()
           .setCredentialsProvider(cP)
           .setProgressMonitor(this.logProgressMonitor)
           .call();
+
       log.info("Pulling \"{}\" successfully.", directory);
+      return CompletableFuture.completedFuture(new PullResult() {
+        @Override
+        public Commit getLatestCommit() {
+          return toCommit(p.getRebaseResult().getCurrentCommit());
+        }
+      });
     } catch (IOException | GitAPIException | URISyntaxException e) {
       throw new PullFailedException(e);
     }
@@ -102,22 +112,7 @@ public class GitService {
           iterator().
           next();
 
-      return Optional.of(new Commit() {
-        @Override
-        public Instant getTimestamp() {
-          return Instant.ofEpochSecond(latestCommit.getCommitTime());
-        }
-
-        @Override
-        public String getMessage() {
-          return latestCommit.getFullMessage();
-        }
-
-        @Override
-        public String getHash() {
-          return latestCommit.getName();
-        }
-      });
+      return Optional.of(toCommit(latestCommit));
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } catch (NoHeadException e) {
@@ -125,5 +120,24 @@ public class GitService {
     } catch (GitAPIException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private Commit toCommit(final RevCommit latestCommit) {
+    return new Commit() {
+      @Override
+      public Instant getTimestamp() {
+        return Instant.ofEpochSecond(latestCommit.getCommitTime());
+      }
+
+      @Override
+      public String getMessage() {
+        return latestCommit.getFullMessage();
+      }
+
+      @Override
+      public String getHash() {
+        return latestCommit.getName();
+      }
+    };
   }
 }

@@ -109,4 +109,11 @@ public class ProjectService {
   }
 
 
+  public Flux<PullResult> pullProjects() {
+    return Flux.merge(
+        this.projectRepository.findAll().stream()
+            .map(p -> gitService.pull(p))
+            .map(f -> Mono.fromFuture(f))
+            .toList());
+  }
 }
