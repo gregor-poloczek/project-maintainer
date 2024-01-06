@@ -16,10 +16,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
@@ -86,23 +87,25 @@ public class ProjectService {
   }
 
 
-  public CloneProjectsResult cloneProjects() {
-    for (ProjectImpl project : this.projectRepository.findAll()) {
-      if (project.isCloned()) {
-        continue;
-      }
-      // TODO mutex
-      final CompletableFuture<Boolean> future = gitService.clone(project);
-      future.whenComplete((r, t) -> project.setCloned(t == null && r));
-    }
+  public Flux<CloneResult> cloneProjects() {
+    return Flux.merge(this.projectRepository.findAll().stream()
+        .map(p -> gitService.clone(p))
+        .map(f -> Mono.fromFuture(f))
+        .toList());
+
+//    for (ProjectImpl project : this.projectRepository.findAll()) {
+//      if (project.isCloned()) {
+//        continue;
+//      }
+//      // TODO mutex
+//      final CompletableFuture<Boolean> future = gitService.clone(project);
+//      future.whenComplete((r, t) -> project.setCloned(t == null && r));
+//    }
 
 //    log.info("Pulling {} projects", projectsToPull.size());
 //    for (FQPN fqpn : projectsToPull) {
 //      gitService.pull(this.toDirectory(fqpn));
 //    }
-
-    return new CloneProjectsResult() {
-    };
   }
 
 

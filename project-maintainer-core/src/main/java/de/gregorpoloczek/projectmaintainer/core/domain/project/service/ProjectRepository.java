@@ -62,7 +62,8 @@ public class ProjectRepository {
         projects.stream().map(Project::getFQPN).collect(toCollection(TreeSet::new));
 
     final SortedSet<FQPN> existingProjects = this.findExistingProjects();
-    projects.forEach(p -> p.setCloned(existingProjects.contains(p.getFQPN())));
+    projects.stream().filter(p -> existingProjects.contains(p.getFQPN()))
+        .forEach(p -> p.markAsCloned());
 
     SortedSet<FQPN> projectsToRemove = new TreeSet<>();
     projectsToRemove.addAll(existingProjects);

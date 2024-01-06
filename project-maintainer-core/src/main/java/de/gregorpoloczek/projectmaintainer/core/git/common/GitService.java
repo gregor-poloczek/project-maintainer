@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.git.common;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
 import java.io.IOException;
@@ -30,11 +31,11 @@ public class GitService {
   }
 
   @Async
-  public CompletableFuture<Boolean> clone(Project project) {
+  public CompletableFuture<CloneResult> clone(GitClonable project) {
     final File directory = project.getDirectory();
     final URI uri = project.getURI();
     if (directory.exists()) {
-      new ProjectAlreadyClonedException();
+      return CompletableFuture.completedFuture(new CloneResult(project));
     }
 
     final CredentialsProvider credentialProvider = this.getCredentialsProvider(uri)
@@ -48,11 +49,12 @@ public class GitService {
           .setProgressMonitor(this.logProgressMonitor)
           .call()
           .close();
+      project.markAsCloned();
       log.info("Cloned \"{}\" successfully.", uri);
     } catch (GitAPIException e) {
       throw new CloneFailedException(e);
     }
-    return CompletableFuture.completedFuture(true);
+    return CompletableFuture.completedFuture(new CloneResult(project));
   }
 
   private GitCredentialsProvider getCredentialsProvider(final URI uri) {

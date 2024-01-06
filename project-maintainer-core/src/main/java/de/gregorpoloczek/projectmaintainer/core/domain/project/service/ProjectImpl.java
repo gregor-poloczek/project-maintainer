@@ -4,13 +4,11 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQ
 import java.io.File;
 import java.net.URI;
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
 
-public class ProjectImpl implements Project {
+public class ProjectImpl implements Project, GitClonable {
 
-  @Setter
   private volatile boolean cloned;
 
   public ProjectImpl(final File directory, final URI uri, final FQPN fqpn) {
@@ -25,6 +23,11 @@ public class ProjectImpl implements Project {
 
   public URI getURI() {
     return uri;
+  }
+
+  @Override
+  public void markAsCloned() {
+    this.cloned = true;
   }
 
   @Override

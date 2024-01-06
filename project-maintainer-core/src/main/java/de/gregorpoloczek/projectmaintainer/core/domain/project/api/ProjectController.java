@@ -3,14 +3,17 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.api;
 import static java.util.stream.Collectors.toList;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.ProjectResource;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 @RestController
 @RequestMapping("/v1/projects")
@@ -23,9 +26,8 @@ public class ProjectController {
   }
 
   @PostMapping("/operations/clone")
-  public ResponseEntity<Void> clone() {
-    this.projectService.cloneProjects();
-    return ResponseEntity.accepted().build();
+  public Flux<ServerSentEvent<CloneResult>> clone() {
+    return this.projectService.cloneProjects().map(r -> ServerSentEvent.builder(r).build());
   }
 
 
