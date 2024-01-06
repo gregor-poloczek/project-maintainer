@@ -2,7 +2,6 @@ package de.gregorpoloczek.projectmaintainer.core.git.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitClonable;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
@@ -71,6 +70,10 @@ public class GitService {
             .call()
             .close();
         project.markAsCloned();
+        final Optional<Commit> commit =
+            this.getLatestCommitHash(project);
+        project.setLatestCommit(commit.get());
+
         log.info("Cloned \"{}\" successfully.", uri);
       } catch (GitAPIException e) {
         throw new CloneFailedException(e);
@@ -129,7 +132,7 @@ public class GitService {
     return this.getCredentialsProvider(uri).getFQPN(uri);
   }
 
-  public Optional<Commit> getLatestCommitHash(final Project project) {
+  public Optional<Commit> getLatestCommitHash(final GitClonable project) {
     try (Git git = Git.open(project.getDirectory())) {
       RevCommit latestCommit = git.
           log().

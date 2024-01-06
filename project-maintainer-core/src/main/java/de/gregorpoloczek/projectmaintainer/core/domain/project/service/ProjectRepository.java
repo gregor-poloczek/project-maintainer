@@ -69,9 +69,11 @@ public class ProjectRepository {
         .forEach(p -> p.markAsCloned());
 
     for (ProjectImpl project : projects) {
-      final Optional<Commit> commit =
-          this.gitService.getLatestCommitHash(project);
-      commit.ifPresent(project::setLatestCommit);
+      if (project.isCloned()) {
+        final Optional<Commit> commit =
+            this.gitService.getLatestCommitHash(project);
+        commit.ifPresent(project::setLatestCommit);
+      }
     }
 
     SortedSet<FQPN> projectsToRemove = new TreeSet<>();

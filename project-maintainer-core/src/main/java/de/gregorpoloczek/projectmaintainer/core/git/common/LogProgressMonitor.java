@@ -10,18 +10,17 @@ import org.springframework.stereotype.Component;
 public class LogProgressMonitor implements ProgressMonitor {
 
   @Override
-  public void start(final int i) {
+  public void start(final int totalTasks) {
 
   }
 
   @Override
-  public void beginTask(final String s, final int i) {
-    log.info("{} {}", s, i);
+  public void beginTask(final String title, final int totalWork) {
+    log.info("{} {}", title, totalWork);
   }
 
   @Override
-  public void update(final int i) {
-
+  public void update(final int completed) {
   }
 
   @Override
