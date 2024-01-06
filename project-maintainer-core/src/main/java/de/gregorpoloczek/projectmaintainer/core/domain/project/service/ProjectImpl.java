@@ -5,6 +5,8 @@ import de.gregorpoloczek.projectmaintainer.core.git.common.Commit;
 import java.io.File;
 import java.net.URI;
 import lombok.Getter;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Getter
 
@@ -39,5 +41,25 @@ public class ProjectImpl implements Project, GitClonable {
 
   public void setLatestCommit(Commit commit) {
     this.latestCommit = commit;
+  }
+
+  @Override
+  public boolean equals(final Object object) {
+    if (this == object) {
+      return true;
+    }
+
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+
+    final ProjectImpl project = (ProjectImpl) object;
+
+    return new EqualsBuilder().append(fqpn, project.fqpn).isEquals();
+  }
+
+  @Override
+  public int hashCode() {
+    return new HashCodeBuilder(17, 37).append(fqpn).toHashCode();
   }
 }
