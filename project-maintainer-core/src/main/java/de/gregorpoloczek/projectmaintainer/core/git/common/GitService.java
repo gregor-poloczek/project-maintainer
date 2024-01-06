@@ -2,16 +2,22 @@ package de.gregorpoloczek.projectmaintainer.core.git.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitClonable;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -85,5 +91,39 @@ public class GitService {
 
   public FQPN toFQPN(final URI uri) {
     return this.getCredentialsProvider(uri).getFQPN(uri);
+  }
+
+  public Optional<Commit> getLatestCommitHash(final Project project) {
+    try (Git git = Git.open(project.getDirectory())) {
+      RevCommit latestCommit = git.
+          log().
+          setMaxCount(1).
+          call().
+          iterator().
+          next();
+
+      return Optional.of(new Commit() {
+        @Override
+        public Instant getTimestamp() {
+          return Instant.ofEpochSecond(latestCommit.getCommitTime());
+        }
+
+        @Override
+        public String getMessage() {
+          return latestCommit.getFullMessage();
+        }
+
+        @Override
+        public String getHash() {
+          return latestCommit.getName();
+        }
+      });
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (NoHeadException e) {
+      return Optional.empty();
+    } catch (GitAPIException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

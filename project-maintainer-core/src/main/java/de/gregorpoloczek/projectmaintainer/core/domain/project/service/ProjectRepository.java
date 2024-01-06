@@ -6,6 +6,7 @@ import static java.util.stream.Collectors.toList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.git.common.Commit;
 import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +19,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import lombok.extern.slf4j.Slf4j;
@@ -59,11 +61,18 @@ public class ProjectRepository {
         .getUris().stream().map(this::toProject).collect(toList());
 
     final SortedSet<FQPN> configuredProjects =
-        projects.stream().map(Project::getFQPN).collect(toCollection(TreeSet::new));
+        projects.stream().map(Project::getFQPN)
+            .collect(toCollection(TreeSet::new));
 
     final SortedSet<FQPN> existingProjects = this.findExistingProjects();
     projects.stream().filter(p -> existingProjects.contains(p.getFQPN()))
         .forEach(p -> p.markAsCloned());
+
+    for (ProjectImpl project : projects) {
+      final Optional<Commit> commit =
+          this.gitService.getLatestCommitHash(project);
+      commit.ifPresent(project::setLatestCommit);
+    }
 
     SortedSet<FQPN> projectsToRemove = new TreeSet<>();
     projectsToRemove.addAll(existingProjects);

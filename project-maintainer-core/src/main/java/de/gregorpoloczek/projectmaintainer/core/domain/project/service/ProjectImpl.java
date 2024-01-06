@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.git.common.Commit;
 import java.io.File;
 import java.net.URI;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import lombok.Getter;
 public class ProjectImpl implements Project, GitClonable {
 
   private volatile boolean cloned;
+  private Commit latestCommit;
 
   public ProjectImpl(final File directory, final URI uri, final FQPN fqpn) {
     this.directory = directory;
@@ -35,4 +37,7 @@ public class ProjectImpl implements Project, GitClonable {
     return this.fqpn;
   }
 
+  public void setLatestCommit(Commit commit) {
+    this.latestCommit = commit;
+  }
 }
