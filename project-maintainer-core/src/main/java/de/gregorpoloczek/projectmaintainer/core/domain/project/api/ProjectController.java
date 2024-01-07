@@ -11,9 +11,11 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,9 +49,47 @@ public class ProjectController {
     return this.projectService.pullProjects().map(r -> ServerSentEvent.builder(r).build());
   }
 
+  public static class ProjectOperationProgressEmitter {
+
+    @Getter
+    private SseEmitter emitter = new SseEmitter();
+
+    public void send(OperationProgress progress) {
+      try {
+        emitter.send(
+            SseEmitter.event()
+                .id(progress.getOperation())
+                .name(progress.getState().name())
+                .data(progress, MediaType.APPLICATION_JSON));
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    public void complete() {
+      this.emitter.complete();
+    }
+  }
+
   @PostMapping(value = "/{fqpn}/operations/wipe")
-  public void wipeProject(@PathVariable("fqpn") String fqpn) {
-    this.projectService.wipeProject(FQPN.of(fqpn));
+  public SseEmitter wipeProject(@PathVariable("fqpn") String rawFQPN) {
+    final FQPN fqpn = FQPN.of(rawFQPN);
+    final ProjectOperationProgressEmitter emitter = new ProjectOperationProgressEmitter();
+    ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
+    final OperationProgress progress = new OperationProgress(fqpn, "wipe");
+
+    emitter.send(progress.with(OperationState.SCHEDULED));
+    sseMvcExecutor.execute(() -> {
+      emitter.send(progress.with(OperationState.STARTED));
+      try {
+        this.projectService.wipeProject(fqpn);
+        emitter.send(progress.with(OperationState.SUCCEEDED));
+      } catch (Exception e) {
+        emitter.send(progress.with(OperationState.FAILED));
+      }
+      emitter.complete();
+    });
+    return emitter.getEmitter();
   }
 
   @PostMapping(value = "/{fqpn}/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
