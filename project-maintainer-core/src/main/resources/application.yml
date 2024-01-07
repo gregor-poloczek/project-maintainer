@@ -1,6 +1,9 @@
 spring:
   banner:
     location: banner.txt
+  mvc:
+    async:
+      request-timeout: -1
 
 project-maintainer:
   projects:

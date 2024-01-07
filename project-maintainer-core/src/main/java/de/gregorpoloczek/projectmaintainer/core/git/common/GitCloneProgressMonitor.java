@@ -53,6 +53,7 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
   public void beginTask(final String title, final int totalWork) {
     progress.currentTaskTitle = title;
     progress.currentTaskTotalWork = totalWork;
+    progress.currentTaskTotalWorkDone = 0;
     notifyListener();
   }
 
@@ -64,7 +65,7 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
     }
 
     int tenPercent = (int) Math.ceil((double) progress.currentTaskTotalWork / 10.0d);
-    if (progress.currentTaskTotalWork % tenPercent == 0) {
+    if (progress.currentTaskTotalWorkDone % tenPercent == 0) {
       this.notifyListener();
     }
   }
@@ -72,6 +73,8 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
   @Override
   public void endTask() {
     progress.currentTaskTitle = null;
+    progress.currentTaskTotalWork = -1;
+    progress.currentTaskTotalWorkDone = -1;
     progress.totalTasksDone++;
     notifyListener();
   }

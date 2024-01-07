@@ -74,17 +74,6 @@ public class ProjectController {
           }
       );
     });
-//    new Thread(() -> {
-//      for (int i = 0; i < 10; i++) {
-//        try {
-//          emitter.send(new BlubResult(new Random().nextInt()));
-//          Thread.sleep(250);
-//        } catch (IOException | InterruptedException e) {
-//          emitter.completeWithError(e);
-//        }
-//      }
-//      emitter.complete();
-//    }).start();
     return emitter;
   }
 

@@ -198,9 +198,9 @@ public class GitService {
 
         log.info("Cloned \"{}\" successfully.", uri);
       } catch (GitAPIException e) {
-        throw new CloneFailedException(e);
+        cloneListener.fail(e);
       }
-      return new CloneResult(project);
+      return null;
     });
   }
 }
