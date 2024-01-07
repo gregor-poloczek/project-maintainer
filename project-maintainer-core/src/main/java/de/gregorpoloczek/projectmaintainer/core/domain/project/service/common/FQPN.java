@@ -22,7 +22,7 @@ public class FQPN implements Comparable<FQPN> {
     final List<String> s = new ArrayList<>();
     s.add(segment);
     s.addAll(Arrays.asList(segments));
-    return new FQPN(s.stream().collect(Collectors.joining("/")));
+    return new FQPN(s.stream().collect(Collectors.joining("::")));
   }
 
   @Override

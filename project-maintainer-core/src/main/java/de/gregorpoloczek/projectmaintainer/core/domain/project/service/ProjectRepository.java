@@ -98,7 +98,7 @@ public class ProjectRepository {
   }
 
   private File toDirectory(final FQPN fqpn) {
-    return projectsDirectory.toPath().resolve(fqpn.getValue()).toFile();
+    return projectsDirectory.toPath().resolve(fqpn.getValue().replaceAll("::", "/")).toFile();
   }
 
   private SortedSet<FQPN> findExistingProjects() {
@@ -111,7 +111,8 @@ public class ProjectRepository {
             throws IOException {
           if (Files.exists(dir.resolve(".git"))) {
             existingClonedFQPNs.add(
-                FQPN.of(projectsDirectory.toPath().relativize(dir).toString()));
+                FQPN.of(projectsDirectory.toPath().relativize(dir).toString().replaceAll("/", "::")
+                ));
           }
           return super.preVisitDirectory(dir, attrs);
         }
@@ -129,5 +130,9 @@ public class ProjectRepository {
 
   public List<ProjectImpl> findAll() {
     return this.projects;
+  }
+
+  public Optional<ProjectImpl> find(final FQPN fqpn) {
+    return this.projects.stream().filter(p -> p.getFQPN().equals(fqpn)).findFirst();
   }
 }

@@ -9,6 +9,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResu
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,13 +47,14 @@ public class ProjectController {
     return this.projectService.pullProjects().map(r -> ServerSentEvent.builder(r).build());
   }
 
-  @PostMapping(value = "/operations/test", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter test() {
+  @PostMapping(value = "/{fqpn}/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter test(@PathVariable("fqpn") String fqpn) {
     SseEmitter emitter = new SseEmitter();
 
     ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
     sseMvcExecutor.execute(() -> {
-      this.projectService.cloneProjects2(
+      this.projectService.cloneProject(
+          FQPN.of(fqpn),
           new CloneListener() {
             @Override
             public void update(CloneProgress cloneProgress) {

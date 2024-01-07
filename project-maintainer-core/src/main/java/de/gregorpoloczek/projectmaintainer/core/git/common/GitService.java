@@ -176,7 +176,7 @@ public class GitService {
       final File directory = project.getDirectory();
       final URI uri = project.getURI();
       if (directory.exists()) {
-        return new CloneResult(project);
+        cloneListener.complete();
       }
 
       final CredentialsProvider credentialProvider = this.getCredentialsProvider(uri)

@@ -1,10 +1,9 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
-import static java.util.function.Predicate.not;
-
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectJSON;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectsFileJSON;
 import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
@@ -88,10 +87,10 @@ public class ProjectService {
     }
   }
 
-  public void cloneProjects2(CloneListener cloneListener) {
+  public void cloneProject(FQPN fqpn, CloneListener cloneListener) {
     this.gitService.clone2(
-        this.projectRepository.findAll().stream()
-            .filter(not(Project::isCloned)).findFirst().get(),
+        this.projectRepository.find(fqpn)
+            .orElseThrow(() -> new IllegalStateException(fqpn.toString())),
         cloneListener);
   }
 
