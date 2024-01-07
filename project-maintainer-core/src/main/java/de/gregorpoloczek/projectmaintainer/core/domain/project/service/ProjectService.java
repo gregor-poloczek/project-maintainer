@@ -18,6 +18,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -88,10 +89,12 @@ public class ProjectService {
   }
 
   public void cloneProject(FQPN fqpn, CloneListener cloneListener) {
-    this.gitService.clone2(
-        this.projectRepository.find(fqpn)
-            .orElseThrow(() -> new IllegalStateException(fqpn.toString())),
-        cloneListener);
+    this.gitService.clone2(requireProject(fqpn), cloneListener);
+  }
+
+  private ProjectImpl requireProject(final FQPN fqpn) {
+    return this.projectRepository.find(fqpn)
+        .orElseThrow(() -> new ProjectNotFoundException(fqpn));
   }
 
   public Flux<CloneResult> cloneProjects() {
@@ -122,5 +125,17 @@ public class ProjectService {
             .map(p -> gitService.pull(p))
             .map(f -> Mono.fromFuture(f))
             .toList());
+  }
+
+  public void wipeProject(final FQPN fqpn) {
+    final File directory = this.requireProject(fqpn).getDirectory();
+
+    if (directory.exists()) {
+      try {
+        FileUtils.deleteDirectory(directory);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
   }
 }

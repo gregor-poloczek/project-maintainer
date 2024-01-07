@@ -47,8 +47,13 @@ public class ProjectController {
     return this.projectService.pullProjects().map(r -> ServerSentEvent.builder(r).build());
   }
 
+  @PostMapping(value = "/{fqpn}/operations/wipe")
+  public void wipeProject(@PathVariable("fqpn") String fqpn) {
+    this.projectService.wipeProject(FQPN.of(fqpn));
+  }
+
   @PostMapping(value = "/{fqpn}/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter test(@PathVariable("fqpn") String fqpn) {
+  public SseEmitter cloneProject(@PathVariable("fqpn") String fqpn) {
     SseEmitter emitter = new SseEmitter();
 
     ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
