@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.git.common;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
@@ -168,5 +169,38 @@ public class GitService {
         return latestCommit.getName();
       }
     };
+  }
+
+  public void clone2(final GitClonable project, CloneListener cloneListener) {
+    this.doWithProject(project, () -> {
+      final File directory = project.getDirectory();
+      final URI uri = project.getURI();
+      if (directory.exists()) {
+        return new CloneResult(project);
+      }
+
+      final CredentialsProvider credentialProvider = this.getCredentialsProvider(uri)
+          .getCredentialsProvider();
+
+      try {
+        log.info("Cloning \"{}\".", uri);
+        Git.cloneRepository().setURI(uri.toString())
+            .setDirectory(directory)
+            .setCredentialsProvider(credentialProvider)
+            .setProgressMonitor(new GitCloneProgressMonitor(project.getFQPN(), cloneListener))
+            .call()
+            .close();
+        cloneListener.complete();
+        project.markAsCloned();
+        final Optional<Commit> commit =
+            this.getLatestCommitHash(project);
+        project.setLatestCommit(commit.get());
+
+        log.info("Cloned \"{}\" successfully.", uri);
+      } catch (GitAPIException e) {
+        throw new CloneFailedException(e);
+      }
+      return new CloneResult(project);
+    });
   }
 }

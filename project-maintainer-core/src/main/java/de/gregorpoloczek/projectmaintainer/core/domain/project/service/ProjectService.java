@@ -1,5 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
+import static java.util.function.Predicate.not;
+
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
@@ -86,6 +88,12 @@ public class ProjectService {
     }
   }
 
+  public void cloneProjects2(CloneListener cloneListener) {
+    this.gitService.clone2(
+        this.projectRepository.findAll().stream()
+            .filter(not(Project::isCloned)).findFirst().get(),
+        cloneListener);
+  }
 
   public Flux<CloneResult> cloneProjects() {
     return Flux.merge(this.projectRepository.findAll().stream()
