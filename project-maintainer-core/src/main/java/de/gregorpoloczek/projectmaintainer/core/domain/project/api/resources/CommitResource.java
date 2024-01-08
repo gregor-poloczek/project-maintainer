@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources;
 
-import de.gregorpoloczek.projectmaintainer.core.git.common.Commit;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import java.time.Instant;
 import org.apache.commons.lang3.StringUtils;
 

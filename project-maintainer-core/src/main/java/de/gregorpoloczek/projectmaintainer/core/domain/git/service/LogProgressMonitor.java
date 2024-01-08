@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.git.common;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.lib.ProgressMonitor;

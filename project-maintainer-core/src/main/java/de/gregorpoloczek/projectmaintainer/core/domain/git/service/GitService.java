@@ -1,9 +1,7 @@
-package de.gregorpoloczek.projectmaintainer.core.git.common;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.GitClonable;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.GitClonable;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
 import java.io.IOException;
@@ -16,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
@@ -24,7 +21,6 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -50,40 +46,6 @@ public class GitService {
     }
   }
 
-  @Async
-  public CompletableFuture<CloneResult> clone(GitClonable project) {
-    final var result = this.doWithProject(project, () -> {
-      final File directory = project.getDirectory();
-      final URI uri = project.getURI();
-      if (directory.exists()) {
-        return new CloneResult(project);
-      }
-
-      final CredentialsProvider credentialProvider = this.getCredentialsProvider(uri)
-          .getCredentialsProvider();
-
-      try {
-        log.info("Cloning \"{}\".", uri);
-        Git.cloneRepository().setURI(uri.toString())
-            .setDirectory(directory)
-            .setCredentialsProvider(credentialProvider)
-            .setProgressMonitor(this.logProgressMonitor)
-            .call()
-            .close();
-        project.markAsCloned();
-        final Optional<Commit> commit =
-            this.getLatestCommitHash(project);
-        project.setLatestCommit(commit.get());
-
-        log.info("Cloned \"{}\" successfully.", uri);
-      } catch (GitAPIException e) {
-        throw new CloneFailedException(e);
-      }
-      return new CloneResult(project);
-    });
-
-    return CompletableFuture.completedFuture(result);
-  }
 
   private GitCredentialsProvider getCredentialsProvider(final URI uri) {
     return this.credentialsProviders.stream()
@@ -93,10 +55,8 @@ public class GitService {
             "Could not find a git credentials provider for uri " + uri));
   }
 
-  // TODO auf FLUX umbauen
-  @Async
-  public CompletableFuture<PullResult> pull(GitClonable project) {
-    final var result = this.doWithProject(project, () -> {
+  public void pull(GitClonable project, ProjectOperationProgressListener listener) {
+    this.doWithProject(project, () -> {
       final File directory = project.getDirectory();
       try (Git git = Git.open(directory)) {
         log.info("Pulling \"{}\".", directory);
@@ -107,26 +67,18 @@ public class GitService {
 
         var p = git.pull()
             .setCredentialsProvider(cP)
-            .setProgressMonitor(this.logProgressMonitor)
+            .setProgressMonitor(new GitCloneProgressMonitor(listener))
             .call();
 
+        project.setLatestCommit(toCommit((RevCommit) p.getMergeResult().getNewHead()));
+        listener.succeeded();
         log.info("Pulling \"{}\" successfully.", directory);
-        return new PullResult<GitClonable>() {
-          @Override
-          public GitClonable getCloneable() {
-            return project;
-          }
-
-          @Override
-          public Commit getLatestCommit() {
-            return toCommit((RevCommit) p.getMergeResult().getNewHead());
-          }
-        };
       } catch (IOException | GitAPIException | URISyntaxException e) {
+        listener.failed(e);
         throw new PullFailedException(e);
       }
+      return null;
     });
-    return CompletableFuture.completedFuture(result);
   }
 
   public FQPN toFQPN(final URI uri) {
@@ -171,12 +123,12 @@ public class GitService {
     };
   }
 
-  public void clone2(final GitClonable project, CloneListener cloneListener) {
+  public void clone(final GitClonable project, ProjectOperationProgressListener listener) {
     this.doWithProject(project, () -> {
       final File directory = project.getDirectory();
       final URI uri = project.getURI();
       if (directory.exists()) {
-        cloneListener.complete();
+        listener.succeeded();
         return null;
       }
 
@@ -188,10 +140,10 @@ public class GitService {
         Git.cloneRepository().setURI(uri.toString())
             .setDirectory(directory)
             .setCredentialsProvider(credentialProvider)
-            .setProgressMonitor(new GitCloneProgressMonitor(project.getFQPN(), cloneListener))
+            .setProgressMonitor(new GitCloneProgressMonitor(listener))
             .call()
             .close();
-        cloneListener.complete();
+        listener.succeeded();
         project.markAsCloned();
         final Optional<Commit> commit =
             this.getLatestCommitHash(project);
@@ -199,7 +151,7 @@ public class GitService {
 
         log.info("Cloned \"{}\" successfully.", uri);
       } catch (GitAPIException e) {
-        cloneListener.fail(e);
+        listener.failed(e);
       }
       return null;
     });

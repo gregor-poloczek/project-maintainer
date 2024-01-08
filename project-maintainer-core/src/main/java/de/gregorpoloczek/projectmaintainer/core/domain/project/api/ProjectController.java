@@ -1,32 +1,30 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.api;
 
+import static java.util.Collections.singleton;
 import static java.util.stream.Collectors.toList;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.ProjectResource;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneProgress;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneResult;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.PullResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import lombok.Getter;
+import java.util.Optional;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import reactor.core.publisher.Flux;
 
 @RestController
 @RequestMapping("/v1/projects")
@@ -35,96 +33,43 @@ public class ProjectController {
 
   private final ProjectService projectService;
 
-  public ProjectController(final ProjectService projectService) {
+  private final Executor executor;
+
+  public ProjectController(final ProjectService projectService, final Executor executor) {
     this.projectService = projectService;
+    this.executor = executor;
   }
 
-  @PostMapping("/operations/clone")
-  public Flux<ServerSentEvent<CloneResult>> clone() {
-    return this.projectService.cloneProjects().map(r -> ServerSentEvent.builder(r).build());
-  }
 
-  @PostMapping("/operations/pull")
-  public Flux<ServerSentEvent<PullResult>> pull() {
-    return this.projectService.pullProjects().map(r -> ServerSentEvent.builder(r).build());
-  }
-
-  public static class ProjectOperationProgressEmitter {
-
-    @Getter
-    private SseEmitter emitter = new SseEmitter();
-
-    public void send(OperationProgress progress) {
-      try {
-        emitter.send(
-            SseEmitter.event()
-                .id(progress.getOperation())
-                .name(progress.getState().name())
-                .data(progress, MediaType.APPLICATION_JSON));
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    }
-
-    public void complete() {
-      this.emitter.complete();
-    }
-  }
-
-  @PostMapping(value = "/{fqpn}/operations/wipe")
-  public SseEmitter wipeProject(@PathVariable("fqpn") String rawFQPN) {
-    final FQPN fqpn = FQPN.of(rawFQPN);
-    final ProjectOperationProgressEmitter emitter = new ProjectOperationProgressEmitter();
-    ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
-    final OperationProgress progress = new OperationProgress(fqpn, "wipe");
-
-    emitter.send(progress.with(OperationState.SCHEDULED));
-    sseMvcExecutor.execute(() -> {
-      emitter.send(progress.with(OperationState.STARTED));
-      try {
-        this.projectService.wipeProject(fqpn);
-        emitter.send(progress.with(OperationState.SUCCEEDED));
-      } catch (Exception e) {
-        emitter.send(progress.with(OperationState.FAILED));
-      }
-      emitter.complete();
-    });
-    return emitter.getEmitter();
+  @PostMapping(value = "/{fqpn}/operations/wipe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter wipeProject(@PathVariable("fqpn") String fpqn) {
+    return this.executeAsyncOperation(fpqn, "wipe", this.projectService::wipeProject);
   }
 
   @PostMapping(value = "/{fqpn}/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter cloneProject(@PathVariable("fqpn") String fqpn) {
-    SseEmitter emitter = new SseEmitter();
-
-    ExecutorService sseMvcExecutor = Executors.newSingleThreadExecutor();
-    sseMvcExecutor.execute(() -> {
-      this.projectService.cloneProject(
-          FQPN.of(fqpn),
-          new CloneListener() {
-            @Override
-            public void update(CloneProgress cloneProgress) {
-              try {
-                emitter.send(SseEmitter.event()
-                    .data(cloneProgress, MediaType.APPLICATION_JSON));
-              } catch (IOException e) {
-                log.warn("Could not send server even", e);
-              }
-            }
-
-            public void complete() {
-              emitter.complete();
-            }
-
-            @Override
-            public void fail(final Throwable e) {
-              emitter.completeWithError(e);
-            }
-          }
-      );
-    });
-    return emitter;
+    return this.executeAsyncOperation(fqpn, "clone", this.projectService::cloneProject);
   }
 
+  @PostMapping(value = "/{fqpn}/operations/pull", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter pullProject(@PathVariable("fqpn") String fqpn) {
+    return this.executeAsyncOperation(fqpn, "pull", this.projectService::pullProject);
+  }
+
+  @PostMapping(value = "/operations/wipe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter wipeProjects() {
+    return this.executeAsyncOperation("wipe", this.projectService::wipeProject);
+  }
+
+  @PostMapping(value = "/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter cloneProjects() {
+    return this.executeAsyncOperation("clone", this.projectService::cloneProject);
+  }
+
+  @PostMapping(value = "/operations/pull", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public SseEmitter pullProjects() {
+    return this.executeAsyncOperation("pull", this.projectService::pullProject);
+  }
 
   @GetMapping("/")
   public ResponseEntity<List<ProjectResource>> getProjects() {
@@ -133,4 +78,50 @@ public class ProjectController {
     return ResponseEntity.ok(result.stream().map(ProjectResource::of).collect(
         toList()));
   }
+
+  private SseEmitter executeAsyncOperation(final String operationName,
+      final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
+    final List<FQPN> fqpns =
+        this.projectService.getProjects().stream().map(Project::getFQPN)
+            .collect(toList());
+    return this.executeAsyncOperation(fqpns, operationName, operation);
+  }
+
+  private SseEmitter executeAsyncOperation(String fqpn, final String operationName,
+      final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
+    return this.executeAsyncOperation(singleton(FQPN.of(fqpn)), operationName, operation);
+  }
+
+  private SseEmitter executeAsyncOperation(final Collection<FQPN> fqpns, final String operationName,
+      final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
+    final SseEmitter sseEmitter = new SseEmitter();
+
+    final AtomicInteger left = new AtomicInteger(fqpns.size());
+    final List<Throwable> caught = Collections.synchronizedList(new ArrayList<>());
+    final BiConsumer<FQPN, Optional<Throwable>> onComplete = (p, e) -> {
+      e.ifPresent(caught::add);
+      if (left.decrementAndGet() == 0) {
+        if (caught.isEmpty()) {
+          sseEmitter.complete();
+        } else {
+          // TODO handle differently
+          sseEmitter.completeWithError(caught.get(0));
+        }
+      }
+    };
+
+    for (FQPN fqpn : fqpns) {
+      final ProjectOperationProgressListener emitter =
+          new SseEmitterBasedProjectOperationProgressListener(sseEmitter, fqpn, operationName,
+              onComplete);
+      emitter.scheduled();
+      this.executor.execute(
+          () -> {
+            operation.accept(fqpn, emitter);
+          }
+      );
+    }
+    return sseEmitter;
+  }
+
 }

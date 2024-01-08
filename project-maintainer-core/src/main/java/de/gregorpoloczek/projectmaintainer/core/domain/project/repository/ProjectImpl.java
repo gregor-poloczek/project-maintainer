@@ -1,7 +1,9 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.git.GitClonable;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.git.common.Commit;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.io.File;
 import java.net.URI;
 import lombok.Getter;

@@ -3,10 +3,13 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.projectsfile.ProjectJSON;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.projectsfile.ProjectsFileJSON;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectJSON;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile.ProjectsFileJSON;
-import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -21,8 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
@@ -88,8 +89,12 @@ public class ProjectService {
     }
   }
 
-  public void cloneProject(FQPN fqpn, CloneListener cloneListener) {
-    this.gitService.clone2(requireProject(fqpn), cloneListener);
+  public void cloneProject(FQPN fqpn, ProjectOperationProgressListener listener) {
+    this.gitService.clone(requireProject(fqpn), listener);
+  }
+
+  public void pullProject(FQPN fqpn, ProjectOperationProgressListener listener) {
+    this.gitService.pull(requireProject(fqpn), listener);
   }
 
   private ProjectImpl requireProject(final FQPN fqpn) {
@@ -97,45 +102,14 @@ public class ProjectService {
         .orElseThrow(() -> new ProjectNotFoundException(fqpn));
   }
 
-  public Flux<CloneResult> cloneProjects() {
-    return Flux.merge(this.projectRepository.findAll().stream()
-        .map(p -> gitService.clone(p))
-        .map(f -> Mono.fromFuture(f))
-        .toList());
 
-//    for (ProjectImpl project : this.projectRepository.findAll()) {
-//      if (project.isCloned()) {
-//        continue;
-//      }
-//      // TODO mutex
-//      final CompletableFuture<Boolean> future = gitService.clone(project);
-//      future.whenComplete((r, t) -> project.setCloned(t == null && r));
-//    }
-
-//    log.info("Pulling {} projects", projectsToPull.size());
-//    for (FQPN fqpn : projectsToPull) {
-//      gitService.pull(this.toDirectory(fqpn));
-//    }
-  }
-
-
-  public Flux<PullResult> pullProjects() {
-    return Flux.merge(
-        this.projectRepository.findAll().stream()
-            .map(p -> gitService.pull(p))
-            .map(f -> Mono.fromFuture(f))
-            .toList());
-  }
-
-  public void wipeProject(final FQPN fqpn) {
-    final File directory = this.requireProject(fqpn).getDirectory();
-
-    if (directory.exists()) {
-      try {
-        FileUtils.deleteDirectory(directory);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
+  public void wipeProject(final FQPN fqpn, final ProjectOperationProgressListener emitter) {
+    try {
+      final File directory = this.requireProject(fqpn).getDirectory();
+      FileUtils.deleteDirectory(directory);
+      emitter.succeeded();
+    } catch (Exception e) {
+      emitter.failed(e);
     }
   }
 }

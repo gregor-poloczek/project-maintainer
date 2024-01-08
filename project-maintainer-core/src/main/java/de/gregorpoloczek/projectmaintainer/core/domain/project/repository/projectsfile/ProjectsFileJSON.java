@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service.projectsfile;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.repository.projectsfile;
 
 import java.util.ArrayList;
 import java.util.List;

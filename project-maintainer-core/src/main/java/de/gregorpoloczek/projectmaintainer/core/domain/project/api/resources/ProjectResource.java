@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 
 public record ProjectResource(FQPN fqpn, GitResource git) {
 

@@ -1,13 +1,14 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.git.common.Commit;
-import de.gregorpoloczek.projectmaintainer.core.git.common.GitService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;

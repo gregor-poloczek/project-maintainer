@@ -1,8 +1,6 @@
-package de.gregorpoloczek.projectmaintainer.core.git.common;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.CloneProgress;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
@@ -11,35 +9,30 @@ import org.eclipse.jgit.lib.ProgressMonitor;
 @Slf4j
 public class GitCloneProgressMonitor implements ProgressMonitor {
 
-  private final CloneListener cloneListener;
+  private final ProjectOperationProgressListener listener;
   private final CloneProgressImpl progress;
 
 
   @Getter
   @ToString
-  private static class CloneProgressImpl implements CloneProgress {
+  private static class CloneProgressImpl {
 
     int totalTasks;
     int totalTasksDone;
     String currentTaskTitle;
     int currentTaskTotalWork;
     int currentTaskTotalWorkDone;
-    private final FQPN fqpn;
 
-    private CloneProgressImpl(final FQPN fqpn) {
-      this.fqpn = fqpn;
+    private CloneProgressImpl() {
+
     }
 
-    @Override
-    public FQPN getFQPN() {
-      return this.fqpn;
-    }
   }
 
 
-  public GitCloneProgressMonitor(final FQPN fqpn, final CloneListener cloneListener) {
-    this.cloneListener = cloneListener;
-    this.progress = new CloneProgressImpl(fqpn);
+  public GitCloneProgressMonitor(final ProjectOperationProgressListener listener) {
+    this.listener = listener;
+    this.progress = new CloneProgressImpl();
   }
 
 
@@ -65,9 +58,11 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
     }
 
     int tenPercent = (int) Math.ceil((double) progress.currentTaskTotalWork / 10.0d);
-    if (progress.currentTaskTotalWorkDone % tenPercent == 0) {
+    if (progress.currentTaskTotalWorkDone == progress.currentTaskTotalWork
+        || progress.currentTaskTotalWorkDone % tenPercent == 0) {
       this.notifyListener();
     }
+
   }
 
   @Override
@@ -80,7 +75,12 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
   }
 
   private void notifyListener() {
-    GitCloneProgressMonitor.this.cloneListener.update(progress);
+    double progress = -1d;
+    if (this.progress.currentTaskTotalWork > 0) {
+      progress = (double) this.progress.currentTaskTotalWorkDone
+          / (double) this.progress.currentTaskTotalWork;
+    }
+    GitCloneProgressMonitor.this.listener.update(this.progress.currentTaskTitle, progress);
   }
 
   @Override
