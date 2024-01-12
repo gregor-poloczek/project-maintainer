@@ -1,0 +1,12 @@
+.project {
+  padding: 12px;
+
+  display: flex;
+  flex-direction: row;
+  column-gap: 6px;
+  align-items: center;
+
+  img {
+    height: 24px;
+  }
+}

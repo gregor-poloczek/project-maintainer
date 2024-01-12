@@ -11,7 +11,16 @@ public record ProjectResource(FQPN fqpn, GitResource git) {
         project.isCloned() ? new WorkingCopyResource(CommitResource.of(project.getLatestCommit()))
             : null;
 
-    final GitResource git = new GitResource(project.getURI(), wcr);
+    final GitProvider provider;
+    if (project.getFQPN().getValue().startsWith("github:")) {
+      provider = GitProvider.GITHUB;
+    } else if (project.getFQPN().getValue().startsWith("aws-codecommit")) {
+      provider = GitProvider.AWS_CODECOMMIT;
+    } else {
+      provider = GitProvider.UNKNOWN;
+    }
+
+    final GitResource git = new GitResource(project.getURI(), provider, wcr);
     return new ProjectResource(project.getFQPN(),
         git);
   }

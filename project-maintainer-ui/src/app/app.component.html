@@ -1,0 +1,10 @@
+<main class="main">
+  <div *ngFor="let project of projects" class="project">
+    <a href="{{project.git.uri}}">
+      <img [src]="'assets/icons/' + project.git.provider + '.png'"/></a>
+    <span>{{ project.fqpn }}</span>
+
+  </div>
+</main>
+
+<router-outlet></router-outlet>

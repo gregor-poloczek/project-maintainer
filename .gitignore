@@ -39,3 +39,5 @@ build/
 /.projects/
 /.credentials/
 /project-maintainer-core/src/main/resources/application-private.yml
+/project-maintainer-ui/src/assets/icons/AWS_CODECOMMIT.png
+/project-maintainer-ui/src/assets/icons/GITHUB.png
