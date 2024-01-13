@@ -2,7 +2,6 @@ package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -81,8 +80,8 @@ public class GitService {
     });
   }
 
-  public FQPN toFQPN(final URI uri) {
-    return this.getCredentialsProvider(uri).getFQPN(uri);
+  public ProjectMetaData toProjectMetaData(final URI uri) {
+    return this.getCredentialsProvider(uri).getProjectMetaData(uri);
   }
 
   public Optional<Commit> getLatestCommitHash(final GitClonable project) {

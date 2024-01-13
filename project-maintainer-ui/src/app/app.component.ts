@@ -5,6 +5,10 @@ import axios from 'axios';
 
 interface ProjectResource {
   fqpn: string;
+  metaData: {
+    owner: string;
+    name: string;
+  };
   git: {
     uri: string;
     provider: 'UNKNOWN' | 'GITHUB' | 'AWS_CODECOMMIT';

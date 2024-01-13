@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitService;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.io.File;
@@ -94,8 +95,8 @@ public class ProjectRepository {
   }
 
   private ProjectImpl toProject(URI uri) {
-    final FQPN fqpn = this.gitService.toFQPN(uri);
-    return new ProjectImpl(toDirectory(fqpn), uri, fqpn);
+    final ProjectMetaData metaData = this.gitService.toProjectMetaData(uri);
+    return new ProjectImpl(toDirectory(metaData.getFQPN()), metaData);
   }
 
   private File toDirectory(final FQPN fqpn) {

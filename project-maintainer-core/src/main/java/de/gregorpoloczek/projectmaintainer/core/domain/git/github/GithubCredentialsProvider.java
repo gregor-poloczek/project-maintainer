@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.github;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitCredentialsProvider;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -47,12 +47,18 @@ public class GithubCredentialsProvider implements GitCredentialsProvider {
 
 
   @Override
-  public FQPN getFQPN(final URI uri) {
+  public ProjectMetaData getProjectMetaData(final URI uri) {
     final Matcher matcher = GITHUB_PATTERN.matcher(uri.toString());
     if (matcher.matches()) {
       final String owner = matcher.group("owner");
       final String repository = matcher.group("repository");
-      return FQPN.of("github", owner, repository);
+
+      return ProjectMetaData.builder()
+          .uri(uri)
+          .name(repository)
+          .owner(owner)
+          .fqpn("github", owner, repository)
+          .build();
     }
     throw new IllegalStateException(uri.toString());
   }

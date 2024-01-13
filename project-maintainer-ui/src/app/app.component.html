@@ -2,7 +2,7 @@
   <div *ngFor="let project of projects" class="project">
     <a href="{{project.git.uri}}">
       <img [src]="'assets/icons/' + project.git.provider + '.png'"/></a>
-    <span>{{ project.fqpn }}</span>
+    <span>{{ project.metaData.name }}</span>
 
   </div>
 </main>

@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.io.File;
@@ -14,21 +15,19 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class ProjectImpl implements Project, GitClonable {
 
+  private final ProjectMetaData metaData;
   private volatile boolean cloned;
   private Commit latestCommit;
 
-  public ProjectImpl(final File directory, final URI uri, final FQPN fqpn) {
+  public ProjectImpl(final File directory, ProjectMetaData metaData) {
     this.directory = directory;
-    this.uri = uri;
-    this.fqpn = fqpn;
+    this.metaData = metaData;
   }
 
   private File directory;
-  private URI uri;
-  private FQPN fqpn;
 
   public URI getURI() {
-    return uri;
+    return this.metaData.getURI();
   }
 
   @Override
@@ -38,7 +37,7 @@ public class ProjectImpl implements Project, GitClonable {
 
   @Override
   public FQPN getFQPN() {
-    return this.fqpn;
+    return this.metaData.getFQPN();
   }
 
   public void setLatestCommit(Commit commit) {
@@ -57,11 +56,11 @@ public class ProjectImpl implements Project, GitClonable {
 
     final ProjectImpl project = (ProjectImpl) object;
 
-    return new EqualsBuilder().append(fqpn, project.fqpn).isEquals();
+    return new EqualsBuilder().append(this.getFQPN(), project.getFQPN()).isEquals();
   }
 
   @Override
   public int hashCode() {
-    return new HashCodeBuilder(17, 37).append(fqpn).toHashCode();
+    return new HashCodeBuilder(17, 37).append(this.getFQPN()).toHashCode();
   }
 }

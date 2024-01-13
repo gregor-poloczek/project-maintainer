@@ -1,9 +1,9 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
-import java.net.URI;
 
 public interface Project {
 
@@ -11,9 +11,9 @@ public interface Project {
 
   File getDirectory();
 
-  URI getURI();
-
   FQPN getFQPN();
+
+  ProjectMetaData getMetaData();
 
   Commit getLatestCommit();
 }
