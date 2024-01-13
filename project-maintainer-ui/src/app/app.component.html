@@ -1,10 +1,13 @@
-<main class="main">
-  <div *ngFor="let project of projects" class="project">
-    <a href="{{project.git.uri}}">
-      <img [src]="'assets/icons/' + project.git.provider + '.png'"/></a>
-    <span>{{ project.metaData.name }}</span>
+<main class="main mat-app-background">
+  <mat-list>
+    <mat-list-item
+      *ngFor="let project of projects" class="project">
+      <a href="{{project.git.uri}}">
+        <img [src]="'assets/icons/' + project.git.provider + '.png'"/></a>
+      <span>{{ project.metaData.name }}</span>
+    </mat-list-item>
+  </mat-list>
 
-  </div>
 </main>
 
 <router-outlet></router-outlet>

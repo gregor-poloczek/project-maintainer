@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import axios from 'axios';
+import { MatListModule } from '@angular/material/list';
 
 interface ProjectResource {
   fqpn: string;
@@ -25,7 +26,7 @@ interface ProjectResource {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet],
+  imports: [CommonModule, RouterOutlet, MatListModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
