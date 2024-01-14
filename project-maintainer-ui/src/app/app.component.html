@@ -2,9 +2,14 @@
   <mat-list>
     <mat-list-item
       *ngFor="let project of projects" class="project">
-      <a href="{{project.git.uri}}">
-        <img [src]="'assets/icons/' + project.git.provider + '.png'"/></a>
-      <span>{{ project.metaData.name }}</span>
+      <mat-icon matListItemIcon>folder</mat-icon>
+      <div matListItemTitle>{{ project.name }}
+        <!--<a href="{{project.git.uri}}">
+                  <img [src]="'assets/icons/' + project.git.provider + '.png'"/>
+        </a>-->
+      </div>
+      <div *ngIf="project.commit"
+           matListItemLine>{{ project.commit }}</div>
     </mat-list-item>
   </mat-list>
 
