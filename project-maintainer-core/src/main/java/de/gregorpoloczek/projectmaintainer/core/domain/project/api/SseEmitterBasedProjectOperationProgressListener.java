@@ -41,7 +41,7 @@ public class SseEmitterBasedProjectOperationProgressListener implements
       emitter.send(
           SseEmitter.event()
               .id(UUID.randomUUID().toString())
-              .name(progress.getOperation() + "::" + progress.getState().name())
+              .name("message")
               .data(progress, MediaType.APPLICATION_JSON));
     } catch (IOException e) {
       throw new UncheckedIOException(e);

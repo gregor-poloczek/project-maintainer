@@ -1,18 +1,23 @@
 <main class="main mat-app-background">
-  <mat-list>
-    <mat-list-item
-      *ngFor="let project of projects" class="project">
-      <mat-icon matListItemIcon>folder</mat-icon>
-      <div matListItemTitle>{{ project.name }}
-        <!--<a href="{{project.git.uri}}">
-                  <img [src]="'assets/icons/' + project.git.provider + '.png'"/>
-        </a>-->
-      </div>
-      <div *ngIf="project.commit"
-           matListItemLine>{{ project.commit }}</div>
-    </mat-list-item>
-  </mat-list>
-
+  <mat-selection-list>
+    <ng-container *ngFor="let project of projects; index as i">
+      <mat-list-option
+        class="project">
+        <mat-icon matListItemIcon>folder</mat-icon>
+        <div matListItemTitle>{{ project.name }}
+          <!--<a href="{{project.git.uri}}">
+                    <img [src]="'assets/icons/' + project.git.provider + '.png'"/>
+          </a>-->
+        </div>
+        <div *ngIf="project.commit"
+             matListItemLine>{{ project.commit }}</div>
+        <div
+          matListItemLine [textContent]="project.operation"></div>
+      </mat-list-option>
+      <mat-divider *ngIf="i < projects.length-1"></mat-divider>
+    </ng-container>
+  </mat-selection-list>
+  <button mat-button (click)="onPullClick()">Pull</button>
 </main>
 
 <router-outlet></router-outlet>

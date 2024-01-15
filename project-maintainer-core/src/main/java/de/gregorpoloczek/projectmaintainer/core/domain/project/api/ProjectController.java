@@ -66,7 +66,7 @@ public class ProjectController {
     return this.executeAsyncOperation("clone", this.projectService::cloneProject);
   }
 
-  @PostMapping(value = "/operations/pull", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @GetMapping(value = "/operations/pull", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter pullProjects() {
     return this.executeAsyncOperation("pull", this.projectService::pullProject);
   }
