@@ -80,8 +80,20 @@ export class AppComponent {
   constructor(private zone: NgZone) {}
 
   onPullClick() {
+    this.executeOperation('pull');
+  }
+
+  onCloneClick() {
+    this.executeOperation('clone');
+  }
+
+  onWipeClick() {
+    this.executeOperation('wipe');
+  }
+
+  private executeOperation(operation: string) {
     const eventSource = new EventSource(
-      'http://localhost:8080/v1/projects/operations/pull',
+      `http://localhost:8080/v1/projects/operations/${operation}`,
     );
     eventSource.onmessage = (event) => {
       const progress = JSON.parse(event.data) as OperationProgress;

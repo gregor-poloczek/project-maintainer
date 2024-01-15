@@ -56,12 +56,12 @@ public class ProjectController {
     return this.executeAsyncOperation(fqpn, "pull", this.projectService::pullProject);
   }
 
-  @PostMapping(value = "/operations/wipe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @GetMapping(value = "/operations/wipe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter wipeProjects() {
     return this.executeAsyncOperation("wipe", this.projectService::wipeProject);
   }
 
-  @PostMapping(value = "/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @GetMapping(value = "/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter cloneProjects() {
     return this.executeAsyncOperation("clone", this.projectService::cloneProject);
   }
