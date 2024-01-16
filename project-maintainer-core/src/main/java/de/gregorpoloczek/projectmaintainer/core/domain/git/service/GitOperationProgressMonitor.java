@@ -1,13 +1,16 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.lib.ProgressMonitor;
 
 @Slf4j
-public class GitCloneProgressMonitor implements ProgressMonitor {
+public class GitOperationProgressMonitor implements ProgressMonitor {
 
   private final ProjectOperationProgressListener listener;
   private final CloneProgressImpl progress;
@@ -30,7 +33,7 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
   }
 
 
-  public GitCloneProgressMonitor(final ProjectOperationProgressListener listener) {
+  public GitOperationProgressMonitor(final ProjectOperationProgressListener listener) {
     this.listener = listener;
     this.progress = new CloneProgressImpl();
   }
@@ -50,19 +53,27 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
     notifyListener();
   }
 
+  private Instant lastNotification = null;
+
   @Override
   public void update(final int completed) {
+    // TODO seriously overthink this logic
     progress.currentTaskTotalWorkDone += completed;
     if (completed == 0 || progress.currentTaskTotalWork == 0) {
       return;
     }
 
+    final Instant now = Instant.now();
     int tenPercent = (int) Math.ceil((double) progress.currentTaskTotalWork / 10.0d);
-    if (progress.currentTaskTotalWorkDone == progress.currentTaskTotalWork
-        || progress.currentTaskTotalWorkDone % tenPercent == 0) {
+    boolean notify = progress.currentTaskTotalWorkDone == progress.currentTaskTotalWork
+        || (tenPercent > 0 && progress.currentTaskTotalWorkDone % tenPercent == 0);
+
+    notify |= lastNotification != null
+        && Duration.between(lastNotification, now).get(ChronoUnit.SECONDS) >= 1;
+
+    if (notify) {
       this.notifyListener();
     }
-
   }
 
   @Override
@@ -80,7 +91,8 @@ public class GitCloneProgressMonitor implements ProgressMonitor {
       progress = (double) this.progress.currentTaskTotalWorkDone
           / (double) this.progress.currentTaskTotalWork;
     }
-    GitCloneProgressMonitor.this.listener.update(this.progress.currentTaskTitle, progress);
+    GitOperationProgressMonitor.this.listener.update(this.progress.currentTaskTitle, progress);
+    this.lastNotification = Instant.now();
   }
 
   @Override

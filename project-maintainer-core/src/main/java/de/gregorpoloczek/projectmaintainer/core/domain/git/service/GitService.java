@@ -66,14 +66,15 @@ public class GitService {
 
         var p = git.pull()
             .setCredentialsProvider(cP)
-            .setProgressMonitor(new GitCloneProgressMonitor(listener))
+            .setProgressMonitor(new GitOperationProgressMonitor(listener))
             .call();
 
         project.setLatestCommit(toCommit((RevCommit) p.getMergeResult().getNewHead()));
-        listener.succeeded();
+
+        listener.succeeded(project);
         log.info("Pulling \"{}\" successfully.", directory);
       } catch (IOException | GitAPIException | URISyntaxException e) {
-        listener.failed(e);
+        listener.failed(project, e);
         throw new PullFailedException(e);
       }
       return null;
@@ -125,9 +126,9 @@ public class GitService {
   public void clone(final GitClonable project, ProjectOperationProgressListener listener) {
     this.doWithProject(project, () -> {
       final File directory = project.getDirectory();
-      final URI uri = project.getURI();
+      final URI uri = project.getMetaData().getURI();
       if (directory.exists()) {
-        listener.succeeded();
+        listener.succeeded(project);
         return null;
       }
 
@@ -139,18 +140,18 @@ public class GitService {
         Git.cloneRepository().setURI(uri.toString())
             .setDirectory(directory)
             .setCredentialsProvider(credentialProvider)
-            .setProgressMonitor(new GitCloneProgressMonitor(listener))
+            .setProgressMonitor(new GitOperationProgressMonitor(listener))
             .call()
             .close();
-        listener.succeeded();
-        project.markAsCloned();
         final Optional<Commit> commit =
             this.getLatestCommitHash(project);
         project.setLatestCommit(commit.get());
+        project.markAsCloned();
 
+        listener.succeeded(project);
         log.info("Cloned \"{}\" successfully.", uri);
       } catch (GitAPIException e) {
-        listener.failed(e);
+        listener.failed(project, e);
       }
       return null;
     });

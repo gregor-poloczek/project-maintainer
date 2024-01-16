@@ -4,6 +4,7 @@ import static java.util.Collections.singleton;
 import static java.util.stream.Collectors.toList;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.ProjectResource;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
@@ -19,12 +20,15 @@ import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Sinks;
 
 @RestController
 @RequestMapping("/v1/projects")
@@ -40,36 +44,47 @@ public class ProjectController {
     this.executor = executor;
   }
 
+  final Sinks.Many<ProjectOperationProgress> sink = Sinks
+      .many()
+      .multicast()
+      .onBackpressureBuffer();
 
-  @PostMapping(value = "/{fqpn}/operations/wipe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter wipeProject(@PathVariable("fqpn") String fpqn) {
-    return this.executeAsyncOperation(fpqn, "wipe", this.projectService::wipeProject);
+  @PostMapping("/{fqpn}/operations/wipe")
+  public void wipeProject(@PathVariable("fqpn") String fpqn) {
+    this.executeAsyncOperation(fpqn, "wipe", this.projectService::wipeProject);
   }
 
-  @PostMapping(value = "/{fqpn}/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter cloneProject(@PathVariable("fqpn") String fqpn) {
-    return this.executeAsyncOperation(fqpn, "clone", this.projectService::cloneProject);
+  @PostMapping("/{fqpn}/operations/clone")
+  public void cloneProject(@PathVariable("fqpn") String fqpn) {
+    this.executeAsyncOperation(fqpn, "clone", this.projectService::cloneProject);
   }
 
-  @PostMapping(value = "/{fqpn}/operations/pull", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter pullProject(@PathVariable("fqpn") String fqpn) {
-    return this.executeAsyncOperation(fqpn, "pull", this.projectService::pullProject);
+
+  @PostMapping(value = "/{fqpn}/operations/pull")
+  public void pullProject(@PathVariable("fqpn") String fqpn) {
+    this.executeAsyncOperation(fqpn, "pull", this.projectService::pullProject);
   }
 
-  @GetMapping(value = "/operations/wipe", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter wipeProjects() {
-    return this.executeAsyncOperation("wipe", this.projectService::wipeProject);
+  @PostMapping(value = "/operations/wipe")
+  public void wipeProjects() {
+    this.executeAsyncOperation("wipe", this.projectService::wipeProject);
   }
 
-  @GetMapping(value = "/operations/clone", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter cloneProjects() {
-    return this.executeAsyncOperation("clone", this.projectService::cloneProject);
+  @PostMapping(value = "/operations/clone")
+  public void cloneProjects() {
+    this.executeAsyncOperation("clone", this.projectService::cloneProject);
   }
 
-  @GetMapping(value = "/operations/pull", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter pullProjects() {
-    return this.executeAsyncOperation("pull", this.projectService::pullProject);
+  @PostMapping(value = "/operations/pull")
+  public void pullProjects() {
+    this.executeAsyncOperation("pull", this.projectService::pullProject);
   }
+
+  @GetMapping(value = "/updates", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public Flux<ServerSentEvent<ProjectOperationProgress>> getUpdates() {
+    return sink.asFlux().map(e -> ServerSentEvent.builder(e).build());
+  }
+
 
   @GetMapping("/")
   public ResponseEntity<List<ProjectResource>> getProjects() {
@@ -94,7 +109,7 @@ public class ProjectController {
 
   private SseEmitter executeAsyncOperation(final Collection<FQPN> fqpns, final String operationName,
       final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
-    final SseEmitter sseEmitter = new SseEmitter();
+    //final SseEmitter sseEmitter = new SseEmitter();
 
     final AtomicInteger left = new AtomicInteger(fqpns.size());
     final List<Throwable> caught = Collections.synchronizedList(new ArrayList<>());
@@ -102,17 +117,18 @@ public class ProjectController {
       e.ifPresent(caught::add);
       if (left.decrementAndGet() == 0) {
         if (caught.isEmpty()) {
-          sseEmitter.complete();
+          // TODO what to do?
+          //sseEmitter.complete();
         } else {
           // TODO handle differently
-          sseEmitter.completeWithError(caught.get(0));
+//          sseEmitter.completeWithError(caught.get(0));
         }
       }
     };
 
     for (FQPN fqpn : fqpns) {
       final ProjectOperationProgressListener emitter =
-          new SseEmitterBasedProjectOperationProgressListener(sseEmitter, fqpn, operationName,
+          new SinkBasedProjectOperationProgressListener(this.sink, fqpn, operationName,
               onComplete);
       emitter.scheduled();
       this.executor.execute(
@@ -121,7 +137,7 @@ public class ProjectController {
           }
       );
     }
-    return sseEmitter;
+    return null;
   }
 
 }
