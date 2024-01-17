@@ -104,12 +104,14 @@ public class ProjectService {
 
 
   public void wipeProject(final FQPN fqpn, final ProjectOperationProgressListener emitter) {
+    final ProjectImpl project = this.requireProject(fqpn);
     try {
-      final File directory = this.requireProject(fqpn).getDirectory();
+      final File directory = project.getDirectory();
       FileUtils.deleteDirectory(directory);
-      emitter.succeeded();
+      project.markAsNotCloned();
+      emitter.succeeded(project);
     } catch (Exception e) {
-      emitter.failed(e);
+      emitter.failed(project, e);
     }
   }
 }

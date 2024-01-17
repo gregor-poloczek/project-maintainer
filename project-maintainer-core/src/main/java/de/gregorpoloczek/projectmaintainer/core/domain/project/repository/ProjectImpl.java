@@ -40,6 +40,12 @@ public class ProjectImpl implements Project, GitClonable {
     return this.metaData.getFQPN();
   }
 
+  @Override
+  public void markAsNotCloned() {
+    this.cloned = false;
+    this.latestCommit = null;
+  }
+
   public void setLatestCommit(Commit commit) {
     this.latestCommit = commit;
   }

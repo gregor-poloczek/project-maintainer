@@ -1,25 +1,33 @@
 <main class="main mat-app-background">
+  <mat-toolbar>
+    <mat-toolbar-row>
+      <button mat-raised-button (click)="onPullButtonClick()">Pull</button>
+      <button mat-raised-button (click)="onCloneButtonClick()">Clone</button>
+      <button mat-raised-button (click)="onWipeButtonClick()">Wipe</button>
+    </mat-toolbar-row>
+  </mat-toolbar>
   <mat-selection-list>
     <ng-container *ngFor="let project of projects; index as i">
       <mat-list-option
+        (selectedChange)="onProjectSelectionChanged(project, $event)"
         class="project">
-        <mat-icon matListItemIcon>folder</mat-icon>
+        <mat-icon matListItemIcon>
+          <mat-spinner *ngIf="project.operationInProgress" mode="indeterminate"
+                       diameter="24"></mat-spinner>
+          <ng-container *ngIf="!project.operationInProgress">
+            folder
+          </ng-container>
+        </mat-icon>
         <div matListItemTitle>{{ project.name }}
           <!--<a href="{{project.git.uri}}">
                     <img [src]="'assets/icons/' + project.git.provider + '.png'"/>
           </a>-->
         </div>
-        <div *ngIf="project.commit"
-             matListItemLine>{{ project.commit }}</div>
-        <div
-          matListItemLine [textContent]="project.operation"></div>
+        <div matListItemLine>{{ project.statusLine }}</div>
       </mat-list-option>
       <mat-divider *ngIf="i < projects.length-1"></mat-divider>
     </ng-container>
   </mat-selection-list>
-  <button mat-button (click)="onPullClick()">Pull</button>
-  <button mat-button (click)="onCloneClick()">Clone</button>
-  <button mat-button (click)="onWipeClick()">Wipe</button>
 </main>
 
 <router-outlet></router-outlet>

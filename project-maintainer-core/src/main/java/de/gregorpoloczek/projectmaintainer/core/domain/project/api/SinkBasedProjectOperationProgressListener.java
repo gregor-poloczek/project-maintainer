@@ -6,32 +6,31 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOp
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.function.BiConsumer;
-import org.springframework.http.MediaType;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitResult;
 
-public class SseEmitterBasedProjectOperationProgressListener implements
+public class SinkBasedProjectOperationProgressListener implements
     ProjectOperationProgressListener {
 
   private final FQPN fqpn;
   private final String operation;
   private BiConsumer<FQPN, Optional<Throwable>> onComplete;
+  private final Sinks.Many<ProjectOperationProgress> sink;
 
 
-  public SseEmitterBasedProjectOperationProgressListener(SseEmitter emitter, final FQPN fqpn,
+  public SinkBasedProjectOperationProgressListener(Sinks.Many<ProjectOperationProgress> sink,
+      final FQPN fqpn,
       final String operation,
       BiConsumer<FQPN, Optional<Throwable>> onComplete) {
-    this.emitter = emitter;
+    this.sink = sink;
     this.fqpn = fqpn;
     this.operation = operation;
     this.onComplete = onComplete;
   }
 
-  private final SseEmitter emitter;
 
   public void scheduled() {
     this.send(
@@ -40,15 +39,8 @@ public class SseEmitterBasedProjectOperationProgressListener implements
   }
 
   public void send(ProjectOperationProgress progress) {
-    try {
-      emitter.send(
-          SseEmitter.event()
-              .id(UUID.randomUUID().toString())
-              .name("message")
-              .data(progress, MediaType.APPLICATION_JSON));
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    sink.emitNext(progress.withTimestamp(Instant.now()),
+        (s, e) -> e == EmitResult.FAIL_NON_SERIALIZED);
   }
 
   public void succeeded(Project project) {
