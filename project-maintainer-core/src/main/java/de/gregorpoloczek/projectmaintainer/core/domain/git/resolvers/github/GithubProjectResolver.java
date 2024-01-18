@@ -1,7 +1,6 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git.github;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.github;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitCredentialsProvider;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -17,29 +16,36 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 @Service
-public class GithubCredentialsProvider implements GitCredentialsProvider {
+public class GithubProjectResolver extends AbstractProjectResolver {
 
   @Value("file:./.credentials/github.properties")
   private Resource credentials;
 
   public static final Pattern GITHUB_PATTERN = Pattern.compile(
-      "^\\Qhttps://github.com/\\E(?<owner>[^/]+)/(?<repository>[^.]+)\\.git$");
+      "^\\/(?<owner>[^/]+)/(?<repository>[^.]+)\\.git$");
   private final ConversionService conversionService;
 
-  public GithubCredentialsProvider(final ConversionService conversionService) {
+  public GithubProjectResolver(final ConversionService conversionService) {
     this.conversionService = conversionService;
   }
 
 
-  public CredentialsProvider getCredentialsProvider() {
+  public CredentialsProvider getCredentialsProvider(URI uri) {
+    final String username = this.requireUsername(uri);
     try {
       final Properties credentials = conversionService.convert(
           this.credentials.getContentAsString(StandardCharsets.UTF_8),
           Properties.class);
 
+      final String password = credentials.getProperty(username);
+      if (password == null) {
+        throw new IllegalStateException(
+            "No password configured for username %s".formatted(username));
+      }
+
       return new UsernamePasswordCredentialsProvider(
-          credentials.getProperty("username"),
-          credentials.getProperty("password"));
+          username,
+          password);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
@@ -48,7 +54,7 @@ public class GithubCredentialsProvider implements GitCredentialsProvider {
 
   @Override
   public ProjectMetaData getProjectMetaData(final URI uri) {
-    final Matcher matcher = GITHUB_PATTERN.matcher(uri.toString());
+    final Matcher matcher = GITHUB_PATTERN.matcher(uri.getPath());
     if (matcher.matches()) {
       final String owner = matcher.group("owner");
       final String repository = matcher.group("repository");
@@ -65,6 +71,6 @@ public class GithubCredentialsProvider implements GitCredentialsProvider {
 
   @Override
   public boolean supports(final URI uri) {
-    return uri.toString().startsWith("https://github.com");
+    return uri.toString().contains("github.com/");
   }
 }

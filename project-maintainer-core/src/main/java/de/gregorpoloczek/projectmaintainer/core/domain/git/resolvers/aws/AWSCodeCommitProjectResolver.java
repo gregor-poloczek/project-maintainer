@@ -1,7 +1,7 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git.github;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.aws;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitCredentialsProvider;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.GitProjectResolver;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
@@ -17,7 +17,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AWSCodeCommitCredentialsProvider implements GitCredentialsProvider {
+public class AWSCodeCommitProjectResolver implements GitProjectResolver {
 
   private static final Pattern AWS_CODE_COMMIT = Pattern.compile(
       "^\\Qhttps://git-codecommit.\\E(?<region>[^.]+)\\Q.amazonaws.com\\E\\/v1\\/repos\\/(?<repository>.+)$");
@@ -27,11 +27,11 @@ public class AWSCodeCommitCredentialsProvider implements GitCredentialsProvider 
 
   private final ConversionService conversionService;
 
-  public AWSCodeCommitCredentialsProvider(final ConversionService conversionService) {
+  public AWSCodeCommitProjectResolver(final ConversionService conversionService) {
     this.conversionService = conversionService;
   }
 
-  public CredentialsProvider getCredentialsProvider() {
+  public CredentialsProvider getCredentialsProvider(URI uri) {
     try {
       final Properties credentials = conversionService.convert(
           this.credentials.getContentAsString(StandardCharsets.UTF_8),

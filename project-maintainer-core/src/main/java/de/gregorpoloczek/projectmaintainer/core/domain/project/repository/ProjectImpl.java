@@ -1,12 +1,15 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.GitClonable;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.common.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.File;
 import java.net.URI;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import lombok.Getter;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -18,6 +21,7 @@ public class ProjectImpl implements Project, GitClonable {
   private final ProjectMetaData metaData;
   private volatile boolean cloned;
   private Commit latestCommit;
+  private ReadWriteLock lock = new ReentrantReadWriteLock();
 
   public ProjectImpl(final File directory, ProjectMetaData metaData) {
     this.directory = directory;
@@ -38,6 +42,26 @@ public class ProjectImpl implements Project, GitClonable {
   @Override
   public FQPN getFQPN() {
     return this.metaData.getFQPN();
+  }
+
+  @Override
+  public <T> T withReadLock(final Supplier<T> operation) {
+    lock.readLock().lock();
+    try {
+      return operation.get();
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  @Override
+  public <T> T withWriteLock(final Supplier<T> operation) {
+    lock.writeLock().lock();
+    try {
+      return operation.get();
+    } finally {
+      lock.writeLock().unlock();
+    }
   }
 
   @Override

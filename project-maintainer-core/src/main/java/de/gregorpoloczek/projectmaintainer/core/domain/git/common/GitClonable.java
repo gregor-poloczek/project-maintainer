@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;

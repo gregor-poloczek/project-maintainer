@@ -1,9 +1,9 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.File;
+import java.util.function.Supplier;
 
 public interface Project {
 
@@ -16,4 +16,8 @@ public interface Project {
   ProjectMetaData getMetaData();
 
   Commit getLatestCommit();
+
+  <T> T withReadLock(Supplier<T> operation);
+
+  <T> T withWriteLock(Supplier<T> operation);
 }

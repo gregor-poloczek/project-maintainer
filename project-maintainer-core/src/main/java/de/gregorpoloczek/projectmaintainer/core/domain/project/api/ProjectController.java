@@ -18,6 +18,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
@@ -25,8 +26,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
@@ -65,26 +66,10 @@ public class ProjectController {
     this.executeAsyncOperation(fqpn, "pull", this.projectService::pullProject);
   }
 
-  @PostMapping(value = "/operations/wipe")
-  public void wipeProjects() {
-    this.executeAsyncOperation("wipe", this.projectService::wipeProject);
-  }
-
-  @PostMapping(value = "/operations/clone")
-  public void cloneProjects() {
-    this.executeAsyncOperation("clone", this.projectService::cloneProject);
-  }
-
-  @PostMapping(value = "/operations/pull")
-  public void pullProjects() {
-    this.executeAsyncOperation("pull", this.projectService::pullProject);
-  }
-
   @GetMapping(value = "/updates", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public Flux<ServerSentEvent<ProjectOperationProgress>> getUpdates() {
     return sink.asFlux().map(e -> ServerSentEvent.builder(e).build());
   }
-
 
   @GetMapping("/")
   public ResponseEntity<List<ProjectResource>> getProjects() {
@@ -94,22 +79,27 @@ public class ProjectController {
         toList()));
   }
 
-  private SseEmitter executeAsyncOperation(final String operationName,
-      final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
-    final List<FQPN> fqpns =
-        this.projectService.getProjects().stream().map(Project::getFQPN)
-            .collect(toList());
-    return this.executeAsyncOperation(fqpns, operationName, operation);
+  @ResponseStatus(value = HttpStatus.NOT_FOUND)
+  public class ResourceNotFoundException extends RuntimeException {
+
   }
 
-  private SseEmitter executeAsyncOperation(String fqpn, final String operationName,
-      final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
-    return this.executeAsyncOperation(singleton(FQPN.of(fqpn)), operationName, operation);
+  @GetMapping("/{fqpn}")
+  public ResponseEntity<ProjectResource> getProject(@PathVariable("fqpn") String fqpn) {
+    final Optional<Project> project = this.projectService.getProject(FQPN.of(fqpn));
+    return project
+        .map(ProjectResource::of)
+        .map(ResponseEntity::ok)
+        .orElseThrow(() -> new ResourceNotFoundException());
   }
 
-  private SseEmitter executeAsyncOperation(final Collection<FQPN> fqpns, final String operationName,
+  private void executeAsyncOperation(String fqpn, final String operationName,
       final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
-    //final SseEmitter sseEmitter = new SseEmitter();
+    this.executeAsyncOperation(singleton(FQPN.of(fqpn)), operationName, operation);
+  }
+
+  private void executeAsyncOperation(final Collection<FQPN> fqpns, final String operationName,
+      final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
 
     final AtomicInteger left = new AtomicInteger(fqpns.size());
     final List<Throwable> caught = Collections.synchronizedList(new ArrayList<>());
@@ -137,7 +127,6 @@ public class ProjectController {
           }
       );
     }
-    return null;
   }
 
 }

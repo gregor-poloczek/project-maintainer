@@ -73,6 +73,11 @@
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>codecommit</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>

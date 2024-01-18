@@ -1,0 +1,9 @@
+<div class="project-overview-list-item" [class]="{selected: item.selected}" (click)="onItemClick()">
+  <div class="main-row">
+    <img class="provider-icon" [src]="'assets/icons/' + item.project.git.provider + '.png'"/>
+    <span class="project-name">{{ item.name }}</span>
+  </div>
+  <div class="text-row">
+    {{ item.statusLine }}
+  </div>
+</div>

@@ -3,13 +3,13 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitService;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,16 +36,15 @@ public class ProjectRepository {
   private final File projectsDirectory;
   private final ApplicationProperties applicationProperties;
   private final GitService gitService;
-  private final File projectsFileRaw;
-  public static final String PROJECTS_FILE = "projects.json";
+  private final List<ProjectDiscovery> projectDiscoveries;
   private List<ProjectImpl> projects = new ArrayList<>();
 
   public ProjectRepository(final ApplicationProperties applicationProperties,
-      final GitService gitService, final ObjectMapper objectMapper) {
+      final GitService gitService, List<ProjectDiscovery> projectDiscoveries) {
     this.projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
     this.applicationProperties = applicationProperties;
     this.gitService = gitService;
-    this.projectsFileRaw = new File(projectsDirectory, PROJECTS_FILE);
+    this.projectDiscoveries = projectDiscoveries;
   }
 
   @Async()
@@ -58,22 +57,36 @@ public class ProjectRepository {
       }
     }
 
-    final List<ProjectImpl> projects = applicationProperties
+    final List<URI> configuredURIs = applicationProperties
         .getProjects()
-        .getUris().stream().map(this::toProject).collect(toList());
+        .getUris();
+
+    final SortedSet<URI> discoveredURIs = new TreeSet<>();
+    for (ProjectDiscovery projectDiscovery : projectDiscoveries) {
+      discoveredURIs.addAll(projectDiscovery.getURIs());
+    }
+
+    final SortedSet<URI> uris = new TreeSet<>();
+    uris.addAll(configuredURIs);
+    uris.addAll(discoveredURIs);
+
+    final List<ProjectImpl> projects = uris
+        .stream()
+        .map(this::toProject)
+        .collect(toList());
 
     final SortedSet<FQPN> configuredProjects =
         projects.stream().map(Project::getFQPN)
             .collect(toCollection(TreeSet::new));
 
     final SortedSet<FQPN> existingProjects = this.findExistingProjects();
-    projects.stream().filter(p -> existingProjects.contains(p.getFQPN()))
+    projects.stream()
+        .filter(p -> existingProjects.contains(p.getFQPN()))
         .forEach(p -> p.markAsCloned());
 
     for (ProjectImpl project : projects) {
       if (project.isCloned()) {
-        final Optional<Commit> commit =
-            this.gitService.getLatestCommitHash(project);
+        final Optional<Commit> commit = this.gitService.getLatestCommitHash(project);
         commit.ifPresent(project::setLatestCommit);
       }
     }

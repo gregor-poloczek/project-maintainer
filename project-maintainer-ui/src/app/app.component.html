@@ -6,28 +6,7 @@
       <button mat-raised-button (click)="onWipeButtonClick()">Wipe</button>
     </mat-toolbar-row>
   </mat-toolbar>
-  <mat-selection-list>
-    <ng-container *ngFor="let project of projects; index as i">
-      <mat-list-option
-        (selectedChange)="onProjectSelectionChanged(project, $event)"
-        class="project">
-        <mat-icon matListItemIcon>
-          <mat-spinner *ngIf="project.operationInProgress" mode="indeterminate"
-                       diameter="24"></mat-spinner>
-          <ng-container *ngIf="!project.operationInProgress">
-            folder
-          </ng-container>
-        </mat-icon>
-        <div matListItemTitle>{{ project.name }}
-          <!--<a href="{{project.git.uri}}">
-                    <img [src]="'assets/icons/' + project.git.provider + '.png'"/>
-          </a>-->
-        </div>
-        <div matListItemLine>{{ project.statusLine }}</div>
-      </mat-list-option>
-      <mat-divider *ngIf="i < projects.length-1"></mat-divider>
-    </ng-container>
-  </mat-selection-list>
+  <app-project-overview-list [items]="projects"></app-project-overview-list>
 </main>
 
 <router-outlet></router-outlet>
