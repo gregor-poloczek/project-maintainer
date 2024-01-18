@@ -15,6 +15,7 @@ import reactor.core.publisher.Sinks.EmitResult;
 public class SinkBasedProjectOperationProgressListener implements
     ProjectOperationProgressListener {
 
+  public static final double NO_PERCENTAGE = -1d;
   private final FQPN fqpn;
   private final String operation;
   private BiConsumer<FQPN, Optional<Throwable>> onComplete;
@@ -34,8 +35,9 @@ public class SinkBasedProjectOperationProgressListener implements
 
   public void scheduled() {
     this.send(
-        new ProjectOperationProgress(fqpn, operation).with(ProjectOperationState.SCHEDULED)
-            .withProgress(-1d));
+        new ProjectOperationProgress(fqpn, operation)
+            .with(ProjectOperationState.SCHEDULED)
+            .withProgress(NO_PERCENTAGE));
   }
 
   public void send(ProjectOperationProgress progress) {
@@ -47,7 +49,7 @@ public class SinkBasedProjectOperationProgressListener implements
     this.send(
         new ProjectOperationProgress(fqpn, operation)
             .with(ProjectOperationState.SUCCEEDED)
-            .withProgress(-1d)
+            .withProgress(NO_PERCENTAGE)
             .withProject(ProjectResource.of(project))
 
     )
@@ -58,18 +60,23 @@ public class SinkBasedProjectOperationProgressListener implements
   public void failed(Project project, final Throwable e) {
     this.send(new ProjectOperationProgress(fqpn, operation)
         .with(ProjectOperationState.FAILED)
-        .withProgress(-1d)
+        .withProgress(NO_PERCENTAGE)
         .withProject(ProjectResource.of(project))
     );
     this.onComplete.accept(fqpn, Optional.of(e));
   }
 
-  public void update(final String message, double progress) {
+  public void update(final String message, double percentage) {
     this.send(
         new ProjectOperationProgress(fqpn, operation)
             .with(ProjectOperationState.RUNNING)
             .withMessage(message)
-            .withProgress(progress)
+            .withProgress(percentage)
     );
+  }
+
+  @Override
+  public void update(final String message) {
+    this.update(message, NO_PERCENTAGE);
   }
 }

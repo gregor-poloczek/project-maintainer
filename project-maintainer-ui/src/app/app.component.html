@@ -1,12 +1,8 @@
 <main class="main mat-app-background">
-  <mat-toolbar>
-    <mat-toolbar-row>
-      <button mat-raised-button (click)="onPullButtonClick()">Pull</button>
-      <button mat-raised-button (click)="onCloneButtonClick()">Clone</button>
-      <button mat-raised-button (click)="onWipeButtonClick()">Wipe</button>
-    </mat-toolbar-row>
-  </mat-toolbar>
-  <app-project-overview-list [items]="projects"></app-project-overview-list>
+  <div class="navigation-bar">
+    <a routerLink="/">Overview</a>
+    <a routerLink="/search">Search</a>
+  </div>
+  <router-outlet></router-outlet>
 </main>
 
-<router-outlet></router-outlet>

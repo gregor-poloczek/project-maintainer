@@ -13,4 +13,6 @@ public interface ProjectOperationProgressListener {
   void failed(Project project, final Throwable e);
 
   void update(final String message, double progress);
+
+  void update(final String message);
 }

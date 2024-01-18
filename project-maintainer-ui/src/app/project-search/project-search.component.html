@@ -1,0 +1,21 @@
+<div>
+  Search <input type="text" [(ngModel)]="searchString" (keyup)="searchStringChanged($event)"/>
+  <table>
+    <thead>
+    <tr>
+      <th>Project</th>
+      <th>Labels</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let project of filteredProjects">
+      <td>{{ project.metaData.name }}</td>
+      <td class="labels">
+        <app-project-label
+          *ngFor="let label of filteredLabels(project.metaData.labels)"
+          [label]="label" [highlight]="searchRegExp"/>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>

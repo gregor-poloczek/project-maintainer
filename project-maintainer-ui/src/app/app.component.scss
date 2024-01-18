@@ -1,8 +1,14 @@
-.project {
-  img {
-    height: 16px;
-    margin-right: 6px;
+.navigation-bar {
+  display: flex;
+  flex-direction: row;
+  column-gap: 12px;
+
+  a {
+    padding: 12px;
+    text-decoration: none;
+    color: white;
   }
 }
+
 
 

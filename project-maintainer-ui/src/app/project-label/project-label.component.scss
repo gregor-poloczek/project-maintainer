@@ -1,0 +1,27 @@
+.label {
+  background-color: gray;
+  padding: 4px 8px;
+  border-radius: 12px;
+
+  &.highlighting-active {
+    color: lightgray;
+  }
+
+  &.lang {
+    background-color: deeppink;
+  }
+
+  &.dependency {
+    background-color: #0a9237;
+  }
+
+  &.runtime {
+    background-color: #167cc7;
+  }
+
+  &.tool {
+    background-color: dodgerblue;
+  }
+
+}
+

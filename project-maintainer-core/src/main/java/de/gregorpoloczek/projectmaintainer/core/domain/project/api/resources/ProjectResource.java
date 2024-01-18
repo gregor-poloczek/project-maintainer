@@ -2,9 +2,8 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 
-public record ProjectResource(FQPN fqpn, ProjectMetaData metaData, GitResource git) {
+public record ProjectResource(FQPN fqpn, ProjectMetaDataResource metaData, GitResource git) {
 
   public static ProjectResource of(Project project) {
 
@@ -23,7 +22,9 @@ public record ProjectResource(FQPN fqpn, ProjectMetaData metaData, GitResource g
 
     final GitResource git = new GitResource(project.getMetaData().getURI(),
         provider, wcr);
-    return new ProjectResource(project.getFQPN(), project.getMetaData(),
+    return new ProjectResource(
+        project.getFQPN(),
+        ProjectMetaDataResource.of(project),
         git);
   }
 }

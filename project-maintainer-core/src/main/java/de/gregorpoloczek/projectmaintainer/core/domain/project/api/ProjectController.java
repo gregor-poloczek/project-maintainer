@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.api;
 import static java.util.Collections.singleton;
 import static java.util.stream.Collectors.toList;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.ProjectAnalysisService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.ProjectResource;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
@@ -40,8 +41,12 @@ public class ProjectController {
 
   private final Executor executor;
 
-  public ProjectController(final ProjectService projectService, final Executor executor) {
+  private final ProjectAnalysisService projectAnalysisService;
+
+  public ProjectController(final ProjectService projectService,
+      final ProjectAnalysisService projectAnalysisService, final Executor executor) {
     this.projectService = projectService;
+    this.projectAnalysisService = projectAnalysisService;
     this.executor = executor;
   }
 
@@ -64,6 +69,11 @@ public class ProjectController {
   @PostMapping(value = "/{fqpn}/operations/pull")
   public void pullProject(@PathVariable("fqpn") String fqpn) {
     this.executeAsyncOperation(fqpn, "pull", this.projectService::pullProject);
+  }
+
+  @PostMapping(value = "/{fqpn}/operations/analyse")
+  public void analyseProject(@PathVariable("fqpn") String fqpn) {
+    this.executeAsyncOperation(fqpn, "analyse", this.projectAnalysisService::analyze);
   }
 
   @GetMapping(value = "/updates", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
