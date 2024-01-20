@@ -3,10 +3,14 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.common.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.FactsCollector;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.File;
 import java.net.URI;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
@@ -15,13 +19,13 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Getter
-
 public class ProjectImpl implements Project, GitClonable {
 
   private final ProjectMetaData metaData;
   private volatile boolean cloned;
   private Commit latestCommit;
   private ReadWriteLock lock = new ReentrantReadWriteLock();
+  private SortedSet<Label> labels = new TreeSet<>();
 
   public ProjectImpl(final File directory, ProjectMetaData metaData) {
     this.directory = directory;
@@ -65,6 +69,11 @@ public class ProjectImpl implements Project, GitClonable {
   }
 
   @Override
+  public FactsCollector facts() {
+    return new FactsCollector(this);
+  }
+
+  @Override
   public void markAsNotCloned() {
     this.cloned = false;
     this.latestCommit = null;
@@ -92,5 +101,14 @@ public class ProjectImpl implements Project, GitClonable {
   @Override
   public int hashCode() {
     return new HashCodeBuilder(17, 37).append(this.getFQPN()).toHashCode();
+  }
+
+  public void addLabel(final Label label) {
+    this.labels.add(label);
+  }
+
+  @Override
+  public SortedSet<Label> getLabels() {
+    return this.labels;
   }
 }

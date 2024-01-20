@@ -27,6 +27,7 @@ export namespace API {
     metaData: {
       owner: string;
       name: string;
+      labels: string[];
     };
     git: {
       uri: string;

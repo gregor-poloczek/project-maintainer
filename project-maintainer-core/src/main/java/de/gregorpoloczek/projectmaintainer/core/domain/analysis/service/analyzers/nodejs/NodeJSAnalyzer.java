@@ -1,0 +1,94 @@
+package de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.nodejs;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.AnalysisContext;
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.ProjectAnalyzer;
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.ProjectFiles;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.FactsCollector;
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.io.FileUtils;
+import org.springframework.stereotype.Component;
+
+@Component
+public class NodeJSAnalyzer implements ProjectAnalyzer {
+
+  public NodeJSAnalyzer(final ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
+
+  private final ObjectMapper objectMapper;
+
+  @Override
+  public void analyze(final AnalysisContext context) {
+    final ProjectFiles files = context.files();
+    final SortedSet<File> packageJsonFiles = files.find("package\\.json$");
+
+    if (packageJsonFiles.isEmpty()) {
+      return;
+    }
+    final FactsCollector facts = context.facts();
+    for (File file : packageJsonFiles) {
+      PackageJSON packageJSON = this.readPackageJSON(file);
+
+      // collect dependencies
+      final SortedMap<String, String> allDependencies = new TreeMap<>();
+      packageJSON.dependencies().ifPresent(allDependencies::putAll);
+      packageJSON.devDependencies().ifPresent(allDependencies::putAll);
+      allDependencies.entrySet()
+          .forEach(entry -> facts.has(h -> h.dependency(entry.getKey(), entry.getValue())));
+
+      // identify typescript version
+      Optional.ofNullable(allDependencies.get("typescript"))
+          .map(this::toRelevantTypeScriptVersion)
+          .ifPresent(
+              v -> facts.uses(u -> u.language("typescript", v))
+          );
+
+      // try to determine nodejs version
+      packageJSON.volta().map(v -> v.get("node")).ifPresentOrElse(
+          n -> facts.uses(u -> u.runtime("nodejs", n)),
+          () -> facts.uses(u -> u.runtime("nodejs"))
+      );
+
+      // try to determine yarn version (if used)
+      packageJSON.volta().map(v -> v.get("yarn")).ifPresent(
+          n -> facts.uses(u -> u.dependencyManagement("yarn", n))
+      );
+    }
+  }
+
+  private PackageJSON readPackageJSON(final File file) {
+    PackageJSON packageJSON;
+    try {
+      String raw = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
+      packageJSON = objectMapper.readValue(raw, PackageJSON.class);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    return packageJSON;
+  }
+
+  private String toRelevantTypeScriptVersion(String version) {
+    final Matcher caret = Pattern.compile("^\\^(?<relevant>\\d).\\d(.\\d)?$").matcher(version);
+    final Matcher tilde = Pattern.compile("^\\~(?<relevant>\\d.\\d).\\d$").matcher(version);
+    final Matcher exact = Pattern.compile("^(?<relevant>\\d.\\d).\\d$").matcher(version);
+
+    if (caret.matches()) {
+      return caret.group("relevant");
+    } else if (tilde.matches()) {
+      return tilde.group("relevant");
+    } else if (exact.matches()) {
+      return exact.group("relevant");
+    }
+    return version;
+  }
+}
