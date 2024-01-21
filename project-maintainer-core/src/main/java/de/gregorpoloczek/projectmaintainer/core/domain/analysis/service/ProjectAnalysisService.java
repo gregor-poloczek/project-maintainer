@@ -35,7 +35,7 @@ public class ProjectAnalysisService {
         analyzer.analyze(new AnalysisContextImpl(project));
       } catch (RuntimeException e) {
         log.error("Could not invoke analyzer %s on project %s".formatted(
-            analyzer.getClass().getSimpleName(), project.getFQPN()));
+            analyzer.getClass().getSimpleName(), project.getFQPN()), e);
       }
     }
 

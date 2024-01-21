@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.VersionedLabel;
 import java.util.function.Consumer;
 
 public class FactsCollector {
@@ -18,9 +19,9 @@ public class FactsCollector {
     this(project, true);
   }
 
-  private void addLabel(String segment, String... segments) {
+  private void addLabel(Label label) {
     if (keep) {
-      project.addLabel(Label.of(segment, segments));
+      project.addLabel(label);
     }
   }
 
@@ -28,32 +29,32 @@ public class FactsCollector {
   public class Uses {
 
     public Uses dependencyManagement(String name) {
-      addLabel("tool", "dependency-management", name);
+      addLabel(Label.of("tool", "dependency-management", name));
       return this;
     }
 
     public Uses dependencyManagement(String name, String version) {
-      addLabel("tool", "dependency-management", name, version);
+      addLabel(VersionedLabel.of(Label.of("tool", "dependency-management", name), version));
       return this;
     }
 
     public Uses language(final String language) {
-      addLabel("lang", language);
+      addLabel(Label.of("lang", language));
       return this;
     }
 
     public Uses language(final String language, String version) {
-      addLabel("lang", language, version);
+      addLabel(VersionedLabel.of(Label.of("lang", language), version));
       return this;
     }
 
     public Uses runtime(final String runtime, String version) {
-      addLabel("runtime", runtime, version);
+      addLabel(VersionedLabel.of(Label.of("runtime", runtime), version));
       return this;
     }
 
     public Uses runtime(final String runtime) {
-      addLabel("runtime", runtime);
+      addLabel(Label.of("runtime", runtime));
       return this;
     }
   }
@@ -61,10 +62,11 @@ public class FactsCollector {
   public class Has {
 
     public Has dependency(String name, String version) {
+      final Label base = Label.of("dependency", name);
       if (version != null) {
-        addLabel("dependency", name, version);
+        addLabel(VersionedLabel.of(base, version));
       } else {
-        addLabel("dependency", name);
+        addLabel(base);
       }
       return this;
     }

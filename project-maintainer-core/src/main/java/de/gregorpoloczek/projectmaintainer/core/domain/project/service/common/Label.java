@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service.common;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -12,17 +13,21 @@ public class Label implements Comparable<Label> {
 
   @Getter
   private final String value;
+  @Getter
+  private final List<String> segments;
 
-  private Label(final String value) {
-    this.value = value;
+  protected Label(final List<String> segments) {
+    this.value = segments.stream().collect(Collectors.joining(":"));
+    this.segments = Collections.unmodifiableList(segments);
   }
 
   public static Label of(String segment, String... segments) {
     final List<String> s = new ArrayList<>();
     s.add(segment);
     s.addAll(Arrays.asList(segments));
-    return new Label(s.stream().collect(Collectors.joining(":")));
+    return new Label(s);
   }
+
 
   @Override
   public boolean equals(final Object object) {
@@ -54,4 +59,5 @@ public class Label implements Comparable<Label> {
   public int compareTo(final Label o) {
     return this.value.compareTo(o.value);
   }
+
 }

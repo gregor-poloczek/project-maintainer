@@ -4,28 +4,32 @@ import de.gregorpoloczek.projectmaintainer.core.domain.git.common.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.VersionedLabel;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.FactsCollector;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.File;
 import java.net.URI;
+import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Getter
+@Slf4j
 public class ProjectImpl implements Project, GitClonable {
 
   private final ProjectMetaData metaData;
   private volatile boolean cloned;
   private Commit latestCommit;
   private ReadWriteLock lock = new ReentrantReadWriteLock();
-  private SortedSet<Label> labels = new TreeSet<>();
+  private NavigableSet<Label> labels = new TreeSet<>();
 
   public ProjectImpl(final File directory, ProjectMetaData metaData) {
     this.directory = directory;
@@ -104,7 +108,25 @@ public class ProjectImpl implements Project, GitClonable {
   }
 
   public void addLabel(final Label label) {
-    this.labels.add(label);
+
+    if (label instanceof VersionedLabel) {
+      final Label base = ((VersionedLabel) label).getBase();
+      if (this.labels.contains(base)) {
+        log.debug("Replacing {} with {}", base, label);
+        this.labels.remove(base);
+      }
+      this.labels.add(label);
+    } else {
+      final NavigableSet<Label> subset =
+          this.labels.subSet(label, true, label, false);
+      final Label first = subset.isEmpty() ? null : subset.getFirst();
+      if ((first instanceof VersionedLabel) && ((VersionedLabel) first).getBase().equals(label)) {
+        log.debug("Ignoring {} because more precise {} already exists.", label, first);
+        // DO nothing
+      } else {
+        this.labels.add(label);
+      }
+    }
   }
 
   @Override
