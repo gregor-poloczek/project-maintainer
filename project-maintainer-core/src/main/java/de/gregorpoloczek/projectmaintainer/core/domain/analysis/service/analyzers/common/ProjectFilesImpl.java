@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
@@ -15,17 +15,17 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 
 public class ProjectFilesImpl implements ProjectFiles {
 
-  private final Project project;
+  private final WorkingCopy workingCopy;
 
-  public ProjectFilesImpl(final Project project) {
-    this.project = project;
+  public ProjectFilesImpl(final WorkingCopy workingCopy) {
+    this.workingCopy = workingCopy;
   }
 
   @Override
   public boolean hasAny(final String regex) {
     MutableBoolean result = new MutableBoolean(false);
     try {
-      Files.walkFileTree(project.getDirectory().toPath(), new SimpleFileVisitor<>() {
+      Files.walkFileTree(workingCopy.getDirectory().toPath(), new SimpleFileVisitor<>() {
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
             throws IOException {
@@ -37,7 +37,7 @@ public class ProjectFilesImpl implements ProjectFiles {
 
         @Override
         public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
-          if (Pattern.compile(regex).matcher(file.toFile().getName()).find()) {
+          if (Pattern.compile(regex).matcher(file.toFile().getAbsolutePath()).find()) {
             result.setTrue();
             return FileVisitResult.TERMINATE;
           }
@@ -53,7 +53,7 @@ public class ProjectFilesImpl implements ProjectFiles {
   public SortedSet<File> find(String regex) {
     SortedSet<File> result = new TreeSet<>();
     try {
-      Files.walkFileTree(project.getDirectory().toPath(), new SimpleFileVisitor<>() {
+      Files.walkFileTree(workingCopy.getDirectory().toPath(), new SimpleFileVisitor<>() {
         @Override
         public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
             throws IOException {

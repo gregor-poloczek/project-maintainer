@@ -131,9 +131,16 @@ public class ProjectController {
           new SinkBasedProjectOperationProgressListener(this.sink, fqpn, operationName,
               onComplete);
       emitter.scheduled();
+
       this.executor.execute(
           () -> {
-            operation.accept(fqpn, emitter);
+            final Project project = projectService.getProject(fqpn).get();
+            try {
+              operation.accept(fqpn, emitter);
+              emitter.succeeded(project);
+            } catch (RuntimeException e) {
+              emitter.failed(projectService.getProject(fqpn).get(), e);
+            }
           }
       );
     }

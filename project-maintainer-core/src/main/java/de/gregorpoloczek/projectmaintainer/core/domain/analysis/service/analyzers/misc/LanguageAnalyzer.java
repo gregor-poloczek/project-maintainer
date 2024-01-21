@@ -3,13 +3,14 @@ package de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyze
 import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.AnalysisContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.ProjectFiles;
+import lombok.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LanguageAnalyzer implements ProjectAnalyzer {
 
   @Override
-  public void analyze(final AnalysisContext context) {
+  public void analyze(final @NonNull AnalysisContext context) {
     final ProjectFiles files = context.files();
     context.facts()
         .when(files.hasAny("\\.tf$")).uses(u -> u.language("terraform"))
