@@ -9,7 +9,13 @@
     </thead>
     <tbody>
     <tr *ngFor="let project of filteredProjects">
-      <td>{{ project.metaData.name }}</td>
+      <td>{{ project.metaData.name }}
+        <div class="framework-icons">
+          <img *ngFor="let framework of getFrameworks(project)"
+               class="framework-icon"
+               [src]="'assets/icons/framework/' + framework + '.svg'"/>
+        </div>
+      </td>
       <td class="labels">
         <app-project-label
           *ngFor="let label of filteredLabels(project.metaData.labels)"

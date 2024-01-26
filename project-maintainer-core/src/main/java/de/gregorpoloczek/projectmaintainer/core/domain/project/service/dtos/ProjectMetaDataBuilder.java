@@ -22,7 +22,11 @@ public class ProjectMetaDataBuilder {
   private String owner;
 
   public ProjectMetaDataBuilder fqpn(final String segmet, final String... segments) {
-    this.fqpn = FQPN.of(segmet, segments);
+    return this.fqpn(FQPN.of(segmet, segments));
+  }
+
+  public ProjectMetaDataBuilder fqpn(final FQPN fqpn) {
+    this.fqpn = fqpn;
     return this;
   }
 

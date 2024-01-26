@@ -32,8 +32,21 @@ export class ProjectSearchComponent {
     this.updatesEventSource = new EventSource(
       'http://localhost:8080/v1/projects/updates',
     );
+    this.updatesEventSource.onerror = (e) => {
+      console.error(e);
+    };
     this.updatesEventSource.onmessage = (event) => {
-      this.zone.run(() => {});
+      const progress = JSON.parse(event.data) as API.ProjectOperationProgress;
+      if (progress.operation === 'analyse' && progress.state === 'SUCCEEDED') {
+        let project = (progress as API.CompletedProjectOperationProgress)
+          .project;
+        this.zone.run(() => {
+          this.projects = [
+            project,
+            ...this.projects.filter((p) => p.fqpn !== progress.fpqn),
+          ].sort((p1, p2) => p1.fqpn.localeCompare(p2.fqpn));
+        });
+      }
     };
 
     (async () => {
@@ -86,5 +99,12 @@ export class ProjectSearchComponent {
 
   filteredLabels(labels: string[]): string[] {
     return labels.filter((l) => this.showLabel(l));
+  }
+
+  getFrameworks(project: API.ProjectResource): string[] {
+    return project.metaData.labels
+      .filter((l) => l.startsWith('framework'))
+      .map((l) => l.replace(/^framework:/, ''))
+      .map((l) => l.replace(/:.*$/, ''));
   }
 }

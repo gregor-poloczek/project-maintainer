@@ -1,15 +1,14 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.common.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.GitProjectResolver;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -29,21 +28,14 @@ public class GitService {
   }
 
 
-  private GitProjectResolver getProjectResolver(final URI uri) {
-    return this.gitProjectResolvers.stream()
-        .filter(cP -> cP.supports(uri))
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException(
-            "Could not find a git credentials provider for uri " + uri));
-  }
-
-  public void pull(GitClonable project, ProjectOperationProgressListener listener) {
-    project.withWriteLock(() -> {
-      final File directory = project.getDirectory();
+  public PullResult pull(@NonNull WorkingCopy workingCopy,
+      @NonNull ProjectOperationProgressListener listener) {
+    return workingCopy.withWriteLock(() -> {
+      final File directory = workingCopy.getDirectory();
       try (Git git = Git.open(directory)) {
         log.info("Pulling \"{}\".", directory);
 
-        final URI uri = project.getURI();
+        final URI uri = workingCopy.getURI();
         final CredentialsProvider cP = this.getProjectResolver(uri)
             .getCredentialsProvider(uri);
 
@@ -52,24 +44,21 @@ public class GitService {
             .setProgressMonitor(new GitOperationProgressMonitor(listener))
             .call();
 
-        project.setLatestCommit(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead()));
-
-        listener.succeeded(project);
         log.info("Pulling \"{}\" successfully.", directory);
+        return new PullResult() {
+          @Override
+          public Optional<Commit> getLatestCommit() {
+            return Optional.of(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead()));
+          }
+        };
       } catch (IOException | GitAPIException e) {
-        listener.failed(project, e);
-        throw new PullFailedException(e);
+        throw new ProjectPullFailedException(e);
       }
-      return null;
     });
   }
 
-  public ProjectMetaData toProjectMetaData(final URI uri) {
-    return this.getProjectResolver(uri).getProjectMetaData(uri);
-  }
-
-  public Optional<Commit> getLatestCommitHash(final GitClonable project) {
-    try (Git git = Git.open(project.getDirectory())) {
+  private Optional<Commit> getLatestCommitHash(@NonNull final WorkingCopy workingCopy) {
+    try (Git git = Git.open(workingCopy.getDirectory())) {
       RevCommit latestCommit = git.
           log().
           setMaxCount(1).
@@ -87,21 +76,22 @@ public class GitService {
     }
   }
 
-  public void clone(final GitClonable project, ProjectOperationProgressListener listener) {
-    project.withWriteLock(() -> {
-      final File directory = project.getDirectory();
-      final URI uri = project.getMetaData().getURI();
+  public CloneResult clone(@NonNull final WorkingCopy workingCopy,
+      ProjectOperationProgressListener listener) {
+
+    return workingCopy.withWriteLock(() -> {
+      final File directory = workingCopy.getDirectory();
+      final URI uri = workingCopy.getURI();
       if (directory.exists()) {
-        log.info("Project \"{}\" has already been cloned", project.getFQPN());
-        listener.succeeded(project);
-        return null;
+        log.error("Project \"{}\" has already been cloned", workingCopy.getFQPN());
+        throw new ProjectAlreadyClonedException(workingCopy.getFQPN());
       }
 
       final CredentialsProvider credentialProvider = this.getProjectResolver(uri)
-          .getCredentialsProvider(project.getMetaData().getURI());
+          .getCredentialsProvider(workingCopy.getURI());
 
       try {
-        log.info("Cloning \"{}\".", project.getFQPN());
+        log.info("Cloning \"{}\".", workingCopy.getFQPN());
         Git.cloneRepository().setURI(uri.toString())
             .setDirectory(directory)
             .setCredentialsProvider(credentialProvider)
@@ -109,16 +99,27 @@ public class GitService {
             .call()
             .close();
         final Optional<Commit> commit =
-            this.getLatestCommitHash(project);
-        project.setLatestCommit(commit.get());
-        project.markAsCloned();
+            this.getLatestCommitHash(workingCopy);
 
-        listener.succeeded(project);
-        log.info("Cloned \"{}\" successfully.", project.getFQPN());
+        log.info("Cloned \"{}\" successfully.", workingCopy.getFQPN());
+        return new CloneResult() {
+          @Override
+          public Optional<Commit> getLatestCommit() {
+            return commit;
+          }
+        };
       } catch (GitAPIException e) {
-        listener.failed(project, e);
+        throw new RuntimeException(e);
       }
-      return null;
     });
   }
+
+  private GitProjectResolver getProjectResolver(final URI uri) {
+    return this.gitProjectResolvers.stream()
+        .filter(cP -> cP.supports(uri))
+        .findFirst()
+        .orElseThrow(() -> new IllegalStateException(
+            "Could not find a git credentials provider for uri " + uri));
+  }
+
 }

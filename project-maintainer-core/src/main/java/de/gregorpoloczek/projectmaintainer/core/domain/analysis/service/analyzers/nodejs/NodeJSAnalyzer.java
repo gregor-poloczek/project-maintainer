@@ -2,19 +2,21 @@ package de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyze
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.AnalysisContext;
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.FactsCollector;
 import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common.ProjectFiles;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.FactsCollector;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.NonNull;
 import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +30,7 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
   private final ObjectMapper objectMapper;
 
   @Override
-  public void analyze(final AnalysisContext context) {
+  public void analyze(final @NonNull AnalysisContext context) {
     final ProjectFiles files = context.files();
     final SortedSet<File> packageJsonFiles = files.find("package\\.json$");
 
@@ -59,6 +61,18 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
           () -> facts.uses(u -> u.runtime("nodejs"))
       );
 
+      final Set<String> packageNames = allDependencies.keySet();
+      facts
+          .when(packageNames.stream().anyMatch(p -> p.startsWith("@nestjs")))
+          .uses(u -> u.framework("nestjs"));
+      facts.when(packageNames.contains("react")).uses(u -> u.framework("react"));
+      facts.when(packageNames.contains("next"))
+          .uses(u -> u.framework("react").framework("next.js"));
+      facts.when(packageNames.contains("vue")).uses(u -> u.framework("vue.js"));
+      facts.when(packageNames.contains("nuxt"))
+          .uses(u -> u.framework("vue.js").framework("nuxt"));
+      facts.when(packageNames.contains("@angular/core")).uses(u -> u.framework("angular"));
+
       // try to determine yarn version (if used)
       packageJSON.volta().map(v -> v.get("yarn")).ifPresent(
           n -> facts.uses(u -> u.dependencyManagement("yarn", n))
@@ -83,7 +97,7 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
     final Matcher exact = Pattern.compile("^(?<relevant>\\d.\\d).\\d$").matcher(version);
 
     if (caret.matches()) {
-      return caret.group("relevant");
+      return caret.group("relevant") + ".x";
     } else if (tilde.matches()) {
       return tilde.group("relevant");
     } else if (exact.matches()) {

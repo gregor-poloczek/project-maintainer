@@ -1,15 +1,12 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.common.GitClonable;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.VersionedLabel;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.FactsCollector;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
-import java.io.File;
 import java.net.URI;
+import java.util.Collection;
 import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -23,26 +20,25 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Getter
 @Slf4j
-public class ProjectImpl implements Project, GitClonable {
+public class ProjectImpl implements Project {
 
   private final ProjectMetaData metaData;
+  @Deprecated
   private volatile boolean cloned;
+  @Deprecated
   private Commit latestCommit;
   private ReadWriteLock lock = new ReentrantReadWriteLock();
   private NavigableSet<Label> labels = new TreeSet<>();
 
-  public ProjectImpl(final File directory, ProjectMetaData metaData) {
-    this.directory = directory;
+  public ProjectImpl(ProjectMetaData metaData) {
     this.metaData = metaData;
   }
-
-  private File directory;
 
   public URI getURI() {
     return this.metaData.getURI();
   }
 
-  @Override
+  @Deprecated
   public void markAsCloned() {
     this.cloned = true;
   }
@@ -72,12 +68,7 @@ public class ProjectImpl implements Project, GitClonable {
     }
   }
 
-  @Override
-  public FactsCollector facts() {
-    return new FactsCollector(this);
-  }
-
-  @Override
+  @Deprecated
   public void markAsNotCloned() {
     this.cloned = false;
     this.latestCommit = null;
@@ -107,26 +98,9 @@ public class ProjectImpl implements Project, GitClonable {
     return new HashCodeBuilder(17, 37).append(this.getFQPN()).toHashCode();
   }
 
-  public void addLabel(final Label label) {
-
-    if (label instanceof VersionedLabel) {
-      final Label base = ((VersionedLabel) label).getBase();
-      if (this.labels.contains(base)) {
-        log.debug("Replacing {} with {}", base, label);
-        this.labels.remove(base);
-      }
-      this.labels.add(label);
-    } else {
-      final NavigableSet<Label> subset =
-          this.labels.subSet(label, true, label, false);
-      final Label first = subset.isEmpty() ? null : subset.getFirst();
-      if ((first instanceof VersionedLabel) && ((VersionedLabel) first).getBase().equals(label)) {
-        log.debug("Ignoring {} because more precise {} already exists.", label, first);
-        // DO nothing
-      } else {
-        this.labels.add(label);
-      }
-    }
+  public void setLabels(final Collection<Label> labels) {
+    this.labels.clear();
+    this.labels.addAll(labels);
   }
 
   @Override

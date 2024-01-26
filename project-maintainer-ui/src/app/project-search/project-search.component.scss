@@ -6,6 +6,18 @@
   row-gap: 8px;
 }
 
+.framework-icons {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: 4px;
+
+  .framework-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
 input[type=text] {
   font-size: 20px;
 }
