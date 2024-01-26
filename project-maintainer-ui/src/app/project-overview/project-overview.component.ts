@@ -7,6 +7,8 @@ import { ProjectOverviewListComponent } from '../project-overview-list/project-o
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { EventSourceService } from '../EventSourceService';
+import { Subscription } from 'rxjs';
 import OperationState = API.OperationState;
 
 @Component({
@@ -25,10 +27,12 @@ export class ProjectOverviewComponent {
   private updatesEventSource!: EventSource;
 
   projects: ProjectListItem[] = [];
+  private subscription!: Subscription;
 
   public constructor(
     private zone: NgZone,
     @Inject(PLATFORM_ID) private platformId: Object,
+    private eventSourceService: EventSourceService,
   ) {}
 
   public onCloneButtonClick(): void {
@@ -68,40 +72,34 @@ export class ProjectOverviewComponent {
       this.projects = await this.getProjects();
     })();
 
-    this.updatesEventSource = new EventSource(
-      'http://localhost:8080/v1/projects/updates',
-    );
-    this.updatesEventSource.onmessage = (event) => {
-      const progress = JSON.parse(event.data) as API.ProjectOperationProgress;
+    this.subscription = this.eventSourceService.getMessageStream().subscribe({
+      next: (progress) => {
+        let project = this.projects.find((p) => p.fpqn === progress.fqpn)!;
 
-      let project = this.projects.find((p) => p.fpqn === progress.fpqn)!;
-
-      this.zone.run(() => {
-        if (
-          progress.state == OperationState.FAILED ||
-          progress.state == OperationState.SUCCEEDED
-        ) {
-          // TODO refactor
-          const oldProject = project;
-          project = new ProjectListItem(
-            (progress as API.CompletedProjectOperationProgress).project,
-          );
-          project.selected = oldProject.selected;
-          this.projects = [
-            ...this.projects.filter((p) => p.fpqn !== progress.fpqn),
-            project,
-          ].sort((p1, p2) => p1.fpqn.localeCompare(p2.fpqn));
-        }
-        project.operationProgress = progress;
-      });
-    };
+        this.zone.run(() => {
+          if (
+            progress.state == OperationState.FAILED ||
+            progress.state == OperationState.SUCCEEDED
+          ) {
+            // TODO refactor
+            const oldProject = project;
+            project = new ProjectListItem(
+              (progress as API.CompletedProjectOperationProgress).project,
+            );
+            project.selected = oldProject.selected;
+            this.projects = [
+              ...this.projects.filter((p) => p.fpqn !== progress.fqpn),
+              project,
+            ].sort((p1, p2) => p1.fpqn.localeCompare(p2.fpqn));
+          }
+          project.operationProgress = progress;
+        });
+      },
+    });
   }
 
   ngOnDestroy() {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-    this.updatesEventSource.close();
+    this.subscription?.unsubscribe();
   }
 
   private async getProjects(): Promise<ProjectListItem[]> {

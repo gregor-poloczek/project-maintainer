@@ -1,9 +1,11 @@
-import { Component, Inject, NgZone, PLATFORM_ID } from '@angular/core';
+import { Component, NgZone } from '@angular/core';
 import { ProjectLabelComponent } from '../project-label/project-label.component';
-import { isPlatformBrowser, NgForOf, NgIf } from '@angular/common';
+import { NgForOf, NgIf } from '@angular/common';
 import { API } from '../API';
 import axios from 'axios';
 import { FormsModule } from '@angular/forms';
+import { EventSourceService } from '../EventSourceService';
+import { Subscription } from 'rxjs';
 import ProjectResource = API.ProjectResource;
 
 @Component({
@@ -14,40 +16,34 @@ import ProjectResource = API.ProjectResource;
   styleUrl: './project-search.component.scss',
 })
 export class ProjectSearchComponent {
-  private updatesEventSource!: EventSource;
   public searchString: string = '';
   public projects: API.ProjectResource[] = [];
   public searchRegExp: RegExp | null = null;
+  private subscription!: Subscription;
 
   public constructor(
     private zone: NgZone,
-    @Inject(PLATFORM_ID) private platformId: Object,
+    private eventSourceService: EventSourceService,
   ) {}
 
   ngOnInit() {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-
-    this.updatesEventSource = new EventSource(
-      'http://localhost:8080/v1/projects/updates',
-    );
-    this.updatesEventSource.onerror = (e) => {
-      console.error(e);
-    };
-    this.updatesEventSource.onmessage = (event) => {
-      const progress = JSON.parse(event.data) as API.ProjectOperationProgress;
-      if (progress.operation === 'analyse' && progress.state === 'SUCCEEDED') {
-        let project = (progress as API.CompletedProjectOperationProgress)
-          .project;
-        this.zone.run(() => {
-          this.projects = [
-            project,
-            ...this.projects.filter((p) => p.fqpn !== progress.fpqn),
-          ].sort((p1, p2) => p1.fqpn.localeCompare(p2.fqpn));
-        });
-      }
-    };
+    this.subscription = this.eventSourceService.getMessageStream().subscribe({
+      next: (progress) => {
+        if (
+          progress.operation === 'analyse' &&
+          progress.state === 'SUCCEEDED'
+        ) {
+          let project = (progress as API.CompletedProjectOperationProgress)
+            .project;
+          this.zone.run(() => {
+            this.projects = [
+              project,
+              ...this.projects.filter((p) => p.fqpn !== progress.fqpn),
+            ].sort((p1, p2) => p1.fqpn.localeCompare(p2.fqpn));
+          });
+        }
+      },
+    });
 
     (async () => {
       this.projects = await this.getProjects();
@@ -60,10 +56,7 @@ export class ProjectSearchComponent {
   }
 
   ngOnDestroy() {
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
-    this.updatesEventSource.close();
+    this.subscription?.unsubscribe();
   }
 
   private async getProjects(): Promise<API.ProjectResource[]> {

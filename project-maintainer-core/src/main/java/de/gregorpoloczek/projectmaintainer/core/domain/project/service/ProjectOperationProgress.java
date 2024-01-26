@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class ProjectOperationProgress {
 
-  private final FQPN fpqn;
+  private final FQPN fqpn;
   private ProjectOperationState state = ProjectOperationState.SCHEDULED;
   private final String operation;
   private String message = null;
@@ -19,13 +19,13 @@ public class ProjectOperationProgress {
   private Instant timestamp;
 
   public ProjectOperationProgress(final FQPN fqpn, final String operation) {
-    this.fpqn = fqpn;
+    this.fqpn = fqpn;
     this.operation = operation;
   }
 
   public ProjectOperationProgress with(final ProjectOperationState projectOperationState) {
     // TODO remove copy
-    ProjectOperationProgress other = new ProjectOperationProgress(this.fpqn, this.operation);
+    ProjectOperationProgress other = new ProjectOperationProgress(this.fqpn, this.operation);
     other.state = projectOperationState;
     return other;
   }

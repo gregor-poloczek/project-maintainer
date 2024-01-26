@@ -67,6 +67,7 @@ public class ProjectAnalysisService {
     }
   }
 
+
   private void performAnalysis(final AnalysisContextImpl context,
       final ProjectOperationProgressListener listener) {
     final Project project = context.getProject();

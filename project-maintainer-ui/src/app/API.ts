@@ -9,7 +9,7 @@ export namespace API {
 
   export interface ProjectOperationProgress {
     type: string;
-    fpqn: string;
+    fqpn: string;
     operation: string;
     message: string | null;
     state: OperationState;

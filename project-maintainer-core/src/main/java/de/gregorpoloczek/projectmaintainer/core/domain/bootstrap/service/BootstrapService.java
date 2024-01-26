@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.bootstrap.service;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.OperationExecutionService;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
@@ -7,6 +8,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.Projec
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.DiscoveredProject;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryResult;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import jakarta.annotation.PostConstruct;
@@ -24,12 +26,21 @@ public class BootstrapService {
   private final ProjectDiscoveryService projectDiscoveryService;
   private final ProjectRepository projectRepository;
   private final WorkingCopyService workingCopyService;
+  private final OperationExecutionService operationExecutionService;
+  private final ProjectService projectService;
 
-  public BootstrapService(final ProjectDiscoveryService projectDiscoveryService,
-      final ProjectRepository projectRepository, final WorkingCopyService workingCopyService) {
+  public BootstrapService(
+      final ProjectDiscoveryService projectDiscoveryService,
+      final ProjectRepository projectRepository,
+      final WorkingCopyService workingCopyService,
+      final OperationExecutionService operationExecutionService,
+      final ProjectService projectService) {
     this.projectDiscoveryService = projectDiscoveryService;
     this.projectRepository = projectRepository;
     this.workingCopyService = workingCopyService;
+    this.operationExecutionService = operationExecutionService;
+    this.projectService = projectService;
+
   }
 
   @PostConstruct
@@ -70,10 +81,21 @@ public class BootstrapService {
           .owner("???")
           .build();
 
-      this.projectRepository.save(new ProjectImpl(metaData));
-    }
+      final ProjectImpl project = new ProjectImpl(metaData);
+      this.projectRepository.save(project);
 
-    // TODO create final project instances
+      if (!this.workingCopyService.find(project.getFQPN()).isPresent()) {
+        this.operationExecutionService.executeAsyncOperation(
+            project,
+            "clone",
+            this.projectService::cloneProject);
+      } else {
+        this.operationExecutionService.executeAsyncOperation(
+            project,
+            "pull",
+            this.projectService::pullProject);
+      }
+    }
   }
 
 }

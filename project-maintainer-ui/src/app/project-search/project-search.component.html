@@ -1,5 +1,7 @@
 <div>
-  Search <input type="text" [(ngModel)]="searchString" (keyup)="searchStringChanged($event)"/>
+  <div class="search-box">
+    Search <input type="text" [(ngModel)]="searchString" (keyup)="searchStringChanged($event)"/>
+  </div>
   <table>
     <thead>
     <tr>
@@ -9,11 +11,14 @@
     </thead>
     <tbody>
     <tr *ngFor="let project of filteredProjects">
-      <td>{{ project.metaData.name }}
-        <div class="framework-icons">
-          <img *ngFor="let framework of getFrameworks(project)"
-               class="framework-icon"
-               [src]="'assets/icons/framework/' + framework + '.svg'"/>
+      <td>
+        <div class="project">
+          <div class="project-name">{{ project.metaData.name }}</div>
+          <div class="framework-icons">
+            <img *ngFor="let framework of getFrameworks(project)"
+                 class="framework-icon"
+                 [src]="'assets/icons/framework/' + framework + '.svg'"/>
+          </div>
         </div>
       </td>
       <td class="labels">
