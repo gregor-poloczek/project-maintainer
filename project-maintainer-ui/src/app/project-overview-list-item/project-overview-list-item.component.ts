@@ -7,7 +7,7 @@ import {
   map,
   Observable,
   startWith,
-  Subject,
+  switchMap,
 } from 'rxjs';
 import { API } from '../API';
 import { CommonModule } from '@angular/common';
@@ -22,27 +22,26 @@ import { CommonModule } from '@angular/common';
 export class ProjectOverviewListItemComponent {
   @Input() item!: ProjectListItem;
 
-  private operationProgress$!: Subject<API.ProjectOperationProgress>;
-
   public statusLine$!: Observable<string>;
   public item$!: BehaviorSubject<ProjectListItem>;
 
   ngOnChanges(changes: Partial<ProjectOverviewListItemComponent>) {
     if (changes.item) {
-      if (!this.item$) {
-        this.item$ = new BehaviorSubject<ProjectListItem>(this.item);
-      } else {
+      if (this.item$) {
         this.item$.next(changes.item as ProjectListItem);
+        return;
       }
+      this.item$ = new BehaviorSubject<ProjectListItem>(this.item);
 
-      this.operationProgress$ =
-        this.eventSourceService.getProjectOperationProgress(
-          this.item.project.fqpn,
-        );
+      const operationProgress$ = this.item$.pipe(
+        switchMap((p) =>
+          this.eventSourceService.getProjectOperationProgress(p.fpqn),
+        ),
+      );
 
       this.statusLine$ = combineLatest([
         this.item$,
-        this.operationProgress$.pipe(startWith(null)),
+        operationProgress$.pipe(startWith(null)),
       ]).pipe(
         map(([item, pop]) => {
           const commitMessage =
