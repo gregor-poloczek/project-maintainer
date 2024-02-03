@@ -24,9 +24,7 @@ import OperationState = API.OperationState;
   styleUrl: './project-overview.component.scss',
 })
 export class ProjectOverviewComponent {
-  private updatesEventSource!: EventSource;
-
-  projects: ProjectListItem[] = [];
+  public projects: ProjectListItem[] = [];
   private subscription!: Subscription;
 
   public constructor(

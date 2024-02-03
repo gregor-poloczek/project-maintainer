@@ -4,6 +4,7 @@
     <span class="project-name">{{ item.name }}</span>
   </div>
   <div class="text-row">
+    {{ statusLine$ | async }}
     {{ item.statusLine }}
   </div>
 </div>
