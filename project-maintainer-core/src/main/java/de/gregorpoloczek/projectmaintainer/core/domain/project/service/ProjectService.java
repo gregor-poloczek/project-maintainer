@@ -102,6 +102,9 @@ public class ProjectService {
         workingCopy.getDirectory(),
         clone.getLatestCommit().orElse(null)
     );
+    // TODO clean up
+    project.markAsCloned();
+    clone.getLatestCommit().ifPresent(project::setLatestCommit);
   }
 
   public void pullProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {

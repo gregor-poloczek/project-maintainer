@@ -3,9 +3,6 @@
     <a routerLink="/">Overview</a>
     <a routerLink="/search">Search</a>
   </div>
-  <div *ngFor="let p of items$ | async">
-    {{ p.name }}
-  </div>
   <router-outlet></router-outlet>
 </main>
 

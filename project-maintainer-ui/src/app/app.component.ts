@@ -3,7 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { API } from './API';
-import { filter, map, Observable, tap } from 'rxjs';
+import { filter, Observable, tap } from 'rxjs';
 import * as projectActions from './projects.actions';
 import { EventSourceService } from './EventSourceService';
 
@@ -16,7 +16,6 @@ import { EventSourceService } from './EventSourceService';
 })
 export class AppComponent {
   public projects$: Observable<API.ProjectResource[]>;
-  public items$: Observable<{ fqpn: string; name: string }[]>;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -24,18 +23,6 @@ export class AppComponent {
     private eventSourceService: EventSourceService,
   ) {
     this.projects$ = this.store.select('projects');
-
-    this.items$ = this.projects$.pipe(
-      map((projects) =>
-        projects.map((p) => ({
-          fqpn: p.fqpn,
-          name: p.metaData.name
-            .split('-')
-            .map((part) => part[0].toUpperCase() + part.substring(1))
-            .join(' '),
-        })),
-      ),
-    );
   }
 
   ngOnInit() {
