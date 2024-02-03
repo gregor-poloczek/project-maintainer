@@ -123,6 +123,9 @@ public class ProjectService {
     project.withWriteLock(() -> {
       try {
         workingCopyService.remove(fqpn);
+        // TODO clean up
+        project.setLatestCommit(null);
+        project.markAsNotCloned();
         listener.succeeded(project);
       } catch (Exception e) {
         listener.failed(project, e);

@@ -8,7 +8,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EventSourceService } from '../EventSourceService';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { Store } from '@ngrx/store';
 import OperationState = API.OperationState;
 
 @Component({
@@ -26,12 +27,20 @@ import OperationState = API.OperationState;
 export class ProjectOverviewComponent {
   public projects: ProjectListItem[] = [];
   private subscription!: Subscription;
+  private projects$: Observable<API.ProjectResource[]>;
 
   public constructor(
     private zone: NgZone,
     @Inject(PLATFORM_ID) private platformId: Object,
+    private store: Store<{ projects: API.ProjectResource[] }>,
     private eventSourceService: EventSourceService,
-  ) {}
+  ) {
+    this.projects$ = this.store.select('projects');
+
+    this.projects$.subscribe((projects) => {
+      this.projects = projects.map((p) => new ProjectListItem(p));
+    });
+  }
 
   public onCloneButtonClick(): void {
     this.executeOperations('clone');
@@ -66,9 +75,9 @@ export class ProjectOverviewComponent {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
-    (async () => {
-      this.projects = await this.getProjects();
-    })();
+    // (async () => {
+    //   this.projects = await this.getProjects();
+    // })();
 
     this.subscription = this.eventSourceService.getMessageStream().subscribe({
       next: (progress) => {
@@ -98,15 +107,5 @@ export class ProjectOverviewComponent {
 
   ngOnDestroy() {
     this.subscription?.unsubscribe();
-  }
-
-  private async getProjects(): Promise<ProjectListItem[]> {
-    const projects = await axios
-      .get<API.ProjectResource[]>('http://localhost:8080/v1/projects/')
-      .then((r) => r.data);
-
-    return projects
-      .sort((p1, p2) => p1.fqpn.localeCompare(p2.fqpn))
-      .map((p) => new ProjectListItem(p));
   }
 }
