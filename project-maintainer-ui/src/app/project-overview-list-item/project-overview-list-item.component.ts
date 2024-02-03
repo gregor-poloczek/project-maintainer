@@ -1,7 +1,14 @@
-import { Component, Input, SimpleChanges } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { ProjectListItem } from '../ProjectListItem';
 import { EventSourceService } from '../EventSourceService';
-import { map, Observable, Subject } from 'rxjs';
+import {
+  BehaviorSubject,
+  combineLatest,
+  map,
+  Observable,
+  startWith,
+  Subject,
+} from 'rxjs';
 import { API } from '../API';
 import { CommonModule } from '@angular/common';
 
@@ -18,17 +25,39 @@ export class ProjectOverviewListItemComponent {
   private operationProgress$!: Subject<API.ProjectOperationProgress>;
 
   public statusLine$!: Observable<string>;
+  public item$!: BehaviorSubject<ProjectListItem>;
 
-  ngOnChanges(changes: SimpleChanges) {
-    if ('item' in changes) {
+  ngOnChanges(changes: Partial<ProjectOverviewListItemComponent>) {
+    if (changes.item) {
+      if (!this.item$) {
+        this.item$ = new BehaviorSubject<ProjectListItem>(this.item);
+      } else {
+        this.item$.next(changes.item as ProjectListItem);
+      }
+
       this.operationProgress$ =
         this.eventSourceService.getProjectOperationProgress(
           this.item.project.fqpn,
         );
 
-      this.statusLine$ = this.operationProgress$.pipe(
-        map((pop) => {
-          const { message, progress, operation } = pop;
+      this.statusLine$ = combineLatest([
+        this.item$,
+        this.operationProgress$.pipe(startWith(null)),
+      ]).pipe(
+        map(([item, pop]) => {
+          const commitMessage =
+            item.project.git.workingCopy?.latestCommit.message;
+
+          if (!pop) {
+            return commitMessage || '';
+          }
+
+          const { message, progress, operation, state } = pop;
+
+          if (state === API.OperationState.SUCCEEDED) {
+            return commitMessage || '';
+          }
+
           let result = `${operation}`;
           if (message) {
             result += ` (${message})`;
