@@ -15,13 +15,32 @@ export class ProjectEffects {
 
   loadProjects$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(projectActions.load),
+      ofType(projectActions.loadProjects),
       switchMap(() =>
         this.http
           .get<API.ProjectResource[]>('http://localhost:8080/v1/projects/')
           .pipe(
-            map((projects) => projectActions.loaded({ projects })),
-            catchError((error) => of(projectActions.loadFailed({ error }))),
+            map((projects) => projectActions.loadedProjects({ projects })),
+            catchError((error) =>
+              of(projectActions.loadProjectsFailed({ error })),
+            ),
+          ),
+      ),
+    ),
+  );
+  loadProject$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(projectActions.loadProject),
+      switchMap((a) =>
+        this.http
+          .get<API.ProjectResource>(
+            'http://localhost:8080/v1/projects/' + a.fqpn,
+          )
+          .pipe(
+            map((project) => projectActions.loadedProject({ project })),
+            catchError((error) =>
+              of(projectActions.loadProjectsFailed({ error })),
+            ),
           ),
       ),
     ),

@@ -3,7 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { API } from './API';
-import { map, Observable } from 'rxjs';
+import { filter, map, Observable, tap } from 'rxjs';
 import * as projectActions from './projects.actions';
 import { EventSourceService } from './EventSourceService';
 
@@ -42,8 +42,24 @@ export class AppComponent {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
+    // TODO erst intialisieren, wenn projekte geladen sind
     this.eventSourceService.init();
-    this.store.dispatch(projectActions.load());
+
+    this.eventSourceService
+      .getMessageStream()
+      .pipe(
+        filter((pop) =>
+          [API.OperationState.SUCCEEDED, API.OperationState.FAILED].includes(
+            pop.state,
+          ),
+        ),
+        tap((pop) =>
+          this.store.dispatch(projectActions.loadProject({ fqpn: pop.fqpn })),
+        ),
+      )
+      .subscribe();
+
+    this.store.dispatch(projectActions.loadProjects());
   }
 
   ngOnDestroy() {
