@@ -4,6 +4,7 @@ import { EventSourceService } from '../EventSourceService';
 import {
   BehaviorSubject,
   combineLatest,
+  filter,
   map,
   Observable,
   startWith,
@@ -40,6 +41,7 @@ export class ProjectOverviewListItemComponent {
         switchMap((p) =>
           this.eventSourceService.getProjectOperationProgress(p.fpqn),
         ),
+        filter((pop) => pop.operation.startsWith('git::')),
       );
 
       const workingCopyInfo$: Observable<string> = this.item$.pipe(

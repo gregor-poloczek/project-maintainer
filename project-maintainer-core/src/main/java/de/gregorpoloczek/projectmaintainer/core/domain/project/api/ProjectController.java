@@ -46,7 +46,7 @@ public class ProjectController {
   public void wipeProject(@PathVariable("fqpn") String fqpn) {
     this.operationExecutionService.executeAsyncOperation(
         this.requireProject(FQPN.of(fqpn)),
-        "wipe",
+        "git::wipe",
         this.projectService::wipeProject);
   }
 
@@ -55,7 +55,7 @@ public class ProjectController {
   public void cloneProject(@PathVariable("fqpn") String fqpn) {
     this.operationExecutionService.executeAsyncOperation(
         this.requireProject(FQPN.of(fqpn)),
-        "clone",
+        "git::clone",
         this.projectService::cloneProject);
   }
 
@@ -64,7 +64,7 @@ public class ProjectController {
   public void pullProject(@PathVariable("fqpn") String fqpn) {
     this.operationExecutionService.executeAsyncOperation(
         this.requireProject(FQPN.of(fqpn)),
-        "pull",
+        "git::pull",
         this.projectService::pullProject);
   }
 
