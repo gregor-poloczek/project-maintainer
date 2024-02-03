@@ -11,6 +11,7 @@ import {
 } from 'rxjs';
 import { API } from '../API';
 import { CommonModule } from '@angular/common';
+import moment from 'moment';
 
 @Component({
   selector: 'app-project-overview-list-item',
@@ -24,6 +25,8 @@ export class ProjectOverviewListItemComponent {
 
   public statusLine$!: Observable<string>;
   public item$!: BehaviorSubject<ProjectListItem>;
+
+  constructor(private eventSourceService: EventSourceService) {}
 
   ngOnChanges(changes: Partial<ProjectOverviewListItemComponent>) {
     if (changes.item) {
@@ -39,22 +42,33 @@ export class ProjectOverviewListItemComponent {
         ),
       );
 
+      const workingCopyInfo$: Observable<string> = this.item$.pipe(
+        map((i) => {
+          if (!i.project.git.workingCopy) {
+            return 'not cloned';
+          }
+          const { latestCommit } = i.project.git.workingCopy;
+          if (latestCommit) {
+            return `${moment(latestCommit.timestamp).fromNow()} - ${latestCommit.message}`;
+          }
+
+          return 'no commits';
+        }),
+      );
+
       this.statusLine$ = combineLatest([
         this.item$,
+        workingCopyInfo$,
         operationProgress$.pipe(startWith(null)),
       ]).pipe(
-        map(([item, pop]) => {
-          const commitMessage =
-            item.project.git.workingCopy?.latestCommit.message;
-
+        map(([item, wci, pop]) => {
           if (!pop) {
-            return commitMessage || '';
+            return wci;
           }
 
           const { message, progress, operation, state } = pop;
-
           if (state === API.OperationState.SUCCEEDED) {
-            return commitMessage || '';
+            return wci;
           }
 
           let result = `${operation}`;
@@ -69,8 +83,6 @@ export class ProjectOverviewListItemComponent {
       );
     }
   }
-
-  constructor(private eventSourceService: EventSourceService) {}
 
   onItemClick(): void {
     this.item.selected = !this.item.selected;

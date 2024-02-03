@@ -3,7 +3,7 @@ import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { API } from './API';
-import { map, Observable, Subject } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import * as projectActions from './projects.actions';
 import { EventSourceService } from './EventSourceService';
 
@@ -17,12 +17,6 @@ import { EventSourceService } from './EventSourceService';
 export class AppComponent {
   public projects$: Observable<API.ProjectResource[]>;
   public items$: Observable<{ fqpn: string; name: string }[]>;
-
-  public getOperationUpdate(
-    fqpn: string,
-  ): Subject<API.ProjectOperationProgress> {
-    return this.eventSourceService.getProjectOperationProgress(fqpn);
-  }
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,

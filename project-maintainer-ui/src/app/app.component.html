@@ -5,8 +5,6 @@
   </div>
   <div *ngFor="let p of items$ | async">
     {{ p.name }}
-
-    {{ (getOperationUpdate(p.fqpn) | async)?.message }}
   </div>
   <router-outlet></router-outlet>
 </main>
