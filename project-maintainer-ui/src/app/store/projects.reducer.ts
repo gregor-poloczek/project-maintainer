@@ -1,5 +1,5 @@
-import { API } from './API';
 import { createReducer, on } from '@ngrx/store';
+import { API } from '../API';
 import * as projectActions from './projects.actions';
 
 export const initialState: API.ProjectResource[] = [];

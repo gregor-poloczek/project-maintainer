@@ -4,8 +4,8 @@ import { RouterLink, RouterOutlet } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { API } from './API';
 import { filter, Observable, tap } from 'rxjs';
-import * as projectActions from './projects.actions';
-import { EventSourceService } from './EventSourceService';
+import * as projectActions from './store/projects.actions';
+import { EventSourceService } from './service/EventSourceService';
 
 @Component({
   selector: 'app-root',

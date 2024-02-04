@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ProjectListItem } from '../ProjectListItem';
-import { EventSourceService } from '../EventSourceService';
+import { EventSourceService } from '../service/EventSourceService';
 import {
   BehaviorSubject,
   combineLatest,

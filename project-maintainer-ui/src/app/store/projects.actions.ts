@@ -1,5 +1,5 @@
 import { createAction, props } from '@ngrx/store';
-import { API } from './API';
+import { API } from '../API';
 
 export const triggerOperation = createAction(
   '[PROJECTS] trigger operation',

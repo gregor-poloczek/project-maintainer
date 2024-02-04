@@ -7,8 +7,8 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable } from 'rxjs';
 import { Store } from '@ngrx/store';
-import { AppState } from '../AppState';
-import * as projectsActions from '../projects.actions';
+import { AppState } from '../store/AppState';
+import * as projectsActions from '../store/projects.actions';
 
 @Component({
   selector: 'app-project-overview',

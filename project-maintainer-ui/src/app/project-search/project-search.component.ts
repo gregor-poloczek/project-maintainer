@@ -9,9 +9,9 @@ import {
 import { API } from '../API';
 import { FormsModule } from '@angular/forms';
 import { map, Observable, Subscription } from 'rxjs';
-import * as projectActions from './../projects.actions';
+import * as projectActions from './../store/projects.actions';
 import { Store } from '@ngrx/store';
-import { AppState } from '../AppState';
+import { AppState } from '../store/AppState';
 
 @Component({
   selector: 'app-project-search',

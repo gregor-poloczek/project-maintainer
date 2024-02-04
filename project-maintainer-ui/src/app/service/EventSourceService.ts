@@ -1,6 +1,6 @@
 import { filter, Observable, Subject } from 'rxjs';
 import { Injectable } from '@angular/core';
-import { API } from './API';
+import { API } from '../API';
 
 @Injectable({
   providedIn: 'root',
@@ -23,7 +23,7 @@ export class EventSourceService {
   }
 
   public getProjectOperationProgress(
-    fqpn: string,
+    fqpn: API.FQPN,
   ): Subject<API.ProjectOperationProgress> {
     let result = this.operationProgressByFQPN.get(fqpn);
 

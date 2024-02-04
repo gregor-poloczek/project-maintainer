@@ -4,7 +4,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as projectActions from './projects.actions';
 
 import { catchError, map, of, switchMap } from 'rxjs';
-import { API } from './API';
+import { API } from '../API';
 
 @Injectable()
 export class ProjectEffects {
@@ -13,13 +13,13 @@ export class ProjectEffects {
     private readonly actions$: Actions,
   ) {}
 
-  analyzeProjects$ = createEffect(() =>
+  triggerOperation$ = createEffect(() =>
     this.actions$.pipe(
       ofType(projectActions.triggerOperation),
       switchMap((a) =>
         this.http
           .post<{}>(
-            `http://localhost:8080/v1/projects/${a.fqpn}/operations/analyze`,
+            `http://localhost:8080/v1/projects/${a.fqpn}/operations/${a.operation}`,
             {},
           )
           .pipe(
