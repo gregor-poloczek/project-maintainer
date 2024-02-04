@@ -8,7 +8,7 @@ import {
 } from '@angular/common';
 import { API } from '../API';
 import { FormsModule } from '@angular/forms';
-import { map, Observable, Subscription } from 'rxjs';
+import { map, Observable, Subscription, take } from 'rxjs';
 import * as projectActions from './../store/projects.actions';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
@@ -49,7 +49,9 @@ export class ProjectSearchComponent {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
-    this.projects$.subscribe((p) => {
+    // TODO make it work without take(2) - used to call this only once, when the projects are
+    //  finally available
+    this.projects$.pipe(take(2)).subscribe((p) => {
       for (const project of p) {
         this.store.dispatch(
           projectActions.triggerOperation({
