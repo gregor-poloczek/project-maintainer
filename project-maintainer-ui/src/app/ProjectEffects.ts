@@ -13,6 +13,35 @@ export class ProjectEffects {
     private readonly actions$: Actions,
   ) {}
 
+  analyzeProjects$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(projectActions.triggerOperation),
+      switchMap((a) =>
+        this.http
+          .post<{}>(
+            `http://localhost:8080/v1/projects/${a.fqpn}/operations/analyze`,
+            {},
+          )
+          .pipe(
+            map(() =>
+              projectActions.triggerOperationSuccess({
+                fqpn: a.fqpn,
+                operation: a.operation,
+              }),
+            ),
+            catchError((error) =>
+              of(
+                projectActions.triggerOperationFailed({
+                  fqpn: a.fqpn,
+                  operation: a.operation,
+                  error,
+                }),
+              ),
+            ),
+          ),
+      ),
+    ),
+  );
   loadProjects$ = createEffect(() =>
     this.actions$.pipe(
       ofType(projectActions.loadProjects),

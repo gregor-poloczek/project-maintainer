@@ -1,11 +1,28 @@
 import { createAction, props } from '@ngrx/store';
 import { API } from './API';
 
-const refresh = createAction('[PROJECTS] Refresh');
+export const triggerOperation = createAction(
+  '[PROJECTS] trigger operation',
+  props<{
+    fqpn: API.FQPN;
+    operation: API.ProjectOperation;
+  }>(),
+);
+
+export const triggerOperationSuccess = createAction(
+  '[PROJECTS] operation trigger success',
+  props<{ fqpn: API.FQPN; operation: API.ProjectOperation }>(),
+);
+
+export const triggerOperationFailed = createAction(
+  '[PROJECTS] operation trigger failed',
+  props<{ fqpn: API.FQPN; operation: API.ProjectOperation; error: Error }>(),
+);
+
 export const loadProjects = createAction('[PROJECTS] Load Projects');
 export const loadProject = createAction(
   '[PROJECTS] Load Project',
-  props<{ fqpn: string }>(),
+  props<{ fqpn: API.FQPN }>(),
 );
 export const loadedProjects = createAction(
   '[PROJECTS] Projects loaded',

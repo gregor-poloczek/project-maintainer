@@ -10,7 +10,7 @@
     </tr>
     </thead>
     <tbody>
-    <tr *ngFor="let project of filteredProjects">
+    <tr *ngFor="let project of (filteredProjects$ | async)">
       <td>
         <div class="project">
           <div class="project-name">{{ project.metaData.name }}</div>

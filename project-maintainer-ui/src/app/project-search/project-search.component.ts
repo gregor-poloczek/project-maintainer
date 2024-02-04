@@ -1,17 +1,22 @@
-import { Component, NgZone } from '@angular/core';
+import { Component, Inject, PLATFORM_ID } from '@angular/core';
 import { ProjectLabelComponent } from '../project-label/project-label.component';
-import { NgForOf, NgIf } from '@angular/common';
+import {
+  CommonModule,
+  isPlatformBrowser,
+  NgForOf,
+  NgIf,
+} from '@angular/common';
 import { API } from '../API';
-import axios from 'axios';
 import { FormsModule } from '@angular/forms';
-import { EventSourceService } from '../EventSourceService';
-import { Subscription } from 'rxjs';
-import ProjectResource = API.ProjectResource;
+import { map, Observable, Subscription } from 'rxjs';
+import * as projectActions from './../projects.actions';
+import { Store } from '@ngrx/store';
+import { AppState } from '../AppState';
 
 @Component({
   selector: 'app-project-search',
   standalone: true,
-  imports: [ProjectLabelComponent, NgForOf, FormsModule, NgIf],
+  imports: [ProjectLabelComponent, NgForOf, FormsModule, NgIf, CommonModule],
   templateUrl: './project-search.component.html',
   styleUrl: './project-search.component.scss',
 })
@@ -20,51 +25,44 @@ export class ProjectSearchComponent {
   public projects: API.ProjectResource[] = [];
   public searchRegExp: RegExp | null = null;
   private subscription!: Subscription;
+  private projects$: Observable<API.ProjectResource[]>;
+  public filteredProjects$: Observable<API.ProjectResource[]>;
 
   public constructor(
-    private zone: NgZone,
-    private eventSourceService: EventSourceService,
-  ) {}
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private store: Store<AppState>,
+  ) {
+    this.projects$ = this.store.select('projects');
+
+    this.filteredProjects$ = this.projects$.pipe(
+      map((projects) =>
+        projects.filter(
+          (p) =>
+            p.metaData.labels.length == 0 ||
+            this.filteredLabels(p.metaData.labels).length > 0,
+        ),
+      ),
+    );
+  }
 
   ngOnInit() {
-    this.subscription = this.eventSourceService.getMessageStream().subscribe({
-      next: (progress) => {
-        if (
-          progress.operation === 'analyse' &&
-          progress.state === 'SUCCEEDED'
-        ) {
-          let project = (progress as API.CompletedProjectOperationProgress)
-            .project;
-          this.zone.run(() => {
-            this.projects = [
-              project,
-              ...this.projects.filter((p) => p.fqpn !== progress.fqpn),
-            ].sort((p1, p2) => p1.fqpn.localeCompare(p2.fqpn));
-          });
-        }
-      },
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    this.projects$.subscribe((p) => {
+      for (const project of p) {
+        this.store.dispatch(
+          projectActions.triggerOperation({
+            fqpn: project.fqpn,
+            operation: 'analyze',
+          }),
+        );
+      }
     });
-
-    (async () => {
-      this.projects = await this.getProjects();
-      this.projects.map((p) =>
-        axios.post(
-          `http://localhost:8080/v1/projects/${p.fqpn}/operations/analyse`,
-        ),
-      );
-    })();
   }
 
   ngOnDestroy() {
     this.subscription?.unsubscribe();
-  }
-
-  private async getProjects(): Promise<API.ProjectResource[]> {
-    const projects = await axios
-      .get<API.ProjectResource[]>('http://localhost:8080/v1/projects/')
-      .then((r) => r.data);
-
-    return projects.sort((p1, p2) => p1.fqpn.localeCompare(p2.fqpn));
   }
 
   showLabel(label: string): boolean {
@@ -80,14 +78,6 @@ export class ProjectSearchComponent {
       console.error(e);
       this.searchRegExp = null;
     }
-  }
-
-  get filteredProjects(): ProjectResource[] {
-    return this.projects.filter(
-      (p) =>
-        p.metaData.labels.length == 0 ||
-        this.filteredLabels(p.metaData.labels).length > 0,
-    );
   }
 
   filteredLabels(labels: string[]): string[] {

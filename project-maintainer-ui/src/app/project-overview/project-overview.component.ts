@@ -1,13 +1,14 @@
 import { Component } from '@angular/core';
 import { API } from '../API';
 import { ProjectListItem } from '../ProjectListItem';
-import axios from 'axios';
 import { ProjectOverviewListComponent } from '../project-overview-list/project-overview-list.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable } from 'rxjs';
 import { Store } from '@ngrx/store';
+import { AppState } from '../AppState';
+import * as projectsActions from '../projects.actions';
 
 @Component({
   selector: 'app-project-overview',
@@ -26,13 +27,7 @@ export class ProjectOverviewComponent {
   private projects$: Observable<API.ProjectResource[]>;
   private selectedProjects = new Set<API.FQPN>();
 
-  onSelectionChanged(selected: Set<API.FQPN>) {
-    this.selectedProjects = new Set(selected);
-  }
-
-  public constructor(
-    private store: Store<{ projects: API.ProjectResource[] }>,
-  ) {
+  public constructor(private store: Store<AppState>) {
     this.projects$ = this.store.select('projects');
 
     this.projects$.subscribe((projects) => {
@@ -53,20 +48,21 @@ export class ProjectOverviewComponent {
   }
 
   public onAnalyseButtonClick(): void {
-    this.executeOperations('analyse');
+    this.executeOperations('analyze');
   }
 
-  private executeOperations(operation: string) {
+  private executeOperations(operation: API.ProjectOperation) {
     this.projects
       .filter((p) => this.selectedProjects.has(p.fpqn))
       .map((p) => p.fpqn)
       .map((p) => this.executeOperation(p, operation));
   }
 
-  private executeOperation(project: string, operation: string) {
-    // TODO replace with http module
-    axios.post(
-      `http://localhost:8080/v1/projects/${project}/operations/${operation}`,
-    );
+  private executeOperation(fqpn: API.FQPN, operation: API.ProjectOperation) {
+    this.store.dispatch(projectsActions.triggerOperation({ fqpn, operation }));
+  }
+
+  onSelectionChanged(selected: Set<API.FQPN>) {
+    this.selectedProjects = new Set(selected);
   }
 }

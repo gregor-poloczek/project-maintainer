@@ -1,5 +1,6 @@
 export namespace API {
   export type FQPN = string;
+  export type ProjectOperation = 'pull' | 'clone' | 'wipe' | 'analyze';
 
   export enum OperationState {
     SCHEDULED = 'SCHEDULED',

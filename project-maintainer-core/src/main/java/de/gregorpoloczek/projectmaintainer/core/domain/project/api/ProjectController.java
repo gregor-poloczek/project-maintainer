@@ -68,7 +68,7 @@ public class ProjectController {
         this.projectService::pullProject);
   }
 
-  @PostMapping(value = "/{fqpn}/operations/analyse")
+  @PostMapping(value = "/{fqpn}/operations/analyze")
   public void analyseProject(@PathVariable("fqpn") String fqpn) {
     this.operationExecutionService.executeAsyncOperation(
         this.requireProject(FQPN.of(fqpn)),
