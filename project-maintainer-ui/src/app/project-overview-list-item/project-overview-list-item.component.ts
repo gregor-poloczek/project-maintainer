@@ -27,6 +27,7 @@ export class ProjectOverviewListItemComponent {
   @Output() onClick = new EventEmitter<API.FQPN>();
 
   public statusLine$!: Observable<string>;
+  public cloned$!: Observable<boolean>;
   public item$!: BehaviorSubject<ProjectListItem>;
 
   constructor(private eventSourceService: EventSourceService) {}
@@ -59,6 +60,8 @@ export class ProjectOverviewListItemComponent {
           return 'no commits';
         }),
       );
+
+      this.cloned$ = this.item$.pipe(map((i) => !!i.project.git.workingCopy));
 
       this.statusLine$ = combineLatest([
         this.item$,

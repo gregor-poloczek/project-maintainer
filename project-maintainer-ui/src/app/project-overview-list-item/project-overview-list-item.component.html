@@ -1,4 +1,6 @@
-<div class="project-overview-list-item" [class]="{selected: selected}" (click)="onClickSelf()">
+<div class="project-overview-list-item"
+     [class]="{selected: selected, notCloned: !(cloned$ | async) }"
+     (click)="onClickSelf()">
   <div class="main-row">
     <img class="provider-icon" [src]="'assets/icons/' + item.project.git.provider + '.png'"/>
     <span class="project-name">{{ item.name }}</span>

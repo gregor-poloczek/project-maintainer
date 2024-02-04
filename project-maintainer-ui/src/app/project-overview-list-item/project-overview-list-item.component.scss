@@ -36,16 +36,22 @@
   .text-row {
     color: #ffffffb3;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: eπllipsis;
     white-space: nowrap;
   }
 
   .provider-icon {
-    width: 24px;
+    width: 36px;
+  }
+
+  &.notCloned {
+    .provider-icon {
+      filter: blur(2px) grayscale(0.75);
+    }
   }
 
   .project-name {
-    font-size: 16px;
+    font-size: 22px;
   }
 
 }
