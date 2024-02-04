@@ -7,5 +7,7 @@
       <button mat-raised-button (click)="onAnalyseButtonClick()">Analyse</button>
     </mat-toolbar-row>
   </mat-toolbar>
-  <app-project-overview-list [items]="projects"></app-project-overview-list>
+  <app-project-overview-list [items]="projects" (onSelectionChanged)="onSelectionChanged($event)">
+
+  </app-project-overview-list>
 </div>

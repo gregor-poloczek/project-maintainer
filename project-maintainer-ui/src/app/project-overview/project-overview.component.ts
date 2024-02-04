@@ -24,6 +24,11 @@ import { Store } from '@ngrx/store';
 export class ProjectOverviewComponent {
   public projects: ProjectListItem[] = [];
   private projects$: Observable<API.ProjectResource[]>;
+  private selectedProjects = new Set<API.FQPN>();
+
+  onSelectionChanged(selected: Set<API.FQPN>) {
+    this.selectedProjects = new Set(selected);
+  }
 
   public constructor(
     private store: Store<{ projects: API.ProjectResource[] }>,
@@ -53,7 +58,7 @@ export class ProjectOverviewComponent {
 
   private executeOperations(operation: string) {
     this.projects
-      .filter((p) => p.selected)
+      .filter((p) => this.selectedProjects.has(p.fpqn))
       .map((p) => p.fpqn)
       .map((p) => this.executeOperation(p, operation));
   }

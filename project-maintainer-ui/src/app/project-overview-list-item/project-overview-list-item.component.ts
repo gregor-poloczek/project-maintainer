@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ProjectListItem } from '../ProjectListItem';
 import { EventSourceService } from '../EventSourceService';
 import {
@@ -23,6 +23,8 @@ import moment from 'moment';
 })
 export class ProjectOverviewListItemComponent {
   @Input() item!: ProjectListItem;
+  @Input() selected: boolean = false;
+  @Output() onClick = new EventEmitter<API.FQPN>();
 
   public statusLine$!: Observable<string>;
   public item$!: BehaviorSubject<ProjectListItem>;
@@ -86,7 +88,7 @@ export class ProjectOverviewListItemComponent {
     }
   }
 
-  onItemClick(): void {
-    this.item.selected = !this.item.selected;
+  onClickSelf(): void {
+    this.onClick.emit(this.item.fpqn);
   }
 }

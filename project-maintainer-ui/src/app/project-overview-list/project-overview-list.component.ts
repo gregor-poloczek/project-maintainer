@@ -1,7 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { ProjectListItem } from '../ProjectListItem';
 import { ProjectOverviewListItemComponent } from '../project-overview-list-item/project-overview-list-item.component';
 import { NgForOf } from '@angular/common';
+import { API } from '../API';
 
 @Component({
   selector: 'app-project-overview-list',
@@ -13,4 +14,18 @@ import { NgForOf } from '@angular/common';
 export class ProjectOverviewListComponent {
   @Input()
   items!: ProjectListItem[];
+  @Output()
+  onSelectionChanged = new EventEmitter<Set<API.FQPN>>();
+  private selectedItems = new Set<API.FQPN>();
+
+  public onItemClick(fqpn: API.FQPN) {
+    if (!this.selectedItems.delete(fqpn)) {
+      this.selectedItems.add(fqpn);
+    }
+    this.onSelectionChanged.emit(this.selectedItems);
+  }
+
+  public isSelected(fqpn: API.FQPN) {
+    return this.selectedItems.has(fqpn);
+  }
 }

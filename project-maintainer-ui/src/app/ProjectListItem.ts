@@ -3,8 +3,6 @@ import { API } from './API';
 export class ProjectListItem {
   name: string;
   fpqn: string;
-  operationProgress: API.ProjectOperationProgress | null = null;
-  selected: boolean = false;
 
   constructor(public readonly project: API.ProjectResource) {
     this.name = project.metaData.name;

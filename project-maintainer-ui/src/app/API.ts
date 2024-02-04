@@ -1,4 +1,6 @@
 export namespace API {
+  export type FQPN = string;
+
   export enum OperationState {
     SCHEDULED = 'SCHEDULED',
     STARTED = 'STARTED',
@@ -9,7 +11,7 @@ export namespace API {
 
   export interface ProjectOperationProgress {
     type: string;
-    fqpn: string;
+    fqpn: FQPN;
     operation: string;
     message: string | null;
     state: OperationState;
@@ -23,7 +25,7 @@ export namespace API {
   }
 
   export interface ProjectResource {
-    fqpn: string;
+    fqpn: FQPN;
     metaData: {
       owner: string;
       name: string;

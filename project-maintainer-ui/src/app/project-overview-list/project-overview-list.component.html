@@ -1,5 +1,7 @@
 <div class="project-overview-list">
   <app-project-overview-list-item
+    (onClick)="onItemClick($event)"
+    [selected]="isSelected(item.fpqn)"
     *ngFor="let item of items; index as i" [item]="item">
   </app-project-overview-list-item>
 </div>
