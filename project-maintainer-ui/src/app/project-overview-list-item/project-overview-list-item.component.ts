@@ -12,11 +12,12 @@ import {
 import { API } from '../API';
 import { CommonModule } from '@angular/common';
 import moment from 'moment';
+import { ProjectItemComponent } from '../project-item/project-item.component';
 
 @Component({
   selector: 'app-project-overview-list-item',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ProjectItemComponent],
   templateUrl: './project-overview-list-item.component.html',
   styleUrl: './project-overview-list-item.component.scss',
 })

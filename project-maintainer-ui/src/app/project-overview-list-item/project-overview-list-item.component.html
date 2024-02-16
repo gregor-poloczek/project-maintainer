@@ -1,11 +1,9 @@
 <div class="project-overview-list-item"
      [class]="{selected: selected, notCloned: !(cloned$ | async) }"
      (click)="onClickSelf()">
-  <div class="main-row">
-    <img class="provider-icon" [src]="'assets/icons/' + project.git.provider + '.png'"/>
-    <span class="project-name">{{ project.metaData.name }}</span>
-  </div>
-  <div class="text-row">
-    {{ statusLine$ | async }}
-  </div>
+  <app-project-item
+    [project]="project"
+    [textLine]="statusLine$ | async"
+  >
+  </app-project-item>
 </div>

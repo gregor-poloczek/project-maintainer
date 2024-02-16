@@ -12,11 +12,19 @@ import { map, Observable, Subscription, take } from 'rxjs';
 import * as projectActions from './../store/projects.actions';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
+import { ProjectItemComponent } from '../project-item/project-item.component';
 
 @Component({
   selector: 'app-project-search',
   standalone: true,
-  imports: [ProjectLabelComponent, NgForOf, FormsModule, NgIf, CommonModule],
+  imports: [
+    ProjectLabelComponent,
+    NgForOf,
+    FormsModule,
+    NgIf,
+    CommonModule,
+    ProjectItemComponent,
+  ],
   templateUrl: './project-search.component.html',
   styleUrl: './project-search.component.scss',
 })

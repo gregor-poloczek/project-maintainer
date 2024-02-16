@@ -1,0 +1,43 @@
+.project-item {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  row-gap: 12px;
+  width: 300px;
+  position: relative;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #404040;
+  }
+
+  .main-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 12px;
+  }
+
+  .text-row {
+    color: #ffffffb3;
+    overflow: hidden;
+    text-overflow: eπllipsis;
+    white-space: nowrap;
+  }
+
+
+  .provider-icon {
+    width: 36px;
+  }
+
+  .project-name {
+    font-size: 22px;
+  }
+
+  &.notCloned {
+    .provider-icon {
+      filter: blur(2px) grayscale(0.75);
+    }
+  }
+
+}
