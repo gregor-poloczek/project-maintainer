@@ -40,7 +40,9 @@ export class ProjectSearchComponent {
     @Inject(PLATFORM_ID) private platformId: Object,
     private store: Store<AppState>,
   ) {
-    this.projects$ = this.store.select('projects');
+    this.projects$ = this.store
+      .select('projects')
+      .pipe(map((projects) => projects.filter((p) => !!p.git.workingCopy)));
 
     this.filteredProjects$ = this.projects$.pipe(
       map((projects) =>
