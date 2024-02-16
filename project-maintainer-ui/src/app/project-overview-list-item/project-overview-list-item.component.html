@@ -2,8 +2,8 @@
      [class]="{selected: selected, notCloned: !(cloned$ | async) }"
      (click)="onClickSelf()">
   <div class="main-row">
-    <img class="provider-icon" [src]="'assets/icons/' + item.project.git.provider + '.png'"/>
-    <span class="project-name">{{ item.name }}</span>
+    <img class="provider-icon" [src]="'assets/icons/' + project.git.provider + '.png'"/>
+    <span class="project-name">{{ project.metaData.name }}</span>
   </div>
   <div class="text-row">
     {{ statusLine$ | async }}

@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { API } from '../API';
-import { ProjectListItem } from '../ProjectListItem';
 import { ProjectOverviewListComponent } from '../project-overview-list/project-overview-list.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -23,7 +22,7 @@ import * as projectsActions from '../store/projects.actions';
   styleUrl: './project-overview.component.scss',
 })
 export class ProjectOverviewComponent {
-  public projects: ProjectListItem[] = [];
+  public projects: API.ProjectResource[] = [];
   private projects$: Observable<API.ProjectResource[]>;
   private selectedProjects = new Set<API.FQPN>();
 
@@ -31,7 +30,7 @@ export class ProjectOverviewComponent {
     this.projects$ = this.store.select('projects');
 
     this.projects$.subscribe((projects) => {
-      this.projects = projects.map((p) => new ProjectListItem(p));
+      this.projects = projects;
     });
   }
 
@@ -53,8 +52,8 @@ export class ProjectOverviewComponent {
 
   private executeOperations(operation: API.ProjectOperation) {
     this.projects
-      .filter((p) => this.selectedProjects.has(p.fpqn))
-      .map((p) => p.fpqn)
+      .filter((p) => this.selectedProjects.has(p.fqpn))
+      .map((p) => p.fqpn)
       .map((p) => this.executeOperation(p, operation));
   }
 

@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ProjectListItem } from '../ProjectListItem';
 import { EventSourceService } from '../service/EventSourceService';
 import {
   BehaviorSubject,
@@ -22,37 +21,37 @@ import moment from 'moment';
   styleUrl: './project-overview-list-item.component.scss',
 })
 export class ProjectOverviewListItemComponent {
-  @Input() item!: ProjectListItem;
+  @Input() project!: API.ProjectResource;
   @Input() selected: boolean = false;
   @Output() onClick = new EventEmitter<API.FQPN>();
 
   public statusLine$!: Observable<string>;
   public cloned$!: Observable<boolean>;
-  public item$!: BehaviorSubject<ProjectListItem>;
+  public item$!: BehaviorSubject<API.ProjectResource>;
 
   constructor(private eventSourceService: EventSourceService) {}
 
   ngOnChanges(changes: Partial<ProjectOverviewListItemComponent>) {
-    if (changes.item) {
+    if (changes.project) {
       if (this.item$) {
-        this.item$.next(changes.item as ProjectListItem);
+        this.item$.next(changes.project as API.ProjectResource);
         return;
       }
-      this.item$ = new BehaviorSubject<ProjectListItem>(this.item);
+      this.item$ = new BehaviorSubject<API.ProjectResource>(this.project);
 
       const operationProgress$ = this.item$.pipe(
         switchMap((p) =>
-          this.eventSourceService.getProjectOperationProgress(p.fpqn),
+          this.eventSourceService.getProjectOperationProgress(p.fqpn),
         ),
         filter((pop) => pop.operation.startsWith('git::')),
       );
 
       const workingCopyInfo$: Observable<string> = this.item$.pipe(
         map((i) => {
-          if (!i.project.git.workingCopy) {
+          if (!i.git.workingCopy) {
             return 'not cloned';
           }
-          const { latestCommit } = i.project.git.workingCopy;
+          const { latestCommit } = i.git.workingCopy;
           if (latestCommit) {
             return `${moment(latestCommit.timestamp).fromNow()} - ${latestCommit.message}`;
           }
@@ -61,14 +60,14 @@ export class ProjectOverviewListItemComponent {
         }),
       );
 
-      this.cloned$ = this.item$.pipe(map((i) => !!i.project.git.workingCopy));
+      this.cloned$ = this.item$.pipe(map((i) => !!i.git.workingCopy));
 
       this.statusLine$ = combineLatest([
         this.item$,
         workingCopyInfo$,
         operationProgress$.pipe(startWith(null)),
       ]).pipe(
-        map(([item, wci, pop]) => {
+        map(([project, wci, pop]) => {
           if (!pop) {
             return wci;
           }
@@ -92,6 +91,6 @@ export class ProjectOverviewListItemComponent {
   }
 
   onClickSelf(): void {
-    this.onClick.emit(this.item.fpqn);
+    this.onClick.emit(this.project.fqpn);
   }
 }

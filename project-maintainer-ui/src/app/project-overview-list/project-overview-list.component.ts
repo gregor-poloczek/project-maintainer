@@ -1,5 +1,4 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { ProjectListItem } from '../ProjectListItem';
 import { ProjectOverviewListItemComponent } from '../project-overview-list-item/project-overview-list-item.component';
 import { NgForOf } from '@angular/common';
 import { API } from '../API';
@@ -13,7 +12,7 @@ import { API } from '../API';
 })
 export class ProjectOverviewListComponent {
   @Input()
-  items!: ProjectListItem[];
+  projects!: API.ProjectResource[];
   @Output()
   onSelectionChanged = new EventEmitter<Set<API.FQPN>>();
   private selectedItems = new Set<API.FQPN>();
