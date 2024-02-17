@@ -1,18 +1,18 @@
-/* You can add global styles to this file, and also import other style files */
+@import "global";
 
 html, body {
   height: 100%;
-  color: white;
+  color: $primary-color;
 }
 
 body {
   margin: 0;
-  font-family: Roboto, "Helvetica Neue", sans-serif;
+  font-family: Avenir, Helvetica, Arial, sans-serif;;
 }
 
 body {
   min-height: 100vh;
-  background-color: #303030;
+  background-color: $primary-background-color;
 }
 
 .highlighted {

@@ -1,3 +1,5 @@
+@import "../../global";
+
 .project-item {
   padding: 12px;
   display: flex;
@@ -19,9 +21,9 @@
   }
 
   .text-row {
-    color: #ffffffb3;
+    color: $secondary-color;
     overflow: hidden;
-    text-overflow: eπllipsis;
+    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
