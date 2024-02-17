@@ -1,0 +1,37 @@
+.toolbar {
+  display: flex;
+  flex-direction: row;
+  column-gap: 8px;
+  padding: 12px;
+}
+
+:host ::ng-deep {
+  button {
+    min-width: 64px;
+    font-size: 20px;
+    padding: 8px 12px;
+    border-radius: 4px;
+
+    &:first-child {
+      margin-left: 12px;
+    }
+
+    background-color: black;
+    color: white;
+    border: gray solid 2px;
+
+    &:active, &:hover {
+      background-color: #404040;
+      border-color: #303030;
+    }
+  }
+
+  input[type=text] {
+    font-size: 20px;
+  }
+
+  label {
+    font-size: 20px;
+    padding: 12px;
+  }
+}

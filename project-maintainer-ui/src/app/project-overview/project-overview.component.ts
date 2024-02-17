@@ -5,11 +5,12 @@ import { Observable } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
 import * as projectsActions from '../store/projects.actions';
+import { ToolbarComponent } from '../toolbar/toolbar.component';
 
 @Component({
   selector: 'app-project-overview',
   standalone: true,
-  imports: [ProjectOverviewListComponent],
+  imports: [ProjectOverviewListComponent, ToolbarComponent],
   templateUrl: './project-overview.component.html',
   styleUrl: './project-overview.component.scss',
 })

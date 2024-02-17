@@ -1,10 +1,10 @@
 <div>
-  <div class="toolbar">
+  <app-toolbar>
     <button mat-raised-button (click)="onPullButtonClick()">Pull</button>
     <button mat-raised-button (click)="onCloneButtonClick()">Clone</button>
     <button mat-raised-button (click)="onWipeButtonClick()">Wipe</button>
     <button mat-raised-button (click)="onAnalyseButtonClick()">Analyse</button>
-  </div>
+  </app-toolbar>
   <app-project-overview-list [projects]="projects"
                              (onSelectionChanged)="onSelectionChanged($event)">
 
