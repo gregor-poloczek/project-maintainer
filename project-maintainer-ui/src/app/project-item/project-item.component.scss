@@ -9,10 +9,6 @@
   position: relative;
   cursor: pointer;
 
-  &:hover {
-    background-color: #404040;
-  }
-
   .main-row {
     display: flex;
     flex-direction: row;
@@ -33,7 +29,8 @@
   }
 
   .project-name {
-    font-size: 22px;
+    font-size: 20px;
+    font-weight: bold;
   }
 
   &.notCloned {

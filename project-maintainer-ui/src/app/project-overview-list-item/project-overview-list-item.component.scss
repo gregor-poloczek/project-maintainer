@@ -5,11 +5,11 @@
 
   &.selected {
     margin: 0px;
-    border: dashed #606060 2px;
+    border: dashed darken($tertiary-color, 10%) 2px;
   }
 
   &:hover {
-    background-color: #404040;
+    background-color: lighten(black, 10%);
   }
 
   &.notCloned {

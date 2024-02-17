@@ -4,8 +4,8 @@
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  column-gap: 8px;
-  row-gap: 12px;
+  column-gap: 6px;
+  row-gap: 16px;
 }
 
 
@@ -13,13 +13,23 @@ input[type=text] {
   font-size: 20px;
 }
 
+table {
+  width: 100%;
+}
+
 td, th {
   padding: 12px;
 }
 
+
 th {
   font-size: 20px;
-  color: $tertiary-color
+  color: $tertiary-color;
+  border-bottom: solid 2px lighten(black, 20%);
+}
+
+tr + tr td {
+  border-top: solid 2px lighten(black, 20%);
 }
 
 tbody td:nth-child(1) {
