@@ -3,6 +3,9 @@
   flex-direction: row;
   column-gap: 8px;
   padding: 12px;
+
+  border-top: solid 2px gray;
+  border-bottom: solid 2px gray;
 }
 
 :host ::ng-deep {
