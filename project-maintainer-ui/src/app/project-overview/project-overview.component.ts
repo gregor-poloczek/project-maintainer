@@ -1,9 +1,6 @@
 import { Component } from '@angular/core';
 import { API } from '../API';
 import { ProjectOverviewListComponent } from '../project-overview-list/project-overview-list.component';
-import { MatButtonModule } from '@angular/material/button';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { Observable } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
@@ -12,12 +9,7 @@ import * as projectsActions from '../store/projects.actions';
 @Component({
   selector: 'app-project-overview',
   standalone: true,
-  imports: [
-    ProjectOverviewListComponent,
-    MatButtonModule,
-    MatToolbarModule,
-    MatTooltipModule,
-  ],
+  imports: [ProjectOverviewListComponent],
   templateUrl: './project-overview.component.html',
   styleUrl: './project-overview.component.scss',
 })
