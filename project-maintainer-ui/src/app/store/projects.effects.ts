@@ -7,7 +7,7 @@ import { catchError, map, of, switchMap } from 'rxjs';
 import { API } from '../API';
 
 @Injectable()
-export class ProjectEffects {
+export class ProjectsEffects {
   constructor(
     private readonly http: HttpClient,
     private readonly actions$: Actions,

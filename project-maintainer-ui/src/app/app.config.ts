@@ -7,7 +7,7 @@ import { provideStore } from '@ngrx/store';
 import { projectsReducer } from './store/projects.reducer';
 import { provideHttpClient } from '@angular/common/http';
 import { provideEffects } from '@ngrx/effects';
-import { ProjectEffects } from './store/ProjectEffects';
+import { ProjectsEffects } from './store/projects.effects';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,6 +15,6 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(),
     provideStore({ projects: projectsReducer }),
     provideHttpClient(),
-    provideEffects(ProjectEffects),
+    provideEffects(ProjectsEffects),
   ],
 };
