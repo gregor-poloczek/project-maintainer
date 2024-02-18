@@ -13,14 +13,7 @@
     <tbody>
     <tr *ngFor="let project of (filteredProjects$ | async)">
       <td>
-        <div class="project">
-          <app-project-item [project]="project"></app-project-item>
-          <div class="framework-icons">
-            <img *ngFor="let framework of getFrameworks(project)"
-                 class="framework-icon"
-                 [src]="'assets/icons/framework/' + framework + '.svg'"/>
-          </div>
-        </div>
+        <app-project-item [project]="project" [showTechnologies]="true"/>
       </td>
       <td>
         <div class="labels">

@@ -35,6 +35,18 @@
     text-overflow: ellipsis;
   }
 
+  .technology-icons {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: 4px;
+
+    .technology-icon {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
   &.notCloned {
     .provider-icon {
       filter: blur(2px) grayscale(0.75);

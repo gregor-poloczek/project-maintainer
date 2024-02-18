@@ -3,7 +3,7 @@
   (click)="onClickSelf()">
   <app-project-item
     [project]="project"
-    [textLines]="statusLine$ | async"
+    [textLines]="(statusLine$ | async) || []"
   >
   </app-project-item>
 </div>

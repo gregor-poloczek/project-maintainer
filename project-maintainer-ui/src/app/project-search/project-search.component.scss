@@ -15,7 +15,6 @@ table {
     padding: 12px;
   }
 
-
   th {
     font-size: 20px;
     color: $tertiary-color;
@@ -30,23 +29,4 @@ table {
     vertical-align: top;
   }
 }
-
-.project {
-  display: flex;
-  flex-direction: column;
-  row-gap: 12px;
-
-  .framework-icons {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    column-gap: 4px;
-
-    .framework-icon {
-      width: 24px;
-      height: 24px;
-    }
-  }
-}
-
 

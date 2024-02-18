@@ -6,4 +6,9 @@
   <div *ngFor="let textLine of textLines" class="text-row">
     {{ textLine }}
   </div>
+  <div *ngIf="showTechnologies" class="technology-icons">
+    <img *ngFor="let technology of technologies"
+         class="technology-icon"
+         [src]="'assets/icons/framework/' + technology + '.svg'"/>
+  </div>
 </div>
