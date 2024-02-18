@@ -22,10 +22,12 @@
           </div>
         </div>
       </td>
-      <td class="labels">
-        <app-project-label
-          *ngFor="let label of filteredLabels(project.metaData.labels)"
-          [label]="label" [highlight]="searchRegExp"/>
+      <td>
+        <div class="labels">
+          <app-project-label
+            *ngFor="let label of filteredLabels(project.metaData.labels)"
+            [label]="label" [highlight]="searchRegExp"/>
+        </div>
       </td>
     </tr>
     </tbody>
