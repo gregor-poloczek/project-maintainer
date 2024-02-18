@@ -3,7 +3,7 @@
 >
   <div class="main-row">
     <img class="provider-icon" [src]="'assets/icons/' + project.git.provider + '.png'"/>
-    <span class="project-name">{{ project.metaData.name }}</span>
+    <span class="project-name">{{ readableName }}</span>
   </div>
   <div *ngIf="textLine" class="text-row">
     {{ textLine }}

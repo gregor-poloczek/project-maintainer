@@ -17,4 +17,10 @@ export class ProjectItemComponent {
   get cloned(): boolean {
     return !!this.project.git.workingCopy;
   }
+
+  get readableName(): string {
+    const parts = this.project.metaData.name.split('-');
+
+    return parts.map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+  }
 }
