@@ -29,3 +29,6 @@
   Diese Datei wird unter der Creative-Commons-Lizenz „CC0 1.0 Verzicht auf das Copyright“ zur
   Verfügung gestellt.
   https://github.com/carlosbaraza/web-assembly-logo/blob/master/dist/icon/web-assembly-icon.svg
+
+* webpack: https://github.com/webpack/media/blob/master/logo/icon-square-big.svg
+  public domain https://en.m.wikipedia.org/wiki/File:Webpack.svg

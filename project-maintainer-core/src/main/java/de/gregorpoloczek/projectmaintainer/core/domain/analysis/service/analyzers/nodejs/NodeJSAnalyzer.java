@@ -72,6 +72,7 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
       facts.when(packageNames.contains("nuxt"))
           .uses(u -> u.framework("vue.js").framework("nuxt"));
       facts.when(packageNames.contains("@angular/core")).uses(u -> u.framework("angular"));
+      facts.when(packageNames.contains("webpack")).uses(u -> u.framework("webpack"));
 
       // try to determine yarn version (if used)
       packageJSON.volta().map(v -> v.get("yarn")).ifPresent(
