@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.github;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.AbstractProjectResolver;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import java.net.URI;
 import java.util.regex.Pattern;
