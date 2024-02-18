@@ -1,6 +1,6 @@
-<div class="project-overview-list-item"
-     [class]="{selected: selected, notCloned: !(cloned$ | async) }"
-     (click)="onClickSelf()">
+<div
+  [class]="{selected: selected, notCloned: !(cloned$ | async) }"
+  (click)="onClickSelf()">
   <app-project-item
     [project]="project"
     [textLines]="statusLine$ | async"

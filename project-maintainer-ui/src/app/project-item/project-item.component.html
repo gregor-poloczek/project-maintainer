@@ -1,6 +1,4 @@
-<div class="project-item"
-     [class]="{notCloned: !cloned }"
->
+<div [class]="{notCloned: !cloned }">
   <div class="main-row">
     <img class="provider-icon" [src]="'assets/icons/' + project.git.provider + '.png'"/>
     <span class="project-name">{{ readableName }}</span>

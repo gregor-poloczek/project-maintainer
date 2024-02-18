@@ -1,6 +1,6 @@
 @import "../../global";
 
-.project-overview-list-item {
+:host > div {
   margin: 2px;
 
   &.selected {
