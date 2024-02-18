@@ -5,13 +5,10 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDi
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.Resource;
@@ -32,16 +29,6 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
   }
 
   private final ConversionService conversionService;
-
-  @Override
-  public List<URI> getURIs() {
-    final CodeCommitClient client = CodeCommitClient.builder().region(REGION).build();
-    return client.listRepositories().repositories().stream()
-        .map(r -> client.getRepository(b -> b.repositoryName(r.repositoryName())))
-        .map(r -> r.repositoryMetadata().cloneUrlHttp())
-        .map(http -> URI.create(http))
-        .collect(Collectors.toList());
-  }
 
   @Override
   public void discoverProjects(final ProjectDiscoveryContext context) {
