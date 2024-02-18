@@ -26,7 +26,7 @@ export class ProjectOverviewListItemComponent {
   @Input() selected: boolean = false;
   @Output() onClick = new EventEmitter<API.FQPN>();
 
-  public statusLine$!: Observable<string>;
+  public statusLine$!: Observable<string[]>;
   public cloned$!: Observable<boolean>;
   public item$!: BehaviorSubject<API.ProjectResource>;
 
@@ -87,6 +87,7 @@ export class ProjectOverviewListItemComponent {
           }
           return result;
         }),
+        map((s) => [s]),
       );
     }
   }
