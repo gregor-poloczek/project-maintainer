@@ -1,7 +1,5 @@
-<div class="project-overview-list">
-  <app-project-overview-list-item
-    (onClick)="onItemClick($event)"
-    [selected]="isSelected(project.fqpn)"
-    *ngFor="let project of projects; index as i" [project]="project">
-  </app-project-overview-list-item>
-</div>
+<app-project-overview-list-item
+  (onClick)="onItemClick($event)"
+  [selected]="isSelected(project.fqpn)"
+  *ngFor="let project of projects; index as i" [project]="project">
+</app-project-overview-list-item>

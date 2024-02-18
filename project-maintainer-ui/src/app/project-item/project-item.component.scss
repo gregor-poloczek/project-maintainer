@@ -5,7 +5,6 @@
   display: flex;
   flex-direction: column;
   row-gap: 12px;
-  width: 300px;
   position: relative;
   cursor: pointer;
 
@@ -31,6 +30,9 @@
   .project-name {
     font-size: 20px;
     font-weight: bold;
+    white-space: nowrap;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
   }
 
   &.notCloned {
