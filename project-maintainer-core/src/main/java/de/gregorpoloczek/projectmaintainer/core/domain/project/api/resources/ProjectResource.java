@@ -8,7 +8,9 @@ public record ProjectResource(FQPN fqpn, ProjectMetaDataResource metaData, GitRe
   public static ProjectResource of(Project project) {
 
     WorkingCopyResource wcr =
-        project.isCloned() ? new WorkingCopyResource(CommitResource.of(project.getLatestCommit()))
+        project.isCloned() ? new WorkingCopyResource(
+            project.getLatestCommit() != null ?
+                CommitResource.of(project.getLatestCommit()) : null)
             : null;
 
     final GitProvider provider;

@@ -16,6 +16,7 @@ public class WorkingCopyImpl implements WorkingCopy {
 
   private final File directory;
   private final URI uri;
+  private final Object gitCredentials;
   @Getter(AccessLevel.NONE)
   private ReadWriteLock lock = new ReentrantReadWriteLock();
   private final FQPN fqpn;
@@ -36,11 +37,14 @@ public class WorkingCopyImpl implements WorkingCopy {
       @NonNull final FQPN fqpn,
       @NonNull final URI uri,
       @NonNull final File directory,
-      final Commit latestCommit) {
+      final Commit latestCommit,
+      Object gitCredentials
+  ) {
     this.directory = directory;
     this.uri = uri;
     this.fqpn = fqpn;
     this.latestCommit = Optional.ofNullable(latestCommit);
+    this.gitCredentials = gitCredentials;
   }
 
   @Override
@@ -63,4 +67,7 @@ public class WorkingCopyImpl implements WorkingCopy {
     }
   }
 
+  public <T> T getGitCredentials(Class<? extends T> clazz) {
+    return clazz.cast(this.gitCredentials);
+  }
 }

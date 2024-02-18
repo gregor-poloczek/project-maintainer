@@ -7,7 +7,7 @@ public interface DiscoveredProjectBuilder {
 
   DiscoveredProjectBuilder uri(URI uri);
 
-  DiscoveredProjectBuilderImpl fqpn(FQPN fqpn);
+  DiscoveredProjectBuilder fqpn(FQPN fqpn);
 
   DiscoveredProjectBuilder name(String name);
 
@@ -17,4 +17,5 @@ public interface DiscoveredProjectBuilder {
     return this.uri(URI.create(uri));
   }
 
+  DiscoveredProjectBuilder credentials(Object credentials);
 }

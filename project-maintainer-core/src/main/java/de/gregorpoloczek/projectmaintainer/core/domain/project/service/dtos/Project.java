@@ -23,4 +23,6 @@ public interface Project {
   <T> T withReadLock(Supplier<T> operation);
 
   <T> T withWriteLock(Supplier<T> operation);
+
+  <T> T getGitCredentials(Class<? extends T> clazz);
 }

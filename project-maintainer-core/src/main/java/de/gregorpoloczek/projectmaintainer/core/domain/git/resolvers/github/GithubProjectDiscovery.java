@@ -52,23 +52,25 @@ public class GithubProjectDiscovery implements ProjectDiscovery {
       throw new UncheckedIOException(e);
     }
 
-    for (String user : users) {
+    for (String username : users) {
       final String password =
-          Optional.ofNullable(passwords.getProperty(user))
+          Optional.ofNullable(passwords.getProperty(username))
               .orElseThrow(() -> new IllegalStateException(
-                  "Cannot find password for user name %s".formatted(user)));
+                  "Cannot find password for username name %s".formatted(username)));
       try {
-        GitHub github = new GitHubBuilder().withPassword(user, password).build();
+        GitHub github = new GitHubBuilder().withPassword(username, password).build();
         final PagedSearchIterable<GHRepository> list = github.searchRepositories()
-            .user(user).list();
+            .user(username).list();
 
         final List<GHRepository> repositories = list.toList();
         for (GHRepository repository : repositories) {
-          final URI uri = repository.getUrl().toURI();
+          final URI uri = new URI(repository.getHttpTransportUrl());
           context.discovered(b -> b.uri(uri)
               .name(repository.getName())
               .description(repository.getDescription())
-              .fqpn(FQPN.of("github", user, repository.getName())));
+              .fqpn(FQPN.of("github", username, repository.getName()))
+              .credentials(new GithubCredentials(username, password))
+          );
         }
       } catch (URISyntaxException | IOException e) {
         throw new IllegalStateException(e);

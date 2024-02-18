@@ -13,4 +13,7 @@ public interface DiscoveredProject {
   Optional<String> getDescription();
 
   FQPN getFQPN();
+
+  <T> T getCredentials(Class<? extends T> clazz);
+
 }

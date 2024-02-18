@@ -37,7 +37,7 @@ public class GitService {
 
         final URI uri = workingCopy.getURI();
         final CredentialsProvider cP = this.getProjectResolver(uri)
-            .getCredentialsProvider(uri);
+            .getCredentialsProvider(workingCopy);
 
         var p = git.pull()
             .setCredentialsProvider(cP)
@@ -88,7 +88,7 @@ public class GitService {
       }
 
       final CredentialsProvider credentialProvider = this.getProjectResolver(uri)
-          .getCredentialsProvider(workingCopy.getURI());
+          .getCredentialsProvider(workingCopy);
 
       try {
         log.info("Cloning \"{}\".", workingCopy.getFQPN());

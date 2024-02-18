@@ -13,6 +13,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQ
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import lombok.extern.slf4j.Slf4j;
@@ -81,10 +82,19 @@ public class BootstrapService {
           .owner("???")
           .build();
 
-      final ProjectImpl project = new ProjectImpl(metaData);
+      final Object gitCredentials = discoveredProject.getCredentials(Object.class);
+
+      final ProjectImpl project = new ProjectImpl(metaData, gitCredentials);
       this.projectRepository.save(project);
 
-      if (!this.workingCopyService.find(project.getFQPN()).isPresent()) {
+      final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getFQPN())
+          .map(w -> {
+            return this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
+                w.getLatestCommit().orElse(null),
+                gitCredentials);
+          });
+
+      if (!workingCopy.isPresent()) {
         this.operationExecutionService.executeAsyncOperation(
             project,
             "clone",

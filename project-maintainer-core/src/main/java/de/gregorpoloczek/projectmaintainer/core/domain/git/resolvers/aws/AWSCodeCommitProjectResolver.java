@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.aws;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.GitProjectResolver;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -31,18 +32,13 @@ public class AWSCodeCommitProjectResolver implements GitProjectResolver {
     this.conversionService = conversionService;
   }
 
-  public CredentialsProvider getCredentialsProvider(URI uri) {
-    try {
-      final Properties credentials = conversionService.convert(
-          this.credentials.getContentAsString(StandardCharsets.UTF_8),
-          Properties.class);
+  public CredentialsProvider getCredentialsProvider(WorkingCopy workingCopy) {
+    final AWSCodeCommitCredentials credentials =
+        workingCopy.getGitCredentials(AWSCodeCommitCredentials.class);
 
-      return new UsernamePasswordCredentialsProvider(
-          credentials.getProperty("username"),
-          credentials.getProperty("password"));
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    return new UsernamePasswordCredentialsProvider(
+        credentials.username(),
+        credentials.password());
   }
 
   @Override

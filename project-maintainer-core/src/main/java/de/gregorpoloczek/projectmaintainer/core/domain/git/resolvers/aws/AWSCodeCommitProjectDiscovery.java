@@ -43,6 +43,7 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
     String username = credentials.getProperty("username");
     final Matcher matcher = Pattern.compile("^(?<username>.+?)-at-(?<account>\\d+)$")
         .matcher(username);
+    final String password = (String) credentials.get("password");
 
     if (!matcher.matches()) {
       throw new IllegalStateException("Cannot determined account from " + username);
@@ -54,10 +55,12 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
         .map(r -> client.getRepository(b -> b.repositoryName(r.repositoryName())))
         .map(r -> r.repositoryMetadata())
         .forEach(r -> context.discovered(b -> b
-            .fqpn(FQPN.of("aws-codecommit", accountId, REGION.id(), r.repositoryName()))
-            .uri(r.cloneUrlHttp())
-            .name(r.repositoryName())
-            .description(r.repositoryDescription()))
+                .fqpn(FQPN.of("aws-codecommit", accountId, REGION.id(), r.repositoryName()))
+                .uri(r.cloneUrlHttp())
+                .name(r.repositoryName())
+                .description(r.repositoryDescription())
+                .credentials(new AWSCodeCommitCredentials(username, password))
+            )
         );
   }
 }

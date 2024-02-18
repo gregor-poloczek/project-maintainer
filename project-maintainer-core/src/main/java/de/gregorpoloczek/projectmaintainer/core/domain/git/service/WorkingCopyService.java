@@ -42,14 +42,18 @@ public class WorkingCopyService {
     this.projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
   }
 
-  public void save(FQPN fqpn, URI uri, File directory, Commit latestCommit) {
+  public WorkingCopyImpl save(FQPN fqpn, URI uri, File directory, Commit latestCommit,
+      Object gitCredentials) {
     final ProjectImpl project = projectRepository.find(fqpn)
         .orElseThrow(() -> new ProjectNotFoundException(fqpn));
 
     project.markAsCloned();
     project.setLatestCommit(latestCommit);
 
-    this.workingCopies.put(fqpn, new WorkingCopyImpl(fqpn, uri, directory, latestCommit));
+    final WorkingCopyImpl result = new WorkingCopyImpl(fqpn, uri, directory, latestCommit,
+        gitCredentials);
+    this.workingCopies.put(fqpn, result);
+    return result;
   }
 
   public void remove(FQPN fqpn) {
@@ -96,7 +100,7 @@ public class WorkingCopyService {
       try (Git git = Git.open(file)) {
         String url = git.getRepository().getConfig().getString("remote", "origin", "url");
 
-        this.workingCopies.put(fqpn, new WorkingCopyImpl(fqpn, URI.create(url), file, null));
+        this.workingCopies.put(fqpn, new WorkingCopyImpl(fqpn, URI.create(url), file, null, null));
       } catch (IOException e) {
         throw new UncheckedIOException(e);
       }
@@ -129,11 +133,11 @@ public class WorkingCopyService {
   }
 
 
-  public WorkingCopy createNew(final FQPN fqpn, final URI uri) {
+  public WorkingCopy createNew(final FQPN fqpn, final URI uri, Object gitCredentials) {
     File directory = this.projectsDirectory.toPath().resolve(
         Path.of(fqpn.getValue().replaceAll("::", "/"))
     ).toFile();
 
-    return new WorkingCopyImpl(fqpn, uri, directory, null);
+    return new WorkingCopyImpl(fqpn, uri, directory, null, gitCredentials);
   }
 }

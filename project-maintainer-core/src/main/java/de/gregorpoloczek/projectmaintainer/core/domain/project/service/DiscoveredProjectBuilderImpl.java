@@ -14,6 +14,8 @@ public class DiscoveredProjectBuilderImpl implements
   private String description;
   @NotNull
   private FQPN fqpn;
+  @NotNull
+  private Object credentials;
 
   @Override
   public DiscoveredProjectBuilderImpl uri(final URI uri) {
@@ -39,11 +41,17 @@ public class DiscoveredProjectBuilderImpl implements
     return this;
   }
 
+  @Override
+  public DiscoveredProjectBuilder credentials(final Object credentials) {
+    this.credentials = credentials;
+    return this;
+  }
+
   public DiscoveredProject build() {
     // TODO validation
 
     return new DiscoveredProjectImpl(
         this.fqpn,
-        this.uri, this.name, this.description);
+        this.uri, this.name, this.description, this.credentials);
   }
 }

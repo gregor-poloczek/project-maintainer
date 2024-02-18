@@ -1,11 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.github;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -30,25 +27,11 @@ public class GithubProjectResolver extends AbstractProjectResolver {
   }
 
 
-  public CredentialsProvider getCredentialsProvider(URI uri) {
-    final String username = this.requireUsername(uri);
-    try {
-      final Properties credentials = conversionService.convert(
-          this.credentials.getContentAsString(StandardCharsets.UTF_8),
-          Properties.class);
-
-      final String password = credentials.getProperty(username);
-      if (password == null) {
-        throw new IllegalStateException(
-            "No password configured for username %s".formatted(username));
-      }
-
-      return new UsernamePasswordCredentialsProvider(
-          username,
-          password);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+  public CredentialsProvider getCredentialsProvider(WorkingCopy workingCopy) {
+    final GithubCredentials credentials = workingCopy.getGitCredentials(GithubCredentials.class);
+    return new UsernamePasswordCredentialsProvider(
+        credentials.username(),
+        credentials.password());
   }
 
 

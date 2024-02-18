@@ -23,6 +23,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 public class ProjectImpl implements Project {
 
   private final ProjectMetaData metaData;
+  private final Object gitCredentials;
   @Deprecated
   private volatile boolean cloned;
   @Deprecated
@@ -30,8 +31,9 @@ public class ProjectImpl implements Project {
   private ReadWriteLock lock = new ReentrantReadWriteLock();
   private NavigableSet<Label> labels = new TreeSet<>();
 
-  public ProjectImpl(ProjectMetaData metaData) {
+  public ProjectImpl(ProjectMetaData metaData, final Object gitCredentials) {
     this.metaData = metaData;
+    this.gitCredentials = gitCredentials;
   }
 
   public URI getURI() {
@@ -106,5 +108,9 @@ public class ProjectImpl implements Project {
   @Override
   public SortedSet<Label> getLabels() {
     return this.labels;
+  }
+
+  public <T> T getGitCredentials(Class<? extends T> clazz) {
+    return clazz.cast(this.gitCredentials);
   }
 }
