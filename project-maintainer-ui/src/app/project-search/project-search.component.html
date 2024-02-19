@@ -1,7 +1,6 @@
 <div>
   <app-toolbar>
-    <label>Search</label><input type="text" [(ngModel)]="searchString"
-                                (keyup)="searchStringChanged($event)"/>
+    <label>Search</label><input type="text" [formControl]="searchField"/>
   </app-toolbar>
   <table>
     <thead>

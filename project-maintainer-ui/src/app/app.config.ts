@@ -8,13 +8,16 @@ import { projectsReducer } from './store/projects.reducer';
 import { provideHttpClient } from '@angular/common/http';
 import { provideEffects } from '@ngrx/effects';
 import { ProjectsEffects } from './store/projects.effects';
+import { searchReducer } from './store/search.reducer';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideClientHydration(),
-    provideStore({ projects: projectsReducer }),
+    provideStore({ projects: projectsReducer, search: searchReducer }),
     provideHttpClient(),
     provideEffects(ProjectsEffects),
+    provideStoreDevtools(),
   ],
 };

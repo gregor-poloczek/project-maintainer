@@ -7,9 +7,10 @@ import {
   NgIf,
 } from '@angular/common';
 import { API } from '../API';
-import { FormsModule } from '@angular/forms';
-import { map, Observable, Subscription, take } from 'rxjs';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { debounceTime, map, Observable, Subscription, take } from 'rxjs';
 import * as projectActions from './../store/projects.actions';
+import * as searchActions from './../store/search.actions';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
 import { ProjectItemComponent } from '../project-item/project-item.component';
@@ -26,17 +27,19 @@ import { ToolbarComponent } from '../toolbar/toolbar.component';
     CommonModule,
     ProjectItemComponent,
     ToolbarComponent,
+    ReactiveFormsModule,
   ],
   templateUrl: './project-search.component.html',
   styleUrl: './project-search.component.scss',
 })
 export class ProjectSearchComponent {
-  public searchString: string = '';
   public projects: API.ProjectResource[] = [];
+  public searchRegExp$: Observable<RegExp | null>;
   public searchRegExp: RegExp | null = null;
   private subscription!: Subscription;
   private projects$: Observable<API.ProjectResource[]>;
   public filteredProjects$: Observable<API.ProjectResource[]>;
+  public searchField = new FormControl('');
 
   public constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -46,21 +49,23 @@ export class ProjectSearchComponent {
       .select('projects')
       .pipe(map((projects) => projects.filter((p) => !!p.git.workingCopy)));
 
-    this.filteredProjects$ = this.projects$.pipe(
-      map((projects) =>
-        projects.filter(
-          (p) =>
-            p.metaData.labels.length == 0 ||
-            this.filteredLabels(p.metaData.labels).length > 0,
-        ),
-      ),
-    );
+    this.filteredProjects$ = this.store.select('search', 'foundProjects');
+    this.searchRegExp$ = this.store.select('search', 'regExpFilter');
+
+    this.searchRegExp$.subscribe((r) => {
+      this.searchRegExp = !r ? null : new RegExp(r.source, r.flags);
+    });
   }
 
   ngOnInit() {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
+
+    this.searchField.valueChanges.pipe(debounceTime(300)).subscribe((value) => {
+      this.store.dispatch(searchActions.updateFilter({ value: value || '' }));
+    });
+
     // TODO make it work without take(2) - used to call this only once, when the projects are
     //  finally available
     this.projects$.pipe(take(2)).subscribe((p) => {
@@ -80,17 +85,13 @@ export class ProjectSearchComponent {
   }
 
   showLabel(label: string): boolean {
-    return !this.searchRegExp || !!label.toLowerCase().match(this.searchRegExp);
-  }
-
-  searchStringChanged($event: Event) {
     try {
-      this.searchRegExp = this.searchString
-        ? new RegExp(`(${this.searchString})`, 'g')
-        : null;
+      return (
+        !this.searchRegExp || !!label.toLowerCase().match(this.searchRegExp)
+      );
     } catch (e) {
-      console.error(e);
-      this.searchRegExp = null;
+      debugger;
+      throw e;
     }
   }
 
