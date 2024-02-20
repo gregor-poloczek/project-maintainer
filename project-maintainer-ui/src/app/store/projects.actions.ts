@@ -1,6 +1,12 @@
 import { createAction, props } from '@ngrx/store';
 import { API } from '../API';
 
+export const connectionLost = createAction('projects::connectionLost');
+export const connectionFailed = createAction('projects::connectionFailed');
+export const connectionEstablished = createAction(
+  'projects::connectionEstablished',
+);
+
 export const triggerOperation = createAction(
   '[PROJECTS] trigger operation',
   props<{
