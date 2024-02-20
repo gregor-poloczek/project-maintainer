@@ -79,8 +79,17 @@ public class ProjectController {
 
   @GetMapping(value = "/updates", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public Flux<ServerSentEvent<ProjectOperationProgress>> getUpdates() {
-    return this.operationExecutionService.getUpdateEvents()
+
+    // faking an event to have the EvenSource on the other event immediately provided
+    // with data, in order to have its connection established.
+    Flux<ServerSentEvent<ProjectOperationProgress>> f1 = Flux.just(
+        ServerSentEvent.builder(new ProjectOperationProgress(FQPN.of("blah"), "connection")).build()
+    );
+
+    final Flux<ServerSentEvent<ProjectOperationProgress>> f2 = this.operationExecutionService.getUpdateEvents()
         .map(e -> ServerSentEvent.builder(e).build());
+
+    return f1.concatWith(f2);
   }
 
   private Project requireProject(final FQPN fqpn) {

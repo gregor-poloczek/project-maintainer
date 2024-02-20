@@ -51,8 +51,8 @@ export class EventSourceService {
       'http://localhost:8080/v1/projects/updates',
     );
 
-    this.eventSource.onopen = () => {
-      console.log('Event stream connection to backend lost established.');
+    this.eventSource.onopen = (e) => {
+      console.log('Event stream connection to backend lost established.', e);
       this.connected = true;
       this.store.dispatch(projectsActions.connectionEstablished());
     };
@@ -77,9 +77,12 @@ export class EventSourceService {
       }
     };
 
-    this.eventSource.addEventListener('message', (event: MessageEvent) => {
-      const progress = JSON.parse(event.data) as API.ProjectOperationProgress;
-      this.projectOperationProgress.next(progress);
-    });
+    this.eventSource.addEventListener(
+      'message',
+      (event: MessageEvent<string>) => {
+        const progress = JSON.parse(event.data) as API.ProjectOperationProgress;
+        this.projectOperationProgress.next(progress);
+      },
+    );
   }
 }
