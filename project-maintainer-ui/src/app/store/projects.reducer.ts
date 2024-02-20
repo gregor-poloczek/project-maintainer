@@ -6,6 +6,9 @@ export const initialState: API.ProjectResource[] = [];
 
 export const projectsReducer = createReducer(
   initialState,
+  on(projectActions.connectionLost, (state) => {
+    return [];
+  }),
   on(projectActions.loadProjects, (state) => {
     console.log('load...');
     return state;

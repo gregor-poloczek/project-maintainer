@@ -44,7 +44,7 @@ export class ProjectsEffects {
   );
   loadProjects$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(projectActions.loadProjects),
+      ofType(projectActions.loadProjects, projectActions.connectionEstablished),
       switchMap(() =>
         this.http
           .get<API.ProjectResource[]>('http://localhost:8080/v1/projects/')

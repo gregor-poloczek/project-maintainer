@@ -45,8 +45,6 @@ export class AppComponent {
         ),
       )
       .subscribe();
-
-    this.store.dispatch(projectActions.loadProjects());
   }
 
   ngOnDestroy() {

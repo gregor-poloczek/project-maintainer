@@ -25,6 +25,7 @@ export const triggerOperationFailed = createAction(
   props<{ fqpn: API.FQPN; operation: API.ProjectOperation; error: Error }>(),
 );
 
+// TODO make obsolete
 export const loadProjects = createAction('[PROJECTS] Load Projects');
 export const loadProject = createAction(
   '[PROJECTS] Load Project',
