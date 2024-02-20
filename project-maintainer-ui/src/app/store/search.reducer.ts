@@ -35,7 +35,7 @@ export const searchReducer = createReducer(
   on(projectActions.connectionLost, (state) => {
     return applyFilter({ ...state, foundProjects: [] });
   }),
-  on(projectActions.loadedProjects, (state, payload) => {
+  on(projectActions.loadProjectsSuccess, (state, payload) => {
     return applyFilter({
       ...state,
       allProjects: payload.projects,

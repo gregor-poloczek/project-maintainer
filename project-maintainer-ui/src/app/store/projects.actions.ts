@@ -8,7 +8,7 @@ export const connectionEstablished = createAction(
 );
 
 export const triggerOperation = createAction(
-  '[PROJECTS] trigger operation',
+  'projects::triggerOperation',
   props<{
     fqpn: API.FQPN;
     operation: API.ProjectOperation;
@@ -16,30 +16,34 @@ export const triggerOperation = createAction(
 );
 
 export const triggerOperationSuccess = createAction(
-  '[PROJECTS] operation trigger success',
+  'projects::triggerOperationSuccess',
   props<{ fqpn: API.FQPN; operation: API.ProjectOperation }>(),
 );
 
 export const triggerOperationFailed = createAction(
-  '[PROJECTS] operation trigger failed',
+  'projects::triggerOperationFailed',
   props<{ fqpn: API.FQPN; operation: API.ProjectOperation; error: Error }>(),
 );
 
 // TODO make obsolete
-export const loadProjects = createAction('[PROJECTS] Load Projects');
+export const loadProjects = createAction('projects::loadProjects');
 export const loadProject = createAction(
-  '[PROJECTS] Load Project',
+  'projects::loadProject',
   props<{ fqpn: API.FQPN }>(),
 );
-export const loadedProjects = createAction(
-  '[PROJECTS] Projects loaded',
+export const loadProjectsSuccess = createAction(
+  'projects::loadProjectsSuccess',
   props<{ projects: API.ProjectResource[] }>(),
 );
-export const loadedProject = createAction(
-  '[PROJECTS] Project loaded',
+export const loadProjectSuccess = createAction(
+  'projects::loadProjectSuccess',
   props<{ project: API.ProjectResource }>(),
 );
 export const loadProjectsFailed = createAction(
-  '[PROJECTS] Load failed',
+  'projects::loadProjectsFailed',
+  props<{ error: Error }>(),
+);
+export const loadProjectFailed = createAction(
+  'projects::loadProjectFailed',
   props<{ error: Error }>(),
 );

@@ -14,12 +14,12 @@ export const projectsReducer = createReducer(
     return state;
   }),
 
-  on(projectActions.loadedProjects, (state, payload) => {
+  on(projectActions.loadProjectsSuccess, (state, payload) => {
     console.log('loaded...', payload);
     return payload.projects;
   }),
 
-  on(projectActions.loadedProject, (state, payload) => {
+  on(projectActions.loadProjectSuccess, (state, payload) => {
     let result = [...state];
 
     const index = result.findIndex((p) => p.fqpn === payload.project.fqpn);
@@ -27,7 +27,7 @@ export const projectsReducer = createReducer(
     return result;
   }),
 
-  on(projectActions.loadedProjects, (state, payload) => {
+  on(projectActions.loadProjectsSuccess, (state, payload) => {
     console.log('loaded...', payload);
     return payload.projects;
   }),

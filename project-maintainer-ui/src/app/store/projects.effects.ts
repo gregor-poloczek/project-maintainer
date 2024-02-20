@@ -49,7 +49,7 @@ export class ProjectsEffects {
         this.http
           .get<API.ProjectResource[]>('http://localhost:8080/v1/projects/')
           .pipe(
-            map((projects) => projectActions.loadedProjects({ projects })),
+            map((projects) => projectActions.loadProjectsSuccess({ projects })),
             catchError((error) =>
               of(projectActions.loadProjectsFailed({ error })),
             ),
@@ -66,9 +66,9 @@ export class ProjectsEffects {
             'http://localhost:8080/v1/projects/' + a.fqpn,
           )
           .pipe(
-            map((project) => projectActions.loadedProject({ project })),
+            map((project) => projectActions.loadProjectSuccess({ project })),
             catchError((error) =>
-              of(projectActions.loadProjectsFailed({ error })),
+              of(projectActions.loadProjectFailed({ error })),
             ),
           ),
       ),
