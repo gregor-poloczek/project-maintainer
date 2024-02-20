@@ -19,7 +19,10 @@ export const initialState: SearchState = {
 };
 
 function applyFilter(state: SearchState): SearchState {
-  const { rawFilter, allProjects, regExpFilter } = state;
+  const { rawFilter, allProjects } = state;
+  const regExpFilter = state.regExpFilter
+    ? new RegExp(state.regExpFilter.source, state.regExpFilter.flags)
+    : null;
 
   const foundProjects = allProjects.filter(
     (project) =>
