@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { API } from '../API';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
-import * as projectsActions from '../store/projects.actions';
+import * as mainActions from '../store/main.actions';
 
 @Injectable({
   providedIn: 'root',
@@ -54,7 +54,7 @@ export class EventSourceService {
     this.eventSource.onopen = (e) => {
       console.log('Event stream connection to backend lost established.', e);
       this.connected = true;
-      this.store.dispatch(projectsActions.connectionEstablished());
+      this.store.dispatch(mainActions.connectionEstablished());
     };
 
     this.eventSource.onerror = (error: any) => {
@@ -66,9 +66,9 @@ export class EventSourceService {
       try {
         this.eventSource?.close();
         if (this.connected) {
-          this.store.dispatch(projectsActions.connectionLost());
+          this.store.dispatch(mainActions.connectionLost());
         } else {
-          this.store.dispatch(projectsActions.connectionFailed());
+          this.store.dispatch(mainActions.connectionFailed());
         }
       } finally {
         this.connected = false;

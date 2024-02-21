@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as projectActions from './projects.actions';
+import * as mainActions from './main.actions';
 
 import { catchError, map, of, switchMap } from 'rxjs';
 import { API } from '../API';
@@ -12,6 +13,13 @@ export class ProjectsEffects {
     private readonly http: HttpClient,
     private readonly actions$: Actions,
   ) {}
+
+  onConnectionEstablished = createEffect(() =>
+    this.actions$.pipe(
+      ofType(mainActions.connectionEstablished),
+      map(() => projectActions.loadProjects()),
+    ),
+  );
 
   triggerOperation$ = createEffect(() =>
     this.actions$.pipe(
@@ -42,9 +50,10 @@ export class ProjectsEffects {
       ),
     ),
   );
+
   loadProjects$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(projectActions.loadProjects, projectActions.connectionEstablished),
+      ofType(projectActions.loadProjects),
       switchMap(() =>
         this.http
           .get<API.ProjectResource[]>('http://localhost:8080/v1/projects/')
@@ -57,6 +66,7 @@ export class ProjectsEffects {
       ),
     ),
   );
+
   loadProject$ = createEffect(() =>
     this.actions$.pipe(
       ofType(projectActions.loadProject),
