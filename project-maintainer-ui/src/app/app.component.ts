@@ -6,6 +6,7 @@ import { API } from './API';
 import { filter, Observable, tap } from 'rxjs';
 import * as projectActions from './store/projects.actions';
 import { EventSourceService } from './service/EventSourceService';
+import { AppState } from './store/AppState';
 
 @Component({
   selector: 'app-root',
@@ -16,13 +17,15 @@ import { EventSourceService } from './service/EventSourceService';
 })
 export class AppComponent {
   public projects$: Observable<API.ProjectResource[]>;
+  public connected$: Observable<boolean>;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
-    private store: Store<{ projects: API.ProjectResource[] }>,
+    private store: Store<AppState>,
     private eventSourceService: EventSourceService,
   ) {
     this.projects$ = this.store.select('projects');
+    this.connected$ = this.store.select('main', 'connected');
   }
 
   ngOnInit() {

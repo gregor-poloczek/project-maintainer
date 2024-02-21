@@ -23,5 +23,28 @@
   }
 }
 
+.not-connected {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  p {
+    font-size: 40px;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+}
 
 

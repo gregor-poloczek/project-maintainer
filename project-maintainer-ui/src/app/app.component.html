@@ -4,5 +4,11 @@
     <a routerLink="/search">Search</a>
   </div>
   <router-outlet></router-outlet>
+  <div *ngIf="!(connected$ | async)">
+    <div class="not-connected">
+      <div class="overlay"></div>
+      <p>Not connected to the server</p>
+    </div>
+  </div>
 </main>
 

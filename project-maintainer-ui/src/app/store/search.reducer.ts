@@ -35,9 +35,6 @@ function applyFilter(state: SearchState): SearchState {
 
 export const searchReducer = createReducer(
   initialState,
-  on(projectActions.connectionLost, (state) => {
-    return applyFilter({ ...state, foundProjects: [] });
-  }),
   on(projectActions.loadProjectsSuccess, (state, payload) => {
     return applyFilter({
       ...state,
