@@ -1,12 +1,13 @@
 import { createReducer, on } from '@ngrx/store';
 import { API } from '../API';
 import * as projectActions from './projects.actions';
+import * as mainActions from './main.actions';
 
 export const initialState: API.ProjectResource[] = [];
 
 export const projectsReducer = createReducer(
   initialState,
-  on(projectActions.connectionLost, (state) => {
+  on(mainActions.connectionLost, (state) => {
     return [];
   }),
   on(projectActions.loadProjects, (state) => {
