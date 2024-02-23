@@ -4,7 +4,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as projectActions from './projects.actions';
 import * as mainActions from './main.actions';
 
-import { catchError, map, of, switchMap } from 'rxjs';
+import { catchError, filter, map, of, switchMap } from 'rxjs';
 import { API } from '../API';
 
 @Injectable()
@@ -14,14 +14,28 @@ export class ProjectsEffects {
     private readonly actions$: Actions,
   ) {}
 
-  onConnectionEstablished = createEffect(() =>
+  onConnectionEstablished$ = createEffect(() =>
     this.actions$.pipe(
       ofType(mainActions.connectionEstablished),
       map(() => projectActions.loadProjects()),
     ),
   );
 
-  triggerOperation$ = createEffect(() =>
+  onProjectProgressUpdated = createEffect(() =>
+    this.actions$.pipe(
+      ofType(projectActions.projectOperationProgressUpdated),
+      filter(({ progress }) =>
+        [API.OperationState.SUCCEEDED, API.OperationState.FAILED].includes(
+          progress.state,
+        ),
+      ),
+      map(({ progress }) =>
+        projectActions.loadProject({ fqpn: progress.fqpn }),
+      ),
+    ),
+  );
+
+  onTriggerOperation$ = createEffect(() =>
     this.actions$.pipe(
       ofType(projectActions.triggerOperation),
       switchMap((a) =>
@@ -51,7 +65,7 @@ export class ProjectsEffects {
     ),
   );
 
-  loadProjects$ = createEffect(() =>
+  onLoadProjects$ = createEffect(() =>
     this.actions$.pipe(
       ofType(projectActions.loadProjects),
       switchMap(() =>
@@ -67,7 +81,7 @@ export class ProjectsEffects {
     ),
   );
 
-  loadProject$ = createEffect(() =>
+  onLoadProject$ = createEffect(() =>
     this.actions$.pipe(
       ofType(projectActions.loadProject),
       switchMap((a) =>

@@ -2,9 +2,7 @@ import { Component, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { API } from './API';
-import { filter, Observable, tap } from 'rxjs';
-import * as projectActions from './store/projects.actions';
+import { Observable } from 'rxjs';
 import { EventSourceService } from './service/EventSourceService';
 import { AppState } from './store/AppState';
 
@@ -16,7 +14,6 @@ import { AppState } from './store/AppState';
   styleUrl: './app.component.scss',
 })
 export class AppComponent {
-  public projects$: Observable<API.ProjectResource[]>;
   public connected$: Observable<boolean>;
 
   constructor(
@@ -24,7 +21,6 @@ export class AppComponent {
     private store: Store<AppState>,
     private eventSourceService: EventSourceService,
   ) {
-    this.projects$ = this.store.select('projects');
     this.connected$ = this.store.select('main', 'connected');
   }
 
@@ -34,20 +30,6 @@ export class AppComponent {
     }
     // TODO erst intialisieren, wenn projekte geladen sind
     this.eventSourceService.init();
-
-    this.eventSourceService
-      .getMessageStream()
-      .pipe(
-        filter((pop) =>
-          [API.OperationState.SUCCEEDED, API.OperationState.FAILED].includes(
-            pop.state,
-          ),
-        ),
-        tap((pop) =>
-          this.store.dispatch(projectActions.loadProject({ fqpn: pop.fqpn })),
-        ),
-      )
-      .subscribe();
   }
 
   ngOnDestroy() {

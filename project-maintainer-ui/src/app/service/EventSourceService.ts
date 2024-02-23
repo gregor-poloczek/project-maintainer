@@ -4,6 +4,7 @@ import { API } from '../API';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
 import * as mainActions from '../store/main.actions';
+import { projectOperationProgressUpdated } from '../store/projects.actions';
 
 @Injectable({
   providedIn: 'root',
@@ -20,7 +21,11 @@ export class EventSourceService {
     Subject<API.ProjectOperationProgress>
   >();
 
-  constructor(private readonly store: Store<AppState>) {}
+  constructor(private readonly store: Store<AppState>) {
+    this.projectOperationProgress.subscribe((pop) => {
+      this.store.dispatch(projectOperationProgressUpdated({ progress: pop }));
+    });
+  }
 
   public getMessageStream(): Observable<API.ProjectOperationProgress> {
     return this.projectOperationProgress.asObservable();

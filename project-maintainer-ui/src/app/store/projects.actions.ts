@@ -41,3 +41,8 @@ export const loadProjectFailed = createAction(
   'projects::loadProjectFailed',
   props<{ error: Error }>(),
 );
+
+export const projectOperationProgressUpdated = createAction(
+  'main::projectOperationProgressUpdated',
+  props<{ progress: API.ProjectOperationProgress }>(),
+);
