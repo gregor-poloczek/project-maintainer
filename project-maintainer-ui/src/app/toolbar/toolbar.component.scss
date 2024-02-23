@@ -17,10 +17,6 @@
     padding: 12px 12px;
     border-radius: 4px;
 
-    &:first-child {
-      margin-left: 12px;
-    }
-
     background-color: black;
     color: white;
     border: darken($tertiary-color, 10%) solid 2px;
