@@ -1,6 +1,6 @@
 import { createReducer, on } from '@ngrx/store';
 import { API } from '../API';
-import * as projectActions from './projects.actions';
+import * as mainActions from './main.actions';
 import * as searchActions from './search.actions';
 import { replaceElement } from './utils';
 import ProjectResource = API.ProjectResource;
@@ -36,13 +36,13 @@ function applyFilter(state: SearchState): SearchState {
 
 export const searchReducer = createReducer(
   initialState,
-  on(projectActions.loadProjectsSuccess, (state, payload) => {
+  on(mainActions.loadProjectsSuccess, (state, payload) => {
     return applyFilter({
       ...state,
       allProjects: payload.projects,
     });
   }),
-  on(projectActions.loadProjectSuccess, (state, payload) => {
+  on(mainActions.loadProjectSuccess, (state, payload) => {
     return applyFilter(
       replaceElement(
         state,

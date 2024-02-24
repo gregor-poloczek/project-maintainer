@@ -6,7 +6,7 @@ import { provideClientHydration } from '@angular/platform-browser';
 import { provideStore } from '@ngrx/store';
 import { provideHttpClient } from '@angular/common/http';
 import { provideEffects } from '@ngrx/effects';
-import { ProjectsEffects } from './store/projects.effects';
+import { MainEffects } from './store/main.effects';
 import { searchReducer } from './store/search.reducer';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { mainReducer } from './store/main.reducer';
@@ -23,7 +23,7 @@ export const appConfig: ApplicationConfig = {
       main: mainReducer,
     }),
     provideHttpClient(),
-    provideEffects(ProjectsEffects, GitEffects),
+    provideEffects(MainEffects, GitEffects),
     provideStoreDevtools(),
   ],
 };

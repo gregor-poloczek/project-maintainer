@@ -4,7 +4,7 @@ import { API } from '../API';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
 import * as mainActions from '../store/main.actions';
-import { projectOperationProgressUpdated } from '../store/projects.actions';
+import { projectOperationProgressUpdated } from '../store/main.actions';
 
 @Injectable({
   providedIn: 'root',

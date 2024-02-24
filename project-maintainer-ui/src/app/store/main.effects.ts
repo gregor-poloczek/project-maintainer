@@ -1,14 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import * as projectActions from './projects.actions';
 import * as mainActions from './main.actions';
 
 import { catchError, filter, map, of, switchMap } from 'rxjs';
 import { API } from '../API';
 
 @Injectable()
-export class ProjectsEffects {
+export class MainEffects {
   constructor(
     private readonly http: HttpClient,
     private readonly actions$: Actions,
@@ -17,27 +16,25 @@ export class ProjectsEffects {
   onConnectionEstablished$ = createEffect(() =>
     this.actions$.pipe(
       ofType(mainActions.connectionEstablished),
-      map(() => projectActions.loadProjects()),
+      map(() => mainActions.loadProjects()),
     ),
   );
 
   onProjectProgressUpdated = createEffect(() =>
     this.actions$.pipe(
-      ofType(projectActions.projectOperationProgressUpdated),
+      ofType(mainActions.projectOperationProgressUpdated),
       filter(({ progress }) =>
         [API.OperationState.SUCCEEDED, API.OperationState.FAILED].includes(
           progress.state,
         ),
       ),
-      map(({ progress }) =>
-        projectActions.loadProject({ fqpn: progress.fqpn }),
-      ),
+      map(({ progress }) => mainActions.loadProject({ fqpn: progress.fqpn })),
     ),
   );
 
   onTriggerOperation$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(projectActions.triggerOperation),
+      ofType(mainActions.triggerOperation),
       switchMap((a) =>
         this.http
           .post<{}>(
@@ -46,14 +43,14 @@ export class ProjectsEffects {
           )
           .pipe(
             map(() =>
-              projectActions.triggerOperationSuccess({
+              mainActions.triggerOperationSuccess({
                 fqpn: a.fqpn,
                 operation: a.operation,
               }),
             ),
             catchError((error) =>
               of(
-                projectActions.triggerOperationFailed({
+                mainActions.triggerOperationFailed({
                   fqpn: a.fqpn,
                   operation: a.operation,
                   error,
@@ -67,14 +64,14 @@ export class ProjectsEffects {
 
   onLoadProjects$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(projectActions.loadProjects),
+      ofType(mainActions.loadProjects),
       switchMap(() =>
         this.http
           .get<API.ProjectResource[]>('http://localhost:8080/v1/projects/')
           .pipe(
-            map((projects) => projectActions.loadProjectsSuccess({ projects })),
+            map((projects) => mainActions.loadProjectsSuccess({ projects })),
             catchError((error) =>
-              of(projectActions.loadProjectsFailed({ error })),
+              of(mainActions.loadProjectsFailed({ error })),
             ),
           ),
       ),
@@ -83,17 +80,15 @@ export class ProjectsEffects {
 
   onLoadProject$ = createEffect(() =>
     this.actions$.pipe(
-      ofType(projectActions.loadProject),
+      ofType(mainActions.loadProject),
       switchMap((a) =>
         this.http
           .get<API.ProjectResource>(
             'http://localhost:8080/v1/projects/' + a.fqpn,
           )
           .pipe(
-            map((project) => projectActions.loadProjectSuccess({ project })),
-            catchError((error) =>
-              of(projectActions.loadProjectFailed({ error })),
-            ),
+            map((project) => mainActions.loadProjectSuccess({ project })),
+            catchError((error) => of(mainActions.loadProjectFailed({ error }))),
           ),
       ),
     ),

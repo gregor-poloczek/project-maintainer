@@ -9,7 +9,7 @@ import {
 import { API } from '../API';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, map, Observable, Subscription, take } from 'rxjs';
-import * as projectActions from './../store/projects.actions';
+import * as mainActions from './../store/main.actions';
 import * as searchActions from './../store/search.actions';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
@@ -71,7 +71,7 @@ export class ProjectSearchComponent {
     this.projects$.pipe(take(2)).subscribe((p) => {
       for (const project of p) {
         this.store.dispatch(
-          projectActions.triggerOperation({
+          mainActions.triggerOperation({
             fqpn: project.fqpn,
             operation: 'analyze',
           }),

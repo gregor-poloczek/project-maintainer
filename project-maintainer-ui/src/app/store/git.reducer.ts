@@ -1,5 +1,5 @@
 import { createReducer, on } from '@ngrx/store';
-import * as projectActions from './projects.actions';
+import * as mainActions from './main.actions';
 import * as gitActions from './git.actions';
 import { replaceElement } from './utils';
 import { API } from '../API';
@@ -26,11 +26,11 @@ export const gitReducer = createReducer(
     return { ...state, selectedProjects };
   }),
 
-  on(projectActions.loadProjectsSuccess, (state, payload) => {
+  on(mainActions.loadProjectsSuccess, (state, payload) => {
     return { ...state, projects: payload.projects };
   }),
 
-  on(projectActions.loadProjectSuccess, (state, payload) => {
+  on(mainActions.loadProjectSuccess, (state, payload) => {
     return replaceElement(
       state,
       'projects',
