@@ -9,3 +9,7 @@ export const executeOperation = createAction(
   'git::executeOperation',
   props<{ operation: API.ProjectOperation }>(),
 );
+
+export const executePull = createAction('git::executePull');
+export const executeClone = createAction('git::executeClone');
+export const executeWipe = createAction('git::executeWipe');

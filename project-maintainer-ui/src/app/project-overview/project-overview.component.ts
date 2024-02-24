@@ -29,15 +29,15 @@ export class ProjectOverviewComponent {
   }
 
   public onCloneButtonClick(): void {
-    this.executeOperations('clone');
+    this.store.dispatch(gitActions.executeClone());
   }
 
   public onWipeButtonClick(): void {
-    this.executeOperations('wipe');
+    this.store.dispatch(gitActions.executeWipe());
   }
 
   public onPullButtonClick(): void {
-    this.executeOperations('pull');
+    this.store.dispatch(gitActions.executePull());
   }
 
   public onAnalyseButtonClick(): void {

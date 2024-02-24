@@ -3,7 +3,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as gitActions from './git.actions';
 import * as mainActions from './main.actions';
 
-import { mergeMap, Observable, withLatestFrom } from 'rxjs';
+import { map, mergeMap, Observable, withLatestFrom } from 'rxjs';
 import { AppState } from './AppState';
 import { Store } from '@ngrx/store';
 
@@ -30,4 +30,22 @@ export class GitEffects {
   }
 
   onExecuteOperation$: Observable<any>;
+  onExecutePull$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(gitActions.executePull),
+      map(() => gitActions.executeOperation({ operation: 'pull' })),
+    ),
+  );
+  onExecuteClone$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(gitActions.executeClone),
+      map(() => gitActions.executeOperation({ operation: 'clone' })),
+    ),
+  );
+  onExecuteWipe$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(gitActions.executeWipe),
+      map(() => gitActions.executeOperation({ operation: 'wipe' })),
+    ),
+  );
 }
