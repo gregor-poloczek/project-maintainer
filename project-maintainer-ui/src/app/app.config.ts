@@ -11,6 +11,7 @@ import { searchReducer } from './store/search.reducer';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { mainReducer } from './store/main.reducer';
 import { gitReducer } from './store/git.reducer';
+import { GitEffects } from './store/git.effects';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,7 +23,7 @@ export const appConfig: ApplicationConfig = {
       main: mainReducer,
     }),
     provideHttpClient(),
-    provideEffects(ProjectsEffects),
+    provideEffects(ProjectsEffects, GitEffects),
     provideStoreDevtools(),
   ],
 };

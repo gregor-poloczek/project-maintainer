@@ -3,7 +3,7 @@ import { API } from '../API';
 import { ProjectOverviewListComponent } from '../project-overview-list/project-overview-list.component';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
-import * as projectsActions from '../store/projects.actions';
+import * as gitActions from '../store/git.actions';
 import { ToolbarComponent } from '../toolbar/toolbar.component';
 
 @Component({
@@ -45,13 +45,6 @@ export class ProjectOverviewComponent {
   }
 
   private executeOperations(operation: API.ProjectOperation) {
-    this.projects
-      .filter((p) => this.selectedProjects.has(p.fqpn))
-      .map((p) => p.fqpn)
-      .map((p) => this.executeOperation(p, operation));
-  }
-
-  private executeOperation(fqpn: API.FQPN, operation: API.ProjectOperation) {
-    this.store.dispatch(projectsActions.triggerOperation({ fqpn, operation }));
+    this.store.dispatch(gitActions.executeOperation({ operation }));
   }
 }
