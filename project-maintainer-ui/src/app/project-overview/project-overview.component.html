@@ -5,8 +5,7 @@
     <button mat-raised-button (click)="onWipeButtonClick()">Wipe</button>
     <button mat-raised-button (click)="onAnalyseButtonClick()">Analyse</button>
   </app-toolbar>
-  <app-project-overview-list [projects]="projects"
-                             (onSelectionChanged)="onSelectionChanged($event)">
+  <app-project-overview-list [projects]="projects">
 
   </app-project-overview-list>
 </div>

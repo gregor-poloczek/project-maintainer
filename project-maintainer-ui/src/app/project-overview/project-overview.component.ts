@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { API } from '../API';
 import { ProjectOverviewListComponent } from '../project-overview-list/project-overview-list.component';
-import { Observable } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { AppState } from '../store/AppState';
 import * as projectsActions from '../store/projects.actions';
@@ -16,15 +15,17 @@ import { ToolbarComponent } from '../toolbar/toolbar.component';
 })
 export class ProjectOverviewComponent {
   public projects: API.ProjectResource[] = [];
-  private projects$: Observable<API.ProjectResource[]>;
-  private selectedProjects = new Set<API.FQPN>();
+  private selectedProjects: Set<API.FQPN> = new Set();
 
   public constructor(private store: Store<AppState>) {
-    this.projects$ = this.store.select('git', 'projects');
-
-    this.projects$.subscribe((projects) => {
+    this.store.select('git', 'projects').subscribe((projects) => {
       this.projects = projects;
     });
+    this.store
+      .select('git', 'selectedProjects')
+      .subscribe((selectedProjects) => {
+        this.selectedProjects = selectedProjects;
+      });
   }
 
   public onCloneButtonClick(): void {
@@ -52,9 +53,5 @@ export class ProjectOverviewComponent {
 
   private executeOperation(fqpn: API.FQPN, operation: API.ProjectOperation) {
     this.store.dispatch(projectsActions.triggerOperation({ fqpn, operation }));
-  }
-
-  onSelectionChanged(selected: Set<API.FQPN>) {
-    this.selectedProjects = new Set(selected);
   }
 }
