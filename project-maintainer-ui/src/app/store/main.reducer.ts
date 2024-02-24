@@ -1,7 +1,7 @@
 import { createReducer, on } from '@ngrx/store';
 import * as mainActions from './main.actions';
 
-interface MainState {
+export interface MainState {
   connected: boolean;
 }
 

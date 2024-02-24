@@ -5,7 +5,7 @@ import * as searchActions from './search.actions';
 import { replaceElement } from './utils';
 import ProjectResource = API.ProjectResource;
 
-interface SearchState {
+export interface SearchState {
   rawFilter: string;
   regExpFilter: RegExp | null;
   allProjects: ProjectResource[];

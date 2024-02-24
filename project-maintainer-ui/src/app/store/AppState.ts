@@ -1,9 +1,9 @@
-import { initialState as projects } from './projects.reducer';
-import { initialState as search } from './search.reducer';
-import { initialState as main } from './main.reducer';
+import { SearchState } from './search.reducer';
+import { GitState } from './git.reducer';
+import { MainState } from './main.reducer';
 
 export interface AppState {
-  projects: typeof projects;
-  search: typeof search;
-  main: typeof main;
+  git: GitState;
+  search: SearchState;
+  main: MainState;
 }

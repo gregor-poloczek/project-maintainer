@@ -46,7 +46,7 @@ export class ProjectSearchComponent {
     private store: Store<AppState>,
   ) {
     this.projects$ = this.store
-      .select('projects')
+      .select('search', 'allProjects')
       .pipe(map((projects) => projects.filter((p) => !!p.git.workingCopy)));
 
     this.filteredProjects$ = this.store.select('search', 'foundProjects');

@@ -20,7 +20,7 @@ export class ProjectOverviewComponent {
   private selectedProjects = new Set<API.FQPN>();
 
   public constructor(private store: Store<AppState>) {
-    this.projects$ = this.store.select('projects');
+    this.projects$ = this.store.select('git', 'projects');
 
     this.projects$.subscribe((projects) => {
       this.projects = projects;
