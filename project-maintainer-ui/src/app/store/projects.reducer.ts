@@ -6,13 +6,7 @@ export const initialState: API.ProjectResource[] = [];
 
 export const projectsReducer = createReducer(
   initialState,
-  on(projectActions.loadProjects, (state) => {
-    console.log('load...');
-    return state;
-  }),
-
   on(projectActions.loadProjectsSuccess, (state, payload) => {
-    console.log('loaded...', payload);
     return payload.projects;
   }),
 

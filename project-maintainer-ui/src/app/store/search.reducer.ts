@@ -2,6 +2,7 @@ import { createReducer, on } from '@ngrx/store';
 import { API } from '../API';
 import * as projectActions from './projects.actions';
 import * as searchActions from './search.actions';
+import { replaceElement } from './utils';
 import ProjectResource = API.ProjectResource;
 
 interface SearchState {
@@ -40,6 +41,16 @@ export const searchReducer = createReducer(
       ...state,
       allProjects: payload.projects,
     });
+  }),
+  on(projectActions.loadProjectSuccess, (state, payload) => {
+    return applyFilter(
+      replaceElement(
+        state,
+        'allProjects',
+        payload.project,
+        (p) => p.fqpn === payload.project.fqpn,
+      ),
+    );
   }),
   on(searchActions.updateFilter, (state, payload) => {
     const rawFilter = payload.value;
