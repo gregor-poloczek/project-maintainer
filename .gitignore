@@ -41,3 +41,5 @@ build/
 /project-maintainer-core/src/main/resources/application-private.yml
 /project-maintainer-ui/src/assets/icons/AWS_CODECOMMIT.png
 /project-maintainer-ui/src/assets/icons/GITHUB.png
+/.idea/sonarlint/
+project-maintainer-core/frontend/
