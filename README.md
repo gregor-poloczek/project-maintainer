@@ -32,3 +32,9 @@
 
 * webpack: https://github.com/webpack/media/blob/master/logo/icon-square-big.svg
   public domain https://en.m.wikipedia.org/wiki/File:Webpack.svg
+
+* github: https://en.m.wikipedia.org/wiki/File:Octicons-mark-github.svg
+  MIT
+
+
+* aws codecommit: https://aws.amazon.com/de/architecture/icons/
