@@ -7,8 +7,13 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.progressbar.ProgressBarVariant;
+import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.core.common.ui.ImageResolverService.Image;
@@ -18,6 +23,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOp
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +33,6 @@ import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.NotImplementedException;
 import reactor.core.Disposable;
 
 @Route
@@ -38,9 +43,12 @@ public class MainView extends VerticalLayout {
     @Builder
     public static class ProjectItem {
 
+        private ProjectOperationState operationState = null;
         private Project project;
         private Optional<Image> image;
         private String text = "";
+        private boolean operationInProgress;
+        private Double operationProgressValue;
     }
 
     public final LitRenderer<ProjectItem> iconRenderer =
@@ -73,12 +81,55 @@ public class MainView extends VerticalLayout {
         grid.setSelectionMode(SelectionMode.MULTI);
         grid.addColumn(this.iconRenderer).setFlexGrow(0);
         grid.addColumn(p -> p.project.getMetaData().getName()).setHeader("Name");
-        grid.addColumn(ProjectItem::getText).setHeader("Info");
+        grid.addColumn(createProgressBarRenderer());
 
         MenuBar menuBar = createManuBar();
 
         this.add(menuBar);
         this.add(grid);
+    }
+
+    private static ComponentRenderer<VerticalLayout, ProjectItem> createProgressBarRenderer() {
+        return new ComponentRenderer<>(item -> {
+            Div progressBarLabelText = new Div();
+            progressBarLabelText.setText(item.getText());
+
+            Div progressBarLabelValue = new Div();
+            progressBarLabelValue.setText(
+                    item.getOperationProgressValue() != null ? MessageFormat.format("{0,number,#.#}%",
+                            item.getOperationProgressValue() * 100) : "");
+            FlexLayout progressBarLabel = new FlexLayout();
+            progressBarLabel.setJustifyContentMode(JustifyContentMode.BETWEEN);
+            progressBarLabel.add(progressBarLabelText, progressBarLabelValue);
+
+            ProgressBar progressBar = new ProgressBar();
+            if (item.getOperationProgressValue() != null) {
+                progressBar.setValue(item.getOperationProgressValue());
+                progressBar.setIndeterminate(false);
+            } else if (item.getOperationState() != null && item.getOperationState().isTerminated()) {
+                progressBar.setIndeterminate(false);
+                progressBar.setValue(1);
+            } else {
+                progressBar.setIndeterminate(true);
+            }
+            progressBar.setVisible(item.operationState != null);
+            progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
+                    ProgressBarVariant.LUMO_CONTRAST);
+            if (item.operationState == ProjectOperationState.SUCCEEDED) {
+                progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
+            } else if (item.operationState == ProjectOperationState.FAILED) {
+                progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
+            } else {
+                progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
+            }
+
+            VerticalLayout layout = new VerticalLayout();
+            layout.setSpacing(false);
+            layout.add(progressBarLabel, progressBar);
+            layout.setPadding(false);
+
+            return layout;
+        });
     }
 
     private MenuBar createManuBar() {
@@ -134,11 +185,14 @@ public class MainView extends VerticalLayout {
             current.access(() -> {
                 String text = switch (e.getState()) {
                     case SCHEDULED -> e.getOperation() + " ...";
-                    case RUNNING -> Double.toString(e.getProgress());
+                    case RUNNING -> e.getMessage();
                     case SUCCEEDED -> "";
                     default -> e.getState().name();
                 };
 
+                item.setOperationInProgress(!e.getState().isTerminated());
+                item.setOperationProgressValue(e.getProgress() == -1 ? null : e.getProgress());
+                item.setOperationState(e.getState());
                 if (e.getState() == ProjectOperationState.SUCCEEDED) {
                     ProjectItem newItem = toProjectItem(this.projectService.getProject(e.getFqpn())
                             .orElseThrow(() -> new ProjectNotFoundException(e.getFqpn())));
