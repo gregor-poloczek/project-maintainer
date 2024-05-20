@@ -1,8 +1,10 @@
 package de.gregorpoloczek.projectmaintainer.core.common.ui;
 
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -11,6 +13,7 @@ import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.core.common.ui.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.OperationExecutionService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
@@ -35,13 +38,15 @@ public class MainView extends VerticalLayout {
     @Builder
     public static class ProjectItem {
 
-        private final Project project;
+        private Project project;
         private Optional<Image> image;
         private String text = "";
     }
 
     public final LitRenderer<ProjectItem> iconRenderer =
-            LitRenderer.<ProjectItem>of("<img src=${item.image} style=\"height:32px;\" />")
+            LitRenderer.<ProjectItem>of(
+                            "<img src=${item.image} style=\"height:32px; filter: grayscale(${item.grayscale});\" />")
+                    .withProperty("grayscale", item -> item.project.isCloned() ? "0.0" : "1.0")
                     .withProperty("image", item -> {
                         Optional<Image> image = item.getImage();
                         return image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
@@ -78,23 +83,37 @@ public class MainView extends VerticalLayout {
 
     private MenuBar createManuBar() {
         MenuBar menuBar = new MenuBar();
-        menuBar.addItem("Clone / Pull", (e) -> {
-            for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-                if (item.project.isCloned()) {
-                    operationExecutionService.executeAsyncOperation(
-                            item.project,
-                            "git::pull",
-                            this.projectService::pullProject);
-                } else {
-                    throw new NotImplementedException("asdasd");
-                }
-            }
-        });
-
-        menuBar.addItem("Wipe", (e) -> {
-            throw new NotImplementedException("asdasd");
-        });
+        menuBar.addItem("Clone / Pull", this::onClonePullClick);
+        menuBar.addItem("Wipe", this::onWipeClick);
         return menuBar;
+    }
+
+    private void onWipeClick(ClickEvent<MenuItem> event) {
+        for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
+            if (!item.project.isCloned()) {
+                continue;
+            }
+            operationExecutionService.executeAsyncOperation(
+                    item.project,
+                    "git::wipe",
+                    this.projectService::wipeProject);
+        }
+    }
+
+    private void onClonePullClick(ClickEvent<MenuItem> event) {
+        for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
+            if (item.project.isCloned()) {
+                operationExecutionService.executeAsyncOperation(
+                        item.project,
+                        "git::pull",
+                        this.projectService::pullProject);
+            } else {
+                operationExecutionService.executeAsyncOperation(
+                        item.project,
+                        "git::clone",
+                        this.projectService::cloneProject);
+            }
+        }
     }
 
     @Override
@@ -102,10 +121,7 @@ public class MainView extends VerticalLayout {
         super.onAttach(attachEvent);
 
         List<ProjectItem> items = projectService.getProjects().stream()
-                .map(p -> ProjectItem.builder()
-                        .project(p)
-                        .image(MainView.this.imageResolverService.getImage("gitprovider",
-                                p.getMetaData().getGitProvider().name())).text("").build())
+                .map(this::toProjectItem)
                 .collect(Collectors.toList());
 
         itemByFQPN = items.stream().collect(Collectors.toMap(p -> p.getProject().getFQPN(), Function.identity()));
@@ -122,11 +138,28 @@ public class MainView extends VerticalLayout {
                     case SUCCEEDED -> "";
                     default -> e.getState().name();
                 };
+
+                if (e.getState() == ProjectOperationState.SUCCEEDED) {
+                    ProjectItem newItem = toProjectItem(this.projectService.getProject(e.getFqpn())
+                            .orElseThrow(() -> new ProjectNotFoundException(e.getFqpn())));
+                    item.setText(newItem.getText());
+                    item.setProject(newItem.getProject());
+                }
                 item.setText(text);
+
                 this.grid.getDataProvider().refreshItem(item);
             });
         });
 
+    }
+
+    private ProjectItem toProjectItem(Project p) {
+        String text = p.isCloned() ? "" : "Not cloned";
+        return ProjectItem.builder()
+                .project(p)
+                .text(text)
+                .image(MainView.this.imageResolverService.getImage("gitprovider",
+                        p.getMetaData().getGitProvider().name())).build();
     }
 
     @Override
