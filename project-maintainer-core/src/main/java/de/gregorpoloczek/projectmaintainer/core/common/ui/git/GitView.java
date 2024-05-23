@@ -21,6 +21,9 @@ import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.OperationExecutionService;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
@@ -54,16 +57,19 @@ public class GitView extends VerticalLayout {
     private final transient OperationExecutionService operationExecutionService;
     private final transient ImageResolverService imageResolverService;
     private final Grid<ProjectItem> grid;
+    private final WorkingCopyService workingCopyService;
     private transient Map<FQPN, ProjectItem> itemByFQPN;
     private transient Disposable subscription;
 
     public GitView(
             ProjectService projectService,
             ImageResolverService imageResolverService,
-            OperationExecutionService operationExecutionService) {
+            OperationExecutionService operationExecutionService,
+            WorkingCopyService workingCopyService) {
         this.projectService = projectService;
         this.imageResolverService = imageResolverService;
         this.operationExecutionService = operationExecutionService;
+        this.workingCopyService = workingCopyService;
 
         this.grid = createGrid();
 
@@ -184,7 +190,13 @@ public class GitView extends VerticalLayout {
             String text = switch (e.getState()) {
                 case SCHEDULED -> e.getOperation() + " ...";
                 case RUNNING -> e.getMessage();
-                case SUCCEEDED -> "";
+                case SUCCEEDED -> {
+                    Optional<String> commitMessage = this.workingCopyService.find(e.getFqpn())
+                            .flatMap(WorkingCopy::getLatestCommit)
+                            .map(c -> c.getTimestamp().toString() + ": " + c.getMessage());
+
+                    yield commitMessage.orElse("");
+                }
                 default -> e.getState().name();
             };
 
