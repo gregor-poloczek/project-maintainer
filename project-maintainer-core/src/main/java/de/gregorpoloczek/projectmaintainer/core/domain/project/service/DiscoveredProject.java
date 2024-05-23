@@ -6,14 +6,15 @@ import java.util.Optional;
 
 public interface DiscoveredProject {
 
-  URI getURI();
+    URI getURI();
 
-  String getName();
+    String getName();
 
-  Optional<String> getDescription();
+    Optional<String> getDescription();
 
-  FQPN getFQPN();
+    FQPN getFQPN();
 
-  <T> T getCredentials(Class<? extends T> clazz);
+    <T> T getCredentials(Class<? extends T> clazz);
 
+    String getOwner();
 }

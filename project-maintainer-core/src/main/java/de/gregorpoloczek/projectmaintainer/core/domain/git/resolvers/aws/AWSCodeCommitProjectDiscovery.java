@@ -19,48 +19,49 @@ import software.amazon.awssdk.services.codecommit.CodeCommitClient;
 @Service
 public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
 
-  @Value("file:./.credentials/aws-codecommit.properties")
-  private Resource credentials;
+    @Value("file:./.credentials/aws-codecommit.properties")
+    private Resource credentials;
 
-  private static final Region REGION = Region.EU_CENTRAL_1;
+    private static final Region REGION = Region.EU_CENTRAL_1;
 
-  public AWSCodeCommitProjectDiscovery(final ConversionService conversionService) {
-    this.conversionService = conversionService;
-  }
-
-  private final ConversionService conversionService;
-
-  @Override
-  public void discoverProjects(final ProjectDiscoveryContext context) {
-    final Properties credentials;
-    try {
-      credentials = this.conversionService.convert(
-          this.credentials.getContentAsString(StandardCharsets.UTF_8),
-          Properties.class);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    public AWSCodeCommitProjectDiscovery(final ConversionService conversionService) {
+        this.conversionService = conversionService;
     }
-    String username = credentials.getProperty("username");
-    final Matcher matcher = Pattern.compile("^(?<username>.+?)-at-(?<account>\\d+)$")
-        .matcher(username);
-    final String password = (String) credentials.get("password");
 
-    if (!matcher.matches()) {
-      throw new IllegalStateException("Cannot determined account from " + username);
+    private final ConversionService conversionService;
+
+    @Override
+    public void discoverProjects(final ProjectDiscoveryContext context) {
+        final Properties credentials;
+        try {
+            credentials = this.conversionService.convert(
+                    this.credentials.getContentAsString(StandardCharsets.UTF_8),
+                    Properties.class);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        String username = credentials.getProperty("username");
+        final Matcher matcher = Pattern.compile("^(?<username>.+?)-at-(?<account>\\d+)$")
+                .matcher(username);
+        final String password = (String) credentials.get("password");
+
+        if (!matcher.matches()) {
+            throw new IllegalStateException("Cannot determined account from " + username);
+        }
+        final String accountId = matcher.group("account");
+
+        final CodeCommitClient client = CodeCommitClient.builder().region(REGION).build();
+        client.listRepositories().repositories().stream()
+                .map(r -> client.getRepository(b -> b.repositoryName(r.repositoryName())))
+                .map(r -> r.repositoryMetadata())
+                .forEach(r -> context.discovered(b -> b
+                                .fqpn(FQPN.of("aws-codecommit", accountId, REGION.id(), r.repositoryName()))
+                                .uri(r.cloneUrlHttp())
+                                .name(r.repositoryName())
+                                .owner(accountId)
+                                .description(r.repositoryDescription())
+                                .credentials(new AWSCodeCommitCredentials(username, password))
+                        )
+                );
     }
-    final String accountId = matcher.group("account");
-
-    final CodeCommitClient client = CodeCommitClient.builder().region(REGION).build();
-    client.listRepositories().repositories().stream()
-        .map(r -> client.getRepository(b -> b.repositoryName(r.repositoryName())))
-        .map(r -> r.repositoryMetadata())
-        .forEach(r -> context.discovered(b -> b
-                .fqpn(FQPN.of("aws-codecommit", accountId, REGION.id(), r.repositoryName()))
-                .uri(r.cloneUrlHttp())
-                .name(r.repositoryName())
-                .description(r.repositoryDescription())
-                .credentials(new AWSCodeCommitCredentials(username, password))
-            )
-        );
-  }
 }

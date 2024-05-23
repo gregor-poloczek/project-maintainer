@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
 
+import com.vaadin.flow.component.grid.Grid.Column;
 import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
@@ -17,6 +18,11 @@ public class ProjectItem {
     private Project project;
     private Optional<Image> image;
     private String text = "";
+    private String owner;
     private boolean operationInProgress;
     private Double operationProgressValue;
+
+    public String getName() {
+        return this.getOwner() + " / " + this.getProject().getMetaData().getName();
+    }
 }

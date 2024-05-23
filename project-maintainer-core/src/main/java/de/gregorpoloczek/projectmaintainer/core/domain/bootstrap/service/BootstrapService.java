@@ -24,88 +24,88 @@ import org.springframework.stereotype.Service;
 @Service
 public class BootstrapService {
 
-  private final ProjectDiscoveryService projectDiscoveryService;
-  private final ProjectRepository projectRepository;
-  private final WorkingCopyService workingCopyService;
-  private final OperationExecutionService operationExecutionService;
-  private final ProjectService projectService;
+    private final ProjectDiscoveryService projectDiscoveryService;
+    private final ProjectRepository projectRepository;
+    private final WorkingCopyService workingCopyService;
+    private final OperationExecutionService operationExecutionService;
+    private final ProjectService projectService;
 
-  public BootstrapService(
-      final ProjectDiscoveryService projectDiscoveryService,
-      final ProjectRepository projectRepository,
-      final WorkingCopyService workingCopyService,
-      final OperationExecutionService operationExecutionService,
-      final ProjectService projectService) {
-    this.projectDiscoveryService = projectDiscoveryService;
-    this.projectRepository = projectRepository;
-    this.workingCopyService = workingCopyService;
-    this.operationExecutionService = operationExecutionService;
-    this.projectService = projectService;
+    public BootstrapService(
+            final ProjectDiscoveryService projectDiscoveryService,
+            final ProjectRepository projectRepository,
+            final WorkingCopyService workingCopyService,
+            final OperationExecutionService operationExecutionService,
+            final ProjectService projectService) {
+        this.projectDiscoveryService = projectDiscoveryService;
+        this.projectRepository = projectRepository;
+        this.workingCopyService = workingCopyService;
+        this.operationExecutionService = operationExecutionService;
+        this.projectService = projectService;
 
-  }
-
-  @PostConstruct
-  void init() {
-    final ProjectDiscoveryResult result = this.projectDiscoveryService.discoverProjects();
-
-    final List<DiscoveredProject> discovered = result.getDiscoveredProjects();
-    log.info("Discovered {} remote projects.", discovered.size());
-    discovered.forEach(p -> {
-      log.info("* {}", p.getFQPN());
-      log.info("  Name: {}", p.getName());
-      p.getDescription().ifPresent(d -> log.info("  Description: {}", d));
-      log.info("  URI: {}", p.getURI());
-    });
-
-    final List<WorkingCopy> existing = this.workingCopyService.findAll();
-    log.info("Discovered {} cloned working copies.", existing.size());
-    existing.forEach(w -> {
-      log.info("* {}", w.getFQPN());
-      log.info("  URI: {}", w.getURI());
-    });
-
-    SortedSet<FQPN> projectsToRemove = new TreeSet<>();
-    projectsToRemove.addAll(existing.stream().map(WorkingCopy::getFQPN).toList());
-    projectsToRemove.removeAll(discovered.stream().map(DiscoveredProject::getFQPN).toList());
-
-    log.info("Removing {} obsolete projects", projectsToRemove.size());
-    for (FQPN fqpn : projectsToRemove) {
-      this.workingCopyService.remove(fqpn);
     }
-    for (DiscoveredProject discoveredProject : discovered) {
-      final FQPN fqpn = discoveredProject.getFQPN();
 
-      final ProjectMetaData metaData = ProjectMetaData.builder()
-          .fqpn(fqpn)
-          .name(discoveredProject.getName())
-          .uri(discoveredProject.getURI())
-          .owner("???")
-          .build();
+    @PostConstruct
+    void init() {
+        final ProjectDiscoveryResult result = this.projectDiscoveryService.discoverProjects();
 
-      final Object gitCredentials = discoveredProject.getCredentials(Object.class);
+        final List<DiscoveredProject> discovered = result.getDiscoveredProjects();
+        log.info("Discovered {} remote projects.", discovered.size());
+        discovered.forEach(p -> {
+            log.info("* {}", p.getFQPN());
+            log.info("  Name: {}", p.getName());
+            p.getDescription().ifPresent(d -> log.info("  Description: {}", d));
+            log.info("  URI: {}", p.getURI());
+        });
 
-      final ProjectImpl project = new ProjectImpl(metaData, gitCredentials);
-      this.projectRepository.save(project);
+        final List<WorkingCopy> existing = this.workingCopyService.findAll();
+        log.info("Discovered {} cloned working copies.", existing.size());
+        existing.forEach(w -> {
+            log.info("* {}", w.getFQPN());
+            log.info("  URI: {}", w.getURI());
+        });
 
-      final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getFQPN())
-          .map(w -> {
-            return this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
-                w.getLatestCommit().orElse(null),
-                gitCredentials);
-          });
+        SortedSet<FQPN> projectsToRemove = new TreeSet<>();
+        projectsToRemove.addAll(existing.stream().map(WorkingCopy::getFQPN).toList());
+        projectsToRemove.removeAll(discovered.stream().map(DiscoveredProject::getFQPN).toList());
 
-      if (!workingCopy.isPresent()) {
-        this.operationExecutionService.executeAsyncOperation(
-            project,
-            "clone",
-            this.projectService::cloneProject);
-      } else {
-        this.operationExecutionService.executeAsyncOperation(
-            project,
-            "pull",
-            this.projectService::pullProject);
-      }
+        log.info("Removing {} obsolete projects", projectsToRemove.size());
+        for (FQPN fqpn : projectsToRemove) {
+            this.workingCopyService.remove(fqpn);
+        }
+        for (DiscoveredProject discoveredProject : discovered) {
+            final FQPN fqpn = discoveredProject.getFQPN();
+
+            final ProjectMetaData metaData = ProjectMetaData.builder()
+                    .fqpn(fqpn)
+                    .name(discoveredProject.getName())
+                    .uri(discoveredProject.getURI())
+                    .owner(discoveredProject.getOwner())
+                    .build();
+
+            final Object gitCredentials = discoveredProject.getCredentials(Object.class);
+
+            final ProjectImpl project = new ProjectImpl(metaData, gitCredentials);
+            this.projectRepository.save(project);
+
+            final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getFQPN())
+                    .map(w -> {
+                        return this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
+                                w.getLatestCommit().orElse(null),
+                                gitCredentials);
+                    });
+
+            if (!workingCopy.isPresent()) {
+                this.operationExecutionService.executeAsyncOperation(
+                        project,
+                        "clone",
+                        this.projectService::cloneProject);
+            } else {
+                this.operationExecutionService.executeAsyncOperation(
+                        project,
+                        "pull",
+                        this.projectService::pullProject);
+            }
+        }
     }
-  }
 
 }

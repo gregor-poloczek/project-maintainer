@@ -78,7 +78,7 @@ public class GitView extends VerticalLayout {
         result = new Grid<>(ProjectItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(this.iconRenderer).setFlexGrow(0);
-        result.addColumn(p -> p.getProject().getMetaData().getName()).setHeader("Name");
+        result.addColumn(ProjectItem::getName).setHeader("Name");
         result.addColumn(createProgressBarRenderer());
         return result;
     }
@@ -208,6 +208,7 @@ public class GitView extends VerticalLayout {
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
+                .owner(p.getMetaData().getOwner())
                 .image(GitView.this.imageResolverService.getImage("gitprovider",
                         p.getMetaData().getGitProvider().name())).build();
     }
