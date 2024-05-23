@@ -20,7 +20,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.regions.Region;
 
 @Service
 public class GithubProjectDiscovery implements ProjectDiscovery {
@@ -29,8 +28,6 @@ public class GithubProjectDiscovery implements ProjectDiscovery {
     @Value("file:./.credentials/github.properties")
     private Resource credentials;
 
-
-    private static final Region REGION = Region.EU_CENTRAL_1;
 
     public GithubProjectDiscovery(final ConversionService conversionService,
             ApplicationProperties applicationProperties) {
