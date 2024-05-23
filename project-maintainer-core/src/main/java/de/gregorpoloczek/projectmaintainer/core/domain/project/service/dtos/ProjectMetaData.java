@@ -25,6 +25,8 @@ public interface ProjectMetaData {
             provider = GitProvider.GITHUB;
         } else if (this.getFQPN().getValue().startsWith("aws-codecommit")) {
             provider = GitProvider.AWS_CODECOMMIT;
+        } else if (this.getFQPN().getValue().startsWith("bitbucket")) {
+            provider = GitProvider.BITBUCKET;
         } else {
             provider = GitProvider.UNKNOWN;
         }

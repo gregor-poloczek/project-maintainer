@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.common.properties;
 
-public record Discovery(GithubDiscovery github) {
+
+public record Discovery(GithubDiscovery github, BitbucketDiscovery bitbucket) {
 
 }

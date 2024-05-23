@@ -38,3 +38,5 @@
 
 
 * aws codecommit: https://aws.amazon.com/de/architecture/icons/
+
+* bitbucket: https://atlassian.design/resources/logo-library#atlassian-product-logos

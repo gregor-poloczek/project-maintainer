@@ -1,21 +1,17 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.github;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.bitbucket;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.AbstractProjectResolver;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import java.net.URI;
-import java.util.regex.Pattern;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 @Service
-public class GithubProjectResolver extends AbstractProjectResolver {
+public class BitbucketProjectResolver extends AbstractProjectResolver {
 
     public CredentialsProvider getCredentialsProvider(WorkingCopy workingCopy) {
-        final GithubCredentials credentials = workingCopy.getGitCredentials(GithubCredentials.class);
+        final BitbucketCredentials credentials = workingCopy.getGitCredentials(BitbucketCredentials.class);
         return new UsernamePasswordCredentialsProvider(
                 credentials.username(),
                 credentials.password());
@@ -24,6 +20,6 @@ public class GithubProjectResolver extends AbstractProjectResolver {
 
     @Override
     public boolean supports(final URI uri) {
-        return uri.toString().contains("github.com/");
+        return uri.toString().contains("bitbucket.org/");
     }
 }
