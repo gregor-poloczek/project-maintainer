@@ -43,3 +43,4 @@ build/
 /project-maintainer-ui/src/assets/icons/GITHUB.png
 /.idea/sonarlint/
 project-maintainer-core/frontend/
+/project-maintainer-core/src/main/resources/application-local.yml

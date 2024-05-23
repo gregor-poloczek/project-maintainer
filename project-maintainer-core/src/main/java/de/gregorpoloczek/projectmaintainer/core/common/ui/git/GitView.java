@@ -1,4 +1,6 @@
-package de.gregorpoloczek.projectmaintainer.core.common.ui;
+package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
+
+import static java.util.stream.Collectors.toList;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
@@ -16,9 +18,11 @@ import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.router.Route;
-import de.gregorpoloczek.projectmaintainer.core.common.ui.ImageResolverService.Image;
+import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService;
+import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.OperationExecutionService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
@@ -30,31 +34,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
 import reactor.core.Disposable;
 
 @Route
-public class MainView extends VerticalLayout {
+public class GitView extends VerticalLayout {
 
-    @Getter
-    @Setter
-    @Builder
-    public static class ProjectItem {
-
-        private ProjectOperationState operationState = null;
-        private Project project;
-        private Optional<Image> image;
-        private String text = "";
-        private boolean operationInProgress;
-        private Double operationProgressValue;
-    }
-
-    public final LitRenderer<ProjectItem> iconRenderer =
+    private final LitRenderer<ProjectItem> iconRenderer =
             LitRenderer.<ProjectItem>of(
                             "<img src=${item.image} style=\"height:32px; filter: grayscale(${item.grayscale});\" />")
-                    .withProperty("grayscale", item -> item.project.isCloned() ? "0.0" : "1.0")
+                    .withProperty("grayscale", item -> item.getProject().isCloned() ? "0.0" : "1.0")
                     .withProperty("image", item -> {
                         Optional<Image> image = item.getImage();
                         return image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
@@ -62,14 +50,14 @@ public class MainView extends VerticalLayout {
                     });
 
 
-    private final ProjectService projectService;
-    private final OperationExecutionService operationExecutionService;
-    private final ImageResolverService imageResolverService;
+    private final transient ProjectService projectService;
+    private final transient OperationExecutionService operationExecutionService;
+    private final transient ImageResolverService imageResolverService;
     private final Grid<ProjectItem> grid;
-    private Map<FQPN, ProjectItem> itemByFQPN;
-    private Disposable subscription;
+    private transient Map<FQPN, ProjectItem> itemByFQPN;
+    private transient Disposable subscription;
 
-    public MainView(
+    public GitView(
             ProjectService projectService,
             ImageResolverService imageResolverService,
             OperationExecutionService operationExecutionService) {
@@ -77,16 +65,22 @@ public class MainView extends VerticalLayout {
         this.imageResolverService = imageResolverService;
         this.operationExecutionService = operationExecutionService;
 
-        grid = new Grid<>(ProjectItem.class, false);
-        grid.setSelectionMode(SelectionMode.MULTI);
-        grid.addColumn(this.iconRenderer).setFlexGrow(0);
-        grid.addColumn(p -> p.project.getMetaData().getName()).setHeader("Name");
-        grid.addColumn(createProgressBarRenderer());
+        this.grid = createGrid();
 
         MenuBar menuBar = createManuBar();
 
         this.add(menuBar);
         this.add(grid);
+    }
+
+    private Grid<ProjectItem> createGrid() {
+        final Grid<ProjectItem> result;
+        result = new Grid<>(ProjectItem.class, false);
+        result.setSelectionMode(SelectionMode.MULTI);
+        result.addColumn(this.iconRenderer).setFlexGrow(0);
+        result.addColumn(p -> p.getProject().getMetaData().getName()).setHeader("Name");
+        result.addColumn(createProgressBarRenderer());
+        return result;
     }
 
     private static ComponentRenderer<VerticalLayout, ProjectItem> createProgressBarRenderer() {
@@ -112,12 +106,12 @@ public class MainView extends VerticalLayout {
             } else {
                 progressBar.setIndeterminate(true);
             }
-            progressBar.setVisible(item.operationState != null);
+            progressBar.setVisible(item.getOperationState() != null);
             progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
                     ProgressBarVariant.LUMO_CONTRAST);
-            if (item.operationState == ProjectOperationState.SUCCEEDED) {
+            if (item.getOperationState() == ProjectOperationState.SUCCEEDED) {
                 progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
-            } else if (item.operationState == ProjectOperationState.FAILED) {
+            } else if (item.getOperationState() == ProjectOperationState.FAILED) {
                 progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
             } else {
                 progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
@@ -141,11 +135,11 @@ public class MainView extends VerticalLayout {
 
     private void onWipeClick(ClickEvent<MenuItem> event) {
         for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-            if (!item.project.isCloned()) {
+            if (!item.getProject().isCloned()) {
                 continue;
             }
             operationExecutionService.executeAsyncOperation(
-                    item.project,
+                    item.getProject(),
                     "git::wipe",
                     this.projectService::wipeProject);
         }
@@ -153,14 +147,14 @@ public class MainView extends VerticalLayout {
 
     private void onClonePullClick(ClickEvent<MenuItem> event) {
         for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-            if (item.project.isCloned()) {
+            if (item.getProject().isCloned()) {
                 operationExecutionService.executeAsyncOperation(
-                        item.project,
+                        item.getProject(),
                         "git::pull",
                         this.projectService::pullProject);
             } else {
                 operationExecutionService.executeAsyncOperation(
-                        item.project,
+                        item.getProject(),
                         "git::clone",
                         this.projectService::cloneProject);
             }
@@ -173,38 +167,40 @@ public class MainView extends VerticalLayout {
 
         List<ProjectItem> items = projectService.getProjects().stream()
                 .map(this::toProjectItem)
-                .collect(Collectors.toList());
+                .toList();
 
-        itemByFQPN = items.stream().collect(Collectors.toMap(p -> p.getProject().getFQPN(), Function.identity()));
+        this.itemByFQPN = items.stream().collect(Collectors.toMap(p -> p.getProject().getFQPN(), Function.identity()));
 
-        grid.setItems(items);
+        this.grid.setItems(items);
 
-        UI current = UI.getCurrent();
-        subscription = this.operationExecutionService.getUpdateEvents().subscribe((e) -> {
-            ProjectItem item = itemByFQPN.get(e.getFqpn());
-            current.access(() -> {
-                String text = switch (e.getState()) {
-                    case SCHEDULED -> e.getOperation() + " ...";
-                    case RUNNING -> e.getMessage();
-                    case SUCCEEDED -> "";
-                    default -> e.getState().name();
-                };
+        final UI current = UI.getCurrent();
+        subscription = this.operationExecutionService.getUpdateEvents().subscribe(e -> onUpdateEvent(e, current));
 
-                item.setOperationInProgress(!e.getState().isTerminated());
-                item.setOperationProgressValue(e.getProgress() == -1 ? null : e.getProgress());
-                item.setOperationState(e.getState());
-                if (e.getState() == ProjectOperationState.SUCCEEDED) {
-                    ProjectItem newItem = toProjectItem(this.projectService.getProject(e.getFqpn())
-                            .orElseThrow(() -> new ProjectNotFoundException(e.getFqpn())));
-                    item.setText(newItem.getText());
-                    item.setProject(newItem.getProject());
-                }
-                item.setText(text);
+    }
 
-                this.grid.getDataProvider().refreshItem(item);
-            });
+    private void onUpdateEvent(ProjectOperationProgress e, UI current) {
+        ProjectItem item = itemByFQPN.get(e.getFqpn());
+        current.access(() -> {
+            String text = switch (e.getState()) {
+                case SCHEDULED -> e.getOperation() + " ...";
+                case RUNNING -> e.getMessage();
+                case SUCCEEDED -> "";
+                default -> e.getState().name();
+            };
+
+            item.setOperationInProgress(!e.getState().isTerminated());
+            item.setOperationProgressValue(e.getProgress() == -1 ? null : e.getProgress());
+            item.setOperationState(e.getState());
+            if (e.getState() == ProjectOperationState.SUCCEEDED) {
+                ProjectItem newItem = toProjectItem(this.projectService.getProject(e.getFqpn())
+                        .orElseThrow(() -> new ProjectNotFoundException(e.getFqpn())));
+                item.setText(newItem.getText());
+                item.setProject(newItem.getProject());
+            }
+            item.setText(text);
+
+            this.grid.getDataProvider().refreshItem(item);
         });
-
     }
 
     private ProjectItem toProjectItem(Project p) {
@@ -212,7 +208,7 @@ public class MainView extends VerticalLayout {
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
-                .image(MainView.this.imageResolverService.getImage("gitprovider",
+                .image(GitView.this.imageResolverService.getImage("gitprovider",
                         p.getMetaData().getGitProvider().name())).build();
     }
 
