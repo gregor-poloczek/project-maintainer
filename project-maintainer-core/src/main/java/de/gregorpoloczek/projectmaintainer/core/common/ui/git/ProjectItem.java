@@ -1,6 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
 
-import com.vaadin.flow.component.grid.Grid.Column;
 import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
