@@ -39,7 +39,7 @@ public class GithubProjectDiscovery implements ProjectDiscovery {
 
     @Override
     public void discoverProjects(final ProjectDiscoveryContext context) {
-        final List<String> users = applicationProperties.getProjects().getDiscovery().github().users();
+        final List<String> users = applicationProperties.getProjects().getDiscovery().getGithub().getUsers();
         final Properties passwords;
         try {
             passwords = this.conversionService.convert(

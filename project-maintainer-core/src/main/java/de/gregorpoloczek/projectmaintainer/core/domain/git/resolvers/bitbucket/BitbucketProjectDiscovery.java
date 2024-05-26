@@ -44,7 +44,7 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
             throw new UncheckedIOException(e);
         }
 
-        for (String username : applicationProperties.getProjects().getDiscovery().bitbucket().users()) {
+        for (String username : applicationProperties.getProjects().getDiscovery().getBitbucket().getUsers()) {
             String password = Optional.ofNullable(passwords.get(username)).map(String.class::cast)
                     .orElseThrow(() -> new IllegalStateException("Cannot find password for user " + username));
             String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
