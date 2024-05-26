@@ -1,15 +1,15 @@
 package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
 
-import static java.util.stream.Collectors.toList;
-
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -31,12 +31,16 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import net.time4j.PrettyTime;
 import reactor.core.Disposable;
 
 @Route
@@ -83,13 +87,14 @@ public class GitView extends VerticalLayout {
         final Grid<ProjectItem> result;
         result = new Grid<>(ProjectItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
-        result.addColumn(this.iconRenderer).setFlexGrow(0);
-        result.addColumn(ProjectItem::getName).setHeader("Name");
-        result.addColumn(createProgressBarRenderer());
+        result.addColumn(this.iconRenderer).setFlexGrow(0).setWidth("64px");
+        result.addColumn(createNameRenderer()).setHeader("Name");
+        result.addColumn(createWorkingCopyRendered()).setHeader("Working copy");
+        result.addColumn(this.createProgressBarRenderer());
         return result;
     }
 
-    private static ComponentRenderer<VerticalLayout, ProjectItem> createProgressBarRenderer() {
+    private ComponentRenderer<VerticalLayout, ProjectItem> createProgressBarRenderer() {
         return new ComponentRenderer<>(item -> {
             Div progressBarLabelText = new Div();
             progressBarLabelText.setText(item.getText());
@@ -128,6 +133,45 @@ public class GitView extends VerticalLayout {
             layout.add(progressBarLabel, progressBar);
             layout.setPadding(false);
 
+            return layout;
+        });
+    }
+
+    private ComponentRenderer<VerticalLayout, ProjectItem> createWorkingCopyRendered() {
+        return new ComponentRenderer<>(item -> {
+            VerticalLayout layout = new VerticalLayout();
+            layout.setSpacing(true);
+            Text message = new Text("");
+            Span timestamp = new Span("");
+            timestamp.getElement().getThemeList().add("badge");
+            layout.add(timestamp, message);
+            layout.setPadding(false);
+
+            Optional<Commit> maybeCommit = item.getLatestCommit();
+            maybeCommit.ifPresentOrElse(commit -> {
+                timestamp.setText(PrettyTime.of(Locale.US)
+                        .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
+                timestamp.setVisible(true);
+            }, () -> {
+                timestamp.setText(null);
+                timestamp.setVisible(false);
+            });
+            timestamp.setTitle(maybeCommit.map(Commit::getTimestamp).map(Object::toString).orElse(""));
+
+            message.setText(maybeCommit.map(Commit::getMessage).orElse(""));
+            return layout;
+        });
+    }
+
+    private ComponentRenderer<VerticalLayout, ProjectItem> createNameRenderer() {
+        return new ComponentRenderer<>(item -> {
+            VerticalLayout layout = new VerticalLayout();
+            layout.setSpacing(true);
+            layout.setPadding(false);
+            Text name = new Text(item.getName());
+            Span prefix = new Span(item.getNamePrefix());
+            prefix.getElement().getThemeList().add("badge");
+            layout.add(prefix, name);
             return layout;
         });
     }
@@ -190,13 +234,7 @@ public class GitView extends VerticalLayout {
             String text = switch (e.getState()) {
                 case SCHEDULED -> e.getOperation() + " ...";
                 case RUNNING -> e.getMessage();
-                case SUCCEEDED -> {
-                    Optional<String> commitMessage = this.workingCopyService.find(e.getFqpn())
-                            .flatMap(WorkingCopy::getLatestCommit)
-                            .map(c -> c.getTimestamp().toString() + ": " + c.getMessage());
-
-                    yield commitMessage.orElse("");
-                }
+                case SUCCEEDED -> "";
                 default -> e.getState().name();
             };
 
@@ -220,6 +258,7 @@ public class GitView extends VerticalLayout {
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
+                .latestCommit(this.workingCopyService.find(p.getFQPN()).flatMap(WorkingCopy::getLatestCommit))
                 .owner(p.getMetaData().getOwner())
                 .image(GitView.this.imageResolverService.getImage("gitprovider",
                         p.getMetaData().getGitProvider().name())).build();

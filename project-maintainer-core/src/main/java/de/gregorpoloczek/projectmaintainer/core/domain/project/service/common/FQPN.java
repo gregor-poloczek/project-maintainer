@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service.common;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -12,47 +13,49 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 @Getter
 public class FQPN implements Comparable<FQPN> {
 
-  private final String value;
+    private final String value;
+    private final List<String> segments;
 
-  private FQPN(final String value) {
-    this.value = value;
-  }
-
-  public static FQPN of(String segment, String... segments) {
-    final List<String> s = new ArrayList<>();
-    s.add(segment);
-    s.addAll(Arrays.asList(segments));
-    return new FQPN(s.stream().collect(Collectors.joining("::")));
-  }
-
-  @Override
-  public boolean equals(final Object object) {
-    if (this == object) {
-      return true;
+    private FQPN(final List<String> segments) {
+        this.value = segments.stream().collect(Collectors.joining("::"));
+        this.segments = segments;
     }
 
-    if (object == null || getClass() != object.getClass()) {
-      return false;
+    public static FQPN of(String segment, String... segments) {
+        final List<String> s = new ArrayList<>();
+        s.add(segment);
+        s.addAll(Arrays.asList(segments));
+        return new FQPN(s);
     }
 
-    final FQPN fqpn = (FQPN) object;
+    @Override
+    public boolean equals(final Object object) {
+        if (this == object) {
+            return true;
+        }
 
-    return new EqualsBuilder().append(value, fqpn.value)
-        .isEquals();
-  }
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
 
-  @Override
-  public int hashCode() {
-    return new HashCodeBuilder(17, 37).append(value).toHashCode();
-  }
+        final FQPN fqpn = (FQPN) object;
 
-  @Override
-  public String toString() {
-    return this.value;
-  }
+        return new EqualsBuilder().append(value, fqpn.value)
+                .isEquals();
+    }
 
-  @Override
-  public int compareTo(final FQPN o) {
-    return this.value.compareTo(o.value);
-  }
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37).append(value).toHashCode();
+    }
+
+    @Override
+    public String toString() {
+        return this.value;
+    }
+
+    @Override
+    public int compareTo(final FQPN o) {
+        return this.value.compareTo(o.value);
+    }
 }

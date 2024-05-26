@@ -99,6 +99,18 @@
       <artifactId>github-api</artifactId>
       <version>1.318</version>
     </dependency>
+
+    <dependency>
+      <groupId>net.time4j</groupId>
+      <artifactId>time4j-base</artifactId>
+      <version>5.9</version>
+    </dependency>
+    <dependency>
+      <groupId>net.time4j</groupId>
+      <artifactId>time4j-sqlxml</artifactId>
+      <version>5.8</version>
+    </dependency>
+
   </dependencies>
 
   <build>
