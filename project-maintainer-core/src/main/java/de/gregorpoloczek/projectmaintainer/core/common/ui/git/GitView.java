@@ -83,6 +83,8 @@ public class GitView extends VerticalLayout {
 
         this.add(menuBar);
         this.add(grid);
+        this.setSizeFull();
+        this.grid.setSizeFull();
     }
 
     private Grid<ProjectItem> createGrid() {
