@@ -5,9 +5,11 @@ import java.time.Instant;
 
 public interface Commit {
 
-  Instant getTimestamp();
+    Instant getTimestamp();
 
-  String getMessage();
+    String getMessage();
 
-  String getHash();
+    String getHash();
+
+    String getAuthorName();
 }

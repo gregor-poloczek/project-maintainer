@@ -12,6 +12,8 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
+import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.progressbar.ProgressBarVariant;
@@ -31,7 +33,6 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.text.MessageFormat;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
@@ -137,41 +138,52 @@ public class GitView extends VerticalLayout {
         });
     }
 
-    private ComponentRenderer<VerticalLayout, ProjectItem> createWorkingCopyRendered() {
+    private ComponentRenderer<FlexLayout, ProjectItem> createWorkingCopyRendered() {
         return new ComponentRenderer<>(item -> {
-            VerticalLayout layout = new VerticalLayout();
-            layout.setSpacing(true);
+            FlexLayout layout = new FlexLayout();
+            layout.setFlexDirection(FlexDirection.COLUMN);
             Text message = new Text("");
-            Span timestamp = new Span("");
-            timestamp.getElement().getThemeList().add("badge");
-            layout.add(timestamp, message);
-            layout.setPadding(false);
+
+            Span timestamp = createBadge();
+            Span hash = createBadge();
+            Span authorName = createBadge();
+
+            HorizontalLayout badges = new HorizontalLayout();
+            badges.add(hash, authorName, timestamp);
+
+            layout.add(badges, message);
 
             Optional<Commit> maybeCommit = item.getLatestCommit();
-            maybeCommit.ifPresentOrElse(commit -> {
+            maybeCommit.ifPresent(commit -> {
                 timestamp.setText(PrettyTime.of(Locale.US)
                         .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
-                timestamp.setVisible(true);
-            }, () -> {
-                timestamp.setText(null);
-                timestamp.setVisible(false);
+                timestamp.setTitle(commit.getTimestamp().toString());
+                hash.setText(commit.getHash());
+                authorName.setText(commit.getAuthorName());
             });
-            timestamp.setTitle(maybeCommit.map(Commit::getTimestamp).map(Object::toString).orElse(""));
-
+            badges.setVisible(maybeCommit.isPresent());
             message.setText(maybeCommit.map(Commit::getMessage).orElse(""));
             return layout;
         });
     }
 
-    private ComponentRenderer<VerticalLayout, ProjectItem> createNameRenderer() {
+    private Span createBadge() {
+        Span timestamp = new Span("");
+        timestamp.getElement().getThemeList().add("badge");
+        return timestamp;
+    }
+
+    private ComponentRenderer<FlexLayout, ProjectItem> createNameRenderer() {
         return new ComponentRenderer<>(item -> {
-            VerticalLayout layout = new VerticalLayout();
-            layout.setSpacing(true);
-            layout.setPadding(false);
+            FlexLayout layout = new FlexLayout();
+            HorizontalLayout badges = new HorizontalLayout();
+            layout.setFlexDirection(FlexDirection.COLUMN);
             Text name = new Text(item.getName());
-            Span prefix = new Span(item.getNamePrefix());
-            prefix.getElement().getThemeList().add("badge");
-            layout.add(prefix, name);
+
+            Span prefix = createBadge();
+            prefix.setText(item.getNamePrefix());
+            badges.add(prefix);
+            layout.add(badges, name);
             return layout;
         });
     }
