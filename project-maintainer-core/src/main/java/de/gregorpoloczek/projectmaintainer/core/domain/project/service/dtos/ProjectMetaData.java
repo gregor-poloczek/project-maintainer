@@ -4,25 +4,29 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.Git
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.net.URI;
 import java.util.Optional;
+import lombok.Builder;
+import lombok.Getter;
 
-public interface ProjectMetaData {
+@Getter
+@Builder
+public class ProjectMetaData {
 
-    static ProjectMetaDataBuilder builder() {
-        // TODO lombok austesten
-        return new ProjectMetaDataBuilder();
+    private String owner;
+    private String name;
+    private URI uri;
+    @Builder.Default
+    private Optional<String> browserLink = Optional.empty();
+    private FQPN fqpn;
+
+    public FQPN getFQPN() {
+        return fqpn;
     }
 
-    String getOwner();
+    public URI getURI() {
+        return uri;
+    }
 
-    String getName();
-
-    URI getURI();
-
-    Optional<String> getBrowserLink();
-
-    FQPN getFQPN();
-
-    default GitProvider getGitProvider() {
+    public GitProvider getGitProvider() {
         final GitProvider provider;
         if (this.getFQPN().getValue().startsWith("github:")) {
             provider = GitProvider.GITHUB;
