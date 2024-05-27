@@ -12,6 +12,8 @@ public interface DiscoveredProject {
 
     Optional<String> getDescription();
 
+    Optional<String> getBrowserLink();
+
     FQPN getFQPN();
 
     <T> T getCredentials(Class<? extends T> clazz);

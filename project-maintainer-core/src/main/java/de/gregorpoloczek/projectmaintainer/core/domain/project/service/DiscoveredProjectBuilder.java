@@ -20,4 +20,6 @@ public interface DiscoveredProjectBuilder {
     DiscoveredProjectBuilder credentials(Object credentials);
 
     DiscoveredProjectBuilder owner(String owner);
+
+    DiscoveredProjectBuilder browserLink(String href);
 }

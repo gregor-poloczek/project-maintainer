@@ -6,74 +6,87 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
+import java.util.Optional;
 import java.util.Set;
 
 public class ProjectMetaDataBuilder {
 
-  @NotNull
-  private FQPN fqpn;
+    @NotNull
+    private FQPN fqpn;
 
-  @NotNull
-  private URI uri;
+    @NotNull
+    private URI uri;
 
-  @NotNull
-  private String name;
-  @NotNull
-  private String owner;
+    @NotNull
+    private String name;
+    @NotNull
+    private String owner;
 
-  public ProjectMetaDataBuilder fqpn(final String segmet, final String... segments) {
-    return this.fqpn(FQPN.of(segmet, segments));
-  }
+    private Optional<String> browserLink;
 
-  public ProjectMetaDataBuilder fqpn(final FQPN fqpn) {
-    this.fqpn = fqpn;
-    return this;
-  }
-
-  private void validate() {
-    Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
-    final Set<ConstraintViolation<ProjectMetaDataBuilder>> violations = validator.validate(this);
-    if (!violations.isEmpty()) {
-      throw new IllegalStateException(violations.toString());
+    public ProjectMetaDataBuilder fqpn(final String segmet, final String... segments) {
+        return this.fqpn(FQPN.of(segmet, segments));
     }
-  }
 
-  public ProjectMetaData build() {
-    this.validate();
-    return new ProjectMetaData() {
-      @Override
-      public String getOwner() {
-        return ProjectMetaDataBuilder.this.owner;
-      }
+    public ProjectMetaDataBuilder fqpn(final FQPN fqpn) {
+        this.fqpn = fqpn;
+        return this;
+    }
 
-      public String getName() {
-        return ProjectMetaDataBuilder.this.name;
-      }
+    private void validate() {
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+        final Set<ConstraintViolation<ProjectMetaDataBuilder>> violations = validator.validate(this);
+        if (!violations.isEmpty()) {
+            throw new IllegalStateException(violations.toString());
+        }
+    }
 
-      @Override
-      public URI getURI() {
-        return ProjectMetaDataBuilder.this.uri;
-      }
+    public ProjectMetaData build() {
+        this.validate();
+        return new ProjectMetaData() {
+            @Override
+            public String getOwner() {
+                return ProjectMetaDataBuilder.this.owner;
+            }
 
-      @Override
-      public FQPN getFQPN() {
-        return ProjectMetaDataBuilder.this.fqpn;
-      }
-    };
-  }
+            public String getName() {
+                return ProjectMetaDataBuilder.this.name;
+            }
 
-  public ProjectMetaDataBuilder uri(final URI uri) {
-    this.uri = uri;
-    return this;
-  }
+            @Override
+            public URI getURI() {
+                return ProjectMetaDataBuilder.this.uri;
+            }
 
-  public ProjectMetaDataBuilder owner(final String owner) {
-    this.owner = owner;
-    return this;
-  }
+            @Override
+            public Optional<String> getBrowserLink() {
+                return ProjectMetaDataBuilder.this.browserLink;
+            }
 
-  public ProjectMetaDataBuilder name(final String name) {
-    this.name = name;
-    return this;
-  }
+            @Override
+            public FQPN getFQPN() {
+                return ProjectMetaDataBuilder.this.fqpn;
+            }
+        };
+    }
+
+    public ProjectMetaDataBuilder uri(final URI uri) {
+        this.uri = uri;
+        return this;
+    }
+
+    public ProjectMetaDataBuilder owner(final String owner) {
+        this.owner = owner;
+        return this;
+    }
+
+    public ProjectMetaDataBuilder name(final String name) {
+        this.name = name;
+        return this;
+    }
+
+    public ProjectMetaDataBuilder browserLink(Optional<String> browserLink) {
+        this.browserLink = browserLink;
+        return this;
+    }
 }

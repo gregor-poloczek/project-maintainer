@@ -17,6 +17,7 @@ public class DiscoveredProjectBuilderImpl implements
     @NotNull
     private Object credentials;
     private String owner;
+    private String browserLink;
 
     @Override
     public DiscoveredProjectBuilderImpl uri(final URI uri) {
@@ -54,12 +55,18 @@ public class DiscoveredProjectBuilderImpl implements
         return this;
     }
 
+    @Override
+    public DiscoveredProjectBuilder browserLink(String href) {
+        this.browserLink = href;
+        return this;
+    }
+
     public DiscoveredProject build() {
         // TODO validation
 
         return new DiscoveredProjectImpl(
                 this.fqpn,
                 this.owner,
-                this.uri, this.name, this.description, this.credentials);
+                this.uri, this.name, this.description, this.browserLink, this.credentials);
     }
 }

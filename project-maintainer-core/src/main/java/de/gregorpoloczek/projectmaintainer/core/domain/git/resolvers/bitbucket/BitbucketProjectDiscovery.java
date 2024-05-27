@@ -67,6 +67,7 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                                 .findFirst()
                                 .orElseThrow(IllegalStateException::new).href())
                         .credentials(new BitbucketCredentials(username, password))
+                        .browserLink("https://bitbucket.org/%s/%s/src/master/".formatted(username, repository.name()))
                         .name(repository.name()));
             }
         }

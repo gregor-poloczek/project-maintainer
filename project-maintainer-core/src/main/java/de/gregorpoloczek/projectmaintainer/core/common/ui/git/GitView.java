@@ -2,12 +2,15 @@ package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.menubar.MenuBar;
@@ -178,7 +181,17 @@ public class GitView extends VerticalLayout {
             FlexLayout layout = new FlexLayout();
             HorizontalLayout badges = new HorizontalLayout();
             layout.setFlexDirection(FlexDirection.COLUMN);
-            Text name = new Text(item.getName());
+
+            Component name;
+            if (item.getProject().getMetaData().getBrowserLink().isPresent()) {
+                Anchor anchor = new Anchor();
+                anchor.setHref(item.getProject().getMetaData().getBrowserLink().get());
+                anchor.setTarget("_blank");
+                name = anchor;
+            } else {
+                name = new Text("");
+            }
+            ((HasText) name).setText(item.getName());
 
             Span prefix = createBadge();
             prefix.setText(item.getNamePrefix());

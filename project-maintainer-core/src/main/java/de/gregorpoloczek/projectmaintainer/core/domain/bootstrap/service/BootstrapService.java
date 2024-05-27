@@ -80,6 +80,7 @@ public class BootstrapService {
                     .name(discoveredProject.getName())
                     .uri(discoveredProject.getURI())
                     .owner(discoveredProject.getOwner())
+                    .browserLink(discoveredProject.getBrowserLink())
                     .build();
 
             final Object gitCredentials = discoveredProject.getCredentials(Object.class);
