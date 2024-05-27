@@ -3,7 +3,6 @@ package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
@@ -67,7 +66,6 @@ public class GitView extends VerticalLayout {
     private final Grid<ProjectItem> grid;
     private final WorkingCopyService workingCopyService;
     private transient Map<FQPN, ProjectItem> itemByFQPN;
-    private transient Disposable subscription;
 
     public GitView(
             ProjectService projectService,
@@ -209,29 +207,34 @@ public class GitView extends VerticalLayout {
     }
 
     private void onWipeClick(ClickEvent<MenuItem> event) {
+        UI ui = UI.getCurrent();
         for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
             if (!item.getProject().isCloned()) {
                 continue;
             }
-            operationExecutionService.executeAsyncOperation(
+            operationExecutionService.executeAsyncOperation2(
                     item.getProject(),
                     "git::wipe",
-                    this.projectService::wipeProject);
+                    this.projectService::wipeProject).subscribe(e ->
+                    onUpdateEvent(e, ui));
         }
     }
 
     private void onClonePullClick(ClickEvent<MenuItem> event) {
+        UI ui = UI.getCurrent();
         for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
             if (item.getProject().isCloned()) {
-                operationExecutionService.executeAsyncOperation(
+                operationExecutionService.executeAsyncOperation2(
                         item.getProject(),
                         "git::pull",
-                        this.projectService::pullProject);
+                        this.projectService::pullProject).subscribe(e ->
+                        onUpdateEvent(e, ui));
             } else {
-                operationExecutionService.executeAsyncOperation(
+                operationExecutionService.executeAsyncOperation2(
                         item.getProject(),
                         "git::clone",
-                        this.projectService::cloneProject);
+                        this.projectService::cloneProject).subscribe(e ->
+                        onUpdateEvent(e, ui));
             }
         }
     }
@@ -248,13 +251,12 @@ public class GitView extends VerticalLayout {
                 .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
 
         this.grid.setItems(items);
-
-        final UI current = UI.getCurrent();
-        subscription = this.operationExecutionService.getUpdateEvents().subscribe(e -> onUpdateEvent(e, current));
-
     }
 
     private void onUpdateEvent(ProjectOperationProgress e, UI current) {
+        if (!current.isAttached()) {
+            return;
+        }
         ProjectItem item = itemByFQPN.get(e.getFqpn());
         current.access(() -> {
             String text = switch (e.getState()) {
@@ -291,9 +293,4 @@ public class GitView extends VerticalLayout {
                         p.getMetaData().getGitProvider().name())).build();
     }
 
-    @Override
-    protected void onDetach(DetachEvent detachEvent) {
-        this.subscription.dispose();
-        this.subscription = null;
-    }
 }

@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.project.api.FluxBasedProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.api.SinkBasedProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
@@ -29,6 +30,30 @@ public class OperationExecutionService {
     public Flux<ProjectOperationProgress> getUpdateEvents() {
         return sink.asFlux();
     }
+
+    public Flux<ProjectOperationProgress> executeAsyncOperation2(final Project project, final String operationName,
+            final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
+
+        return Flux.create(s -> {
+            FQPN fqpn = project.getMetaData().getFQPN();
+            final ProjectOperationProgressListener emitter =
+                    new FluxBasedProjectOperationProgressListener(s, fqpn, operationName,
+                            (e, e2) -> e2.ifPresentOrElse(s::error, s::complete));
+            emitter.scheduled();
+
+            this.executor.execute(
+                    () -> {
+                        try {
+                            operation.accept(fqpn, emitter);
+                            emitter.succeeded(project);
+                        } catch (RuntimeException e) {
+                            emitter.failed(project, e);
+                        }
+                    }
+            );
+        });
+    }
+
 
     public void executeAsyncOperation(final Project project, final String operationName,
             final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
