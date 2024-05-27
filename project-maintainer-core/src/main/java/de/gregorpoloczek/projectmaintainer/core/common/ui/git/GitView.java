@@ -44,7 +44,6 @@ import java.util.TimeZone;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.time4j.PrettyTime;
-import reactor.core.Disposable;
 
 @Route
 public class GitView extends VerticalLayout {
