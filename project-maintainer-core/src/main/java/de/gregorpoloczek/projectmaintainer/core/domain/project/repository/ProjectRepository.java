@@ -12,20 +12,20 @@ import org.springframework.stereotype.Repository;
 @Slf4j
 public class ProjectRepository {
 
-  private SortedMap<FQPN, ProjectImpl> projects = new TreeMap<>();
+    private SortedMap<FQPN, ProjectImpl> projects = new TreeMap<>();
 
-  public ProjectRepository() {
-  }
+    public ProjectRepository() {
+    }
 
-  public List<ProjectImpl> findAll() {
-    return List.copyOf(this.projects.values());
-  }
+    public List<ProjectImpl> findAll() {
+        return List.copyOf(this.projects.values());
+    }
 
-  public Optional<ProjectImpl> find(final FQPN fqpn) {
-    return Optional.ofNullable(this.projects.get(fqpn));
-  }
+    public Optional<ProjectImpl> find(final FQPN fqpn) {
+        return Optional.ofNullable(this.projects.get(fqpn));
+    }
 
-  public void save(final ProjectImpl project) {
-    this.projects.put(project.getFQPN(), project);
-  }
+    public void save(final ProjectImpl project) {
+        this.projects.put(project.getMetaData().getFQPN(), project);
+    }
 }

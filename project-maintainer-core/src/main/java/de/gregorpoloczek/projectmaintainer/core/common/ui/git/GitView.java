@@ -244,7 +244,8 @@ public class GitView extends VerticalLayout {
                 .map(this::toProjectItem)
                 .toList();
 
-        this.itemByFQPN = items.stream().collect(Collectors.toMap(p -> p.getProject().getFQPN(), Function.identity()));
+        this.itemByFQPN = items.stream()
+                .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
 
         this.grid.setItems(items);
 
@@ -283,7 +284,8 @@ public class GitView extends VerticalLayout {
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
-                .latestCommit(this.workingCopyService.find(p.getFQPN()).flatMap(WorkingCopy::getLatestCommit))
+                .latestCommit(
+                        this.workingCopyService.find(p.getMetaData().getFQPN()).flatMap(WorkingCopy::getLatestCommit))
                 .owner(p.getMetaData().getOwner())
                 .image(GitView.this.imageResolverService.getImage("gitprovider",
                         p.getMetaData().getGitProvider().name())).build();

@@ -11,13 +11,15 @@ import java.util.List;
 public record ProjectMetaDataResource(FQPN fqpn, String name, String owner, URI uri,
                                       List<Label> labels) {
 
-  public static ProjectMetaDataResource of(Project project) {
-    final ProjectMetaData metaData = project.getMetaData();
+    public static ProjectMetaDataResource of(Project project) {
+        final ProjectMetaData metaData = project.getMetaData();
 
-    return new ProjectMetaDataResource(project.getFQPN(), metaData.getName(),
-        metaData.getOwner(),
-        metaData.getURI(),
-        new ArrayList<>(project.getLabels())
-    );
-  }
+        return new ProjectMetaDataResource(
+                metaData.getFQPN(),
+                metaData.getName(),
+                metaData.getOwner(),
+                metaData.getURI(),
+                new ArrayList<>(project.getLabels())
+        );
+    }
 }

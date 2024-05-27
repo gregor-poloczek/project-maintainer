@@ -21,45 +21,45 @@ import org.springframework.stereotype.Service;
 @Service
 public class LabelService {
 
-  private final ProjectRepository projectRepository;
+    private final ProjectRepository projectRepository;
 
-  public LabelService(final ProjectRepository projectRepository) {
-    this.projectRepository = projectRepository;
-  }
-
-  public void save(FQPN fqpn, Collection<Label> labels) {
-    final ProjectImpl project = this.require(fqpn);
-
-    final Set<Label> finalLabels = new HashSet<>(labels);
-    final List<Label> removedLabels = labels.stream()
-        .filter(VersionedLabel.class::isInstance)
-        .map(VersionedLabel.class::cast)
-        .map(VersionedLabel::getBase)
-        .filter(finalLabels::contains)
-        .sorted(Comparator.comparing(Label::getValue))
-        .collect(Collectors.toList());
-
-    // Remove all labels, that are the based of actual versioned labels.
-    // This can happen, when one or more analyzers produces
-    // overlapping labels, such as "dep:abc" and "dep:abc:1.0.0"
-    finalLabels.removeAll(removedLabels);
-
-    if (!removedLabels.isEmpty()) {
-      log.info(
-          "Replaced labels \"{}\" from analysis of \"{}\" because versioned alternatives were provided.",
-          removedLabels, project.getFQPN());
+    public LabelService(final ProjectRepository projectRepository) {
+        this.projectRepository = projectRepository;
     }
 
-    project.setLabels(labels);
-  }
+    public void save(FQPN fqpn, Collection<Label> labels) {
+        final ProjectImpl project = this.require(fqpn);
 
-  public SortedSet<Label> find(FQPN fqpn) {
-    return Collections.unmodifiableSortedSet(this.require(fqpn).getLabels());
-  }
+        final Set<Label> finalLabels = new HashSet<>(labels);
+        final List<Label> removedLabels = labels.stream()
+                .filter(VersionedLabel.class::isInstance)
+                .map(VersionedLabel.class::cast)
+                .map(VersionedLabel::getBase)
+                .filter(finalLabels::contains)
+                .sorted(Comparator.comparing(Label::getValue))
+                .collect(Collectors.toList());
 
-  private ProjectImpl require(final FQPN fqpn) {
-    return this.projectRepository.find(fqpn)
-        .orElseThrow(() -> new ProjectNotFoundException(fqpn));
-  }
+        // Remove all labels, that are the based of actual versioned labels.
+        // This can happen, when one or more analyzers produces
+        // overlapping labels, such as "dep:abc" and "dep:abc:1.0.0"
+        finalLabels.removeAll(removedLabels);
+
+        if (!removedLabels.isEmpty()) {
+            log.info(
+                    "Replaced labels \"{}\" from analysis of \"{}\" because versioned alternatives were provided.",
+                    removedLabels, project.getMetaData().getFQPN());
+        }
+
+        project.setLabels(labels);
+    }
+
+    public SortedSet<Label> find(FQPN fqpn) {
+        return Collections.unmodifiableSortedSet(this.require(fqpn).getLabels());
+    }
+
+    private ProjectImpl require(final FQPN fqpn) {
+        return this.projectRepository.find(fqpn)
+                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
+    }
 
 }

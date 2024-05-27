@@ -14,41 +14,41 @@ import reactor.core.publisher.Sinks;
 @Service
 public class OperationExecutionService {
 
-  private final Executor executor;
+    private final Executor executor;
 
-  final Sinks.Many<ProjectOperationProgress> sink = Sinks
-      .many()
-      .multicast()
-      .onBackpressureBuffer();
+    final Sinks.Many<ProjectOperationProgress> sink = Sinks
+            .many()
+            .multicast()
+            .onBackpressureBuffer();
 
 
-  public OperationExecutionService(Executor executor) {
-    this.executor = executor;
-  }
+    public OperationExecutionService(Executor executor) {
+        this.executor = executor;
+    }
 
-  public Flux<ProjectOperationProgress> getUpdateEvents() {
-    return sink.asFlux();
-  }
+    public Flux<ProjectOperationProgress> getUpdateEvents() {
+        return sink.asFlux();
+    }
 
-  public void executeAsyncOperation(final Project project, final String operationName,
-      final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
+    public void executeAsyncOperation(final Project project, final String operationName,
+            final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
 
-    final ProjectOperationProgressListener emitter =
-        new SinkBasedProjectOperationProgressListener(this.sink, project.getFQPN(), operationName,
-            (e, e2) -> {
-            });
-    emitter.scheduled();
+        final ProjectOperationProgressListener emitter =
+                new SinkBasedProjectOperationProgressListener(this.sink, project.getMetaData().getFQPN(), operationName,
+                        (e, e2) -> {
+                        });
+        emitter.scheduled();
 
-    this.executor.execute(
-        () -> {
-          try {
-            operation.accept(project.getFQPN(), emitter);
-            emitter.succeeded(project);
-          } catch (RuntimeException e) {
-            emitter.failed(project, e);
-          }
-        }
-    );
-  }
+        this.executor.execute(
+                () -> {
+                    try {
+                        operation.accept(project.getMetaData().getFQPN(), emitter);
+                        emitter.succeeded(project);
+                    } catch (RuntimeException e) {
+                        emitter.failed(project, e);
+                    }
+                }
+        );
+    }
 
 }

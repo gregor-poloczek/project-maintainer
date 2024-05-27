@@ -8,21 +8,19 @@ import java.util.function.Supplier;
 
 public interface Project {
 
-  @Deprecated
-  boolean isCloned();
+    @Deprecated
+    boolean isCloned();
 
-  FQPN getFQPN();
+    ProjectMetaData getMetaData();
 
-  ProjectMetaData getMetaData();
+    @Deprecated
+    Commit getLatestCommit();
 
-  @Deprecated
-  Commit getLatestCommit();
+    SortedSet<Label> getLabels();
 
-  SortedSet<Label> getLabels();
+    <T> T withReadLock(Supplier<T> operation);
 
-  <T> T withReadLock(Supplier<T> operation);
+    <T> T withWriteLock(Supplier<T> operation);
 
-  <T> T withWriteLock(Supplier<T> operation);
-
-  <T> T getGitCredentials(Class<? extends T> clazz);
+    <T> T getGitCredentials(Class<? extends T> clazz);
 }

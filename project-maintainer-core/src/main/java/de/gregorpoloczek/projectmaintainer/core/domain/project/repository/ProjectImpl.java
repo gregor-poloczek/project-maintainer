@@ -22,95 +22,90 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 @Slf4j
 public class ProjectImpl implements Project {
 
-  private final ProjectMetaData metaData;
-  private final Object gitCredentials;
-  @Deprecated
-  private volatile boolean cloned;
-  @Deprecated
-  private Commit latestCommit;
-  private ReadWriteLock lock = new ReentrantReadWriteLock();
-  private NavigableSet<Label> labels = new TreeSet<>();
+    private final ProjectMetaData metaData;
+    private final Object gitCredentials;
+    @Deprecated
+    private volatile boolean cloned;
+    @Deprecated
+    private Commit latestCommit;
+    private ReadWriteLock lock = new ReentrantReadWriteLock();
+    private NavigableSet<Label> labels = new TreeSet<>();
 
-  public ProjectImpl(ProjectMetaData metaData, final Object gitCredentials) {
-    this.metaData = metaData;
-    this.gitCredentials = gitCredentials;
-  }
-
-  public URI getURI() {
-    return this.metaData.getURI();
-  }
-
-  @Deprecated
-  public void markAsCloned() {
-    this.cloned = true;
-  }
-
-  @Override
-  public FQPN getFQPN() {
-    return this.metaData.getFQPN();
-  }
-
-  @Override
-  public <T> T withReadLock(final Supplier<T> operation) {
-    lock.readLock().lock();
-    try {
-      return operation.get();
-    } finally {
-      lock.readLock().unlock();
-    }
-  }
-
-  @Override
-  public <T> T withWriteLock(final Supplier<T> operation) {
-    lock.writeLock().lock();
-    try {
-      return operation.get();
-    } finally {
-      lock.writeLock().unlock();
-    }
-  }
-
-  @Deprecated
-  public void markAsNotCloned() {
-    this.cloned = false;
-    this.latestCommit = null;
-  }
-
-  public void setLatestCommit(Commit commit) {
-    this.latestCommit = commit;
-  }
-
-  @Override
-  public boolean equals(final Object object) {
-    if (this == object) {
-      return true;
+    public ProjectImpl(ProjectMetaData metaData, final Object gitCredentials) {
+        this.metaData = metaData;
+        this.gitCredentials = gitCredentials;
     }
 
-    if (object == null || getClass() != object.getClass()) {
-      return false;
+    public URI getURI() {
+        return this.metaData.getURI();
     }
 
-    final ProjectImpl project = (ProjectImpl) object;
+    @Deprecated
+    public void markAsCloned() {
+        this.cloned = true;
+    }
 
-    return new EqualsBuilder().append(this.getFQPN(), project.getFQPN()).isEquals();
-  }
+    @Override
+    public <T> T withReadLock(final Supplier<T> operation) {
+        lock.readLock().lock();
+        try {
+            return operation.get();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
 
-  @Override
-  public int hashCode() {
-    return new HashCodeBuilder(17, 37).append(this.getFQPN()).toHashCode();
-  }
+    @Override
+    public <T> T withWriteLock(final Supplier<T> operation) {
+        lock.writeLock().lock();
+        try {
+            return operation.get();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
 
-  public void setLabels(final Collection<Label> labels) {
-    this.labels.clear();
-    this.labels.addAll(labels);
-  }
+    @Deprecated
+    public void markAsNotCloned() {
+        this.cloned = false;
+        this.latestCommit = null;
+    }
 
-  @Override
-  public SortedSet<Label> getLabels() {
-    return this.labels;
-  }
+    public void setLatestCommit(Commit commit) {
+        this.latestCommit = commit;
+    }
 
-  public <T> T getGitCredentials(Class<? extends T> clazz) {
-    return clazz.cast(this.gitCredentials);
-  }
+    @Override
+    public boolean equals(final Object object) {
+        if (this == object) {
+            return true;
+        }
+
+        if (object == null || getClass() != object.getClass()) {
+            return false;
+        }
+
+        final ProjectImpl that = (ProjectImpl) object;
+
+        return new EqualsBuilder().append(this.getMetaData().getFQPN(), that.getMetaData().getFQPN()).isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37).append(this.getMetaData().getFQPN()).toHashCode();
+    }
+
+    public void setLabels(final Collection<Label> labels) {
+        this.labels.clear();
+        this.labels.addAll(labels);
+    }
+
+    @Override
+    public SortedSet<Label> getLabels() {
+        return this.labels;
+    }
+
+    public <T> T getGitCredentials(Class<? extends T> clazz) {
+        return clazz.cast(this.gitCredentials);
+    }
 }

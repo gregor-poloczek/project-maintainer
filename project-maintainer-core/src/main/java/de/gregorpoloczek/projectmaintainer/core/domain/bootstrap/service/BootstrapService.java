@@ -88,7 +88,7 @@ public class BootstrapService {
             final ProjectImpl project = new ProjectImpl(metaData, gitCredentials);
             this.projectRepository.save(project);
 
-            final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getFQPN())
+            final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN())
                     .map(w -> {
                         return this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
                                 w.getLatestCommit().orElse(null),

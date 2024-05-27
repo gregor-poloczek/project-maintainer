@@ -19,75 +19,75 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ProjectAnalysisService {
 
-  private final ProjectService projectService;
-  private final LabelService labelService;
-  private final WorkingCopyService workingCopyService;
-  private final List<ProjectAnalyzer> projectAnalyzers;
+    private final ProjectService projectService;
+    private final LabelService labelService;
+    private final WorkingCopyService workingCopyService;
+    private final List<ProjectAnalyzer> projectAnalyzers;
 
-  public ProjectAnalysisService(
-      final ProjectService projectService,
-      final LabelService labelService,
-      final List<ProjectAnalyzer> projectAnalyzers,
-      final WorkingCopyService workingCopyService
-  ) {
-    this.projectService = projectService;
-    this.labelService = labelService;
-    this.projectAnalyzers = projectAnalyzers;
-    this.workingCopyService = workingCopyService;
-  }
-
-
-  public void analyze(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
-    final Project project = projectService.getProject(fqpn)
-        .orElseThrow(() -> new ProjectNotFoundException(fqpn));
-
-    final Optional<WorkingCopy> maybeWorkingCopy =
-        workingCopyService.find(fqpn);
-
-    if (!maybeWorkingCopy.isPresent()) {
-      listener.failed(project, new ProjectNotClonedException(fqpn));
-      return;
+    public ProjectAnalysisService(
+            final ProjectService projectService,
+            final LabelService labelService,
+            final List<ProjectAnalyzer> projectAnalyzers,
+            final WorkingCopyService workingCopyService
+    ) {
+        this.projectService = projectService;
+        this.labelService = labelService;
+        this.projectAnalyzers = projectAnalyzers;
+        this.workingCopyService = workingCopyService;
     }
 
-    final WorkingCopy workingCopy = maybeWorkingCopy.get();
 
-    try {
-      project.withReadLock(() -> {
-        final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
-        this.performAnalysis(context, listener);
-        this.saveAnalysisResult(context);
-        return null;
-      });
+    public void analyze(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
+        final Project project = projectService.getProject(fqpn)
+                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
 
-      // TODO kann fehlschlagen
-      listener.succeeded(project);
-    } catch (RuntimeException e) {
-      log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
-      listener.failed(project, e);
+        final Optional<WorkingCopy> maybeWorkingCopy =
+                workingCopyService.find(fqpn);
+
+        if (!maybeWorkingCopy.isPresent()) {
+            listener.failed(project, new ProjectNotClonedException(fqpn));
+            return;
+        }
+
+        final WorkingCopy workingCopy = maybeWorkingCopy.get();
+
+        try {
+            project.withReadLock(() -> {
+                final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
+                this.performAnalysis(context, listener);
+                this.saveAnalysisResult(context);
+                return null;
+            });
+
+            // TODO kann fehlschlagen
+            listener.succeeded(project);
+        } catch (RuntimeException e) {
+            log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
+            listener.failed(project, e);
+        }
     }
-  }
 
 
-  private void performAnalysis(final AnalysisContextImpl context,
-      final ProjectOperationProgressListener listener) {
-    final Project project = context.getProject();
+    private void performAnalysis(final AnalysisContextImpl context,
+            final ProjectOperationProgressListener listener) {
+        final Project project = context.getProject();
 
-    double i = 0.0d;
-    for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
-      listener.update(analyzer.getClass().getSimpleName(),
-          i / (double) this.projectAnalyzers.size());
-      try {
-        analyzer.analyze(context);
-      } catch (RuntimeException e) {
-        log.error("Could not invoke analyzer %s on project %s".formatted(
-            analyzer.getClass().getSimpleName(), project.getFQPN()), e);
-      }
-      i += 1.0d;
+        double i = 0.0d;
+        for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
+            listener.update(analyzer.getClass().getSimpleName(),
+                    i / (double) this.projectAnalyzers.size());
+            try {
+                analyzer.analyze(context);
+            } catch (RuntimeException e) {
+                log.error("Could not invoke analyzer %s on project %s".formatted(
+                        analyzer.getClass().getSimpleName(), project.getMetaData().getFQPN()), e);
+            }
+            i += 1.0d;
+        }
     }
-  }
 
-  private void saveAnalysisResult(final AnalysisContextImpl context) {
-    final Project project = context.getProject();
-    this.labelService.save(project.getFQPN(), context.getLabels());
-  }
+    private void saveAnalysisResult(final AnalysisContextImpl context) {
+        final Project project = context.getProject();
+        this.labelService.save(project.getMetaData().getFQPN(), context.getLabels());
+    }
 }

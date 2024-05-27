@@ -25,7 +25,7 @@ public class ProjectItem {
     private Double operationProgressValue;
 
     public String getNamePrefix() {
-        return this.project.getFQPN().getSegments()
+        return this.project.getMetaData().getFQPN().getSegments()
                 .stream()
                 .skip(1)
                 .filter(s -> !s.equals(this.project.getMetaData().getName()))
