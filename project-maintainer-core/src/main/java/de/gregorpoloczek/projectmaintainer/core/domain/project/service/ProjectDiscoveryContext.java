@@ -4,6 +4,6 @@ import java.util.function.Consumer;
 
 public interface ProjectDiscoveryContext {
 
-  void discovered(Consumer<DiscoveredProjectBuilder> builderCallback);
+    void discovered(Consumer<DiscoveredProject.DiscoveredProjectBuilder> builderCallback);
 
 }

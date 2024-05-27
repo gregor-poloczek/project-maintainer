@@ -7,14 +7,14 @@ import lombok.Getter;
 
 public class ProjectDiscoveryContextImpl implements ProjectDiscoveryContext {
 
-  @Getter
-  private List<DiscoveredProject> discoveredProjects = new ArrayList<>();
+    @Getter
+    private List<DiscoveredProject> discoveredProjects = new ArrayList<>();
 
-  @Override
-  public void discovered(
-      final Consumer<DiscoveredProjectBuilder> builderCallback) {
-    final DiscoveredProjectBuilderImpl builder = new DiscoveredProjectBuilderImpl();
-    builderCallback.accept(builder);
-    this.discoveredProjects.add(builder.build());
-  }
+    @Override
+    public void discovered(
+            final Consumer<DiscoveredProject.DiscoveredProjectBuilder> builderCallback) {
+        final DiscoveredProject.DiscoveredProjectBuilder builder = DiscoveredProject.builder();
+        builderCallback.accept(builder);
+        this.discoveredProjects.add(builder.build());
+    }
 }

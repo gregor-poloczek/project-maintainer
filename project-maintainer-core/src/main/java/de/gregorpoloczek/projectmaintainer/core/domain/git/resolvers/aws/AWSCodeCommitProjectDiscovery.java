@@ -5,7 +5,9 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDi
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,10 +58,10 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
                 .map(r -> r.repositoryMetadata())
                 .forEach(r -> context.discovered(b -> b
                                 .fqpn(FQPN.of("aws-codecommit", accountId, REGION.id(), r.repositoryName()))
-                                .uri(r.cloneUrlHttp())
+                                .uri(URI.create(r.cloneUrlHttp()))
                                 .name(r.repositoryName())
                                 .owner(accountId)
-                                .description(r.repositoryDescription())
+                                .description(Optional.ofNullable(r.repositoryDescription()))
                                 .credentials(new AWSCodeCommitCredentials(username, password))
                         )
                 );

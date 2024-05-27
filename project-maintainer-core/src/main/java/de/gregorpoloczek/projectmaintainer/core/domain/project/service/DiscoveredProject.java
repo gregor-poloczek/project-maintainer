@@ -3,20 +3,34 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.net.URI;
 import java.util.Optional;
+import lombok.Builder;
+import lombok.Getter;
 
-public interface DiscoveredProject {
+@Getter
+@Builder
+public class DiscoveredProject {
 
-    URI getURI();
+    private final URI uri;
+    private final String name;
+    @Builder.Default
+    private Optional<String> description = Optional.empty();
+    private final String owner;
+    @Builder.Default
+    private Optional<String> browserLink = Optional.empty();
 
-    String getName();
+    private FQPN fqpn;
 
-    Optional<String> getDescription();
+    public FQPN getFQPN() {
+        return fqpn;
+    }
 
-    Optional<String> getBrowserLink();
+    public URI getURI() {
+        return uri;
+    }
 
-    FQPN getFQPN();
+    public <T> T getCredentials(Class<? extends T> clazz) {
+        return clazz.cast(this.credentials);
+    }
 
-    <T> T getCredentials(Class<? extends T> clazz);
-
-    String getOwner();
+    private Object credentials;
 }

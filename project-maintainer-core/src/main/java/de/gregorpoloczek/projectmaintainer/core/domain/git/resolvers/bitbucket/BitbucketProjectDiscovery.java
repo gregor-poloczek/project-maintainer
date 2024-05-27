@@ -6,6 +6,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDi
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
@@ -60,14 +61,15 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
             for (RepositoryResource repository : list.values()) {
                 context.discovered(c -> c.fqpn(FQPN.of("bitbucket", username, repository.name()))
                         .owner(username)
-                        .uri(repository.links()
+                        .uri(URI.create(repository.links()
                                 .klone()
                                 .stream()
                                 .filter(l -> l.name().equals("https"))
                                 .findFirst()
-                                .orElseThrow(IllegalStateException::new).href())
+                                .orElseThrow(IllegalStateException::new).href()))
                         .credentials(new BitbucketCredentials(username, password))
-                        .browserLink("https://bitbucket.org/%s/%s/src/master/".formatted(username, repository.name()))
+                        .browserLink(Optional.of(
+                                "https://bitbucket.org/%s/%s/src/master/".formatted(username, repository.name())))
                         .name(repository.name()));
             }
         }
