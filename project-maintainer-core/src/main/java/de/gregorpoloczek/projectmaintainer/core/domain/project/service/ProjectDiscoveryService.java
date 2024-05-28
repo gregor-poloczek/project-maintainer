@@ -2,28 +2,23 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.ProjectDiscovery;
 import java.util.List;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectDiscoveryService {
 
-  private final List<ProjectDiscovery> projectDiscoveries;
+    List<ProjectDiscovery> projectDiscoveries;
 
-  public ProjectDiscoveryService(final List<ProjectDiscovery> projectDiscoveries) {
-    this.projectDiscoveries = projectDiscoveries;
-  }
-
-  public ProjectDiscoveryResult discoverProjects() {
-    final ProjectDiscoveryContextImpl projectDiscoveryContext = new ProjectDiscoveryContextImpl();
-    for (ProjectDiscovery d : this.projectDiscoveries) {
-      d.discoverProjects(projectDiscoveryContext);
+    public ProjectDiscoveryResult discoverProjects() {
+        final ProjectDiscoveryContextImpl projectDiscoveryContext = new ProjectDiscoveryContextImpl();
+        for (ProjectDiscovery d : this.projectDiscoveries) {
+            d.discoverProjects(projectDiscoveryContext);
+        }
+        return new ProjectDiscoveryResult(projectDiscoveryContext.getDiscoveredProjects());
     }
-    final List<DiscoveredProject> discoveredProjects = projectDiscoveryContext.getDiscoveredProjects();
-    return new ProjectDiscoveryResult() {
-      @Override
-      public List<DiscoveredProject> getDiscoveredProjects() {
-        return discoveredProjects;
-      }
-    };
-  }
 }
