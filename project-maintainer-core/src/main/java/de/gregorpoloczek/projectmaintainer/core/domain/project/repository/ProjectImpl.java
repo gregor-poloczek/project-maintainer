@@ -1,7 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
@@ -25,10 +24,6 @@ public class ProjectImpl implements Project {
 
     private final ProjectMetaData metaData;
     private final CredentialsProvider credentialsProvider;
-    @Deprecated
-    private volatile boolean cloned;
-    @Deprecated
-    private Commit latestCommit;
     private ReadWriteLock lock = new ReentrantReadWriteLock();
     private NavigableSet<Label> labels = new TreeSet<>();
 
@@ -39,11 +34,6 @@ public class ProjectImpl implements Project {
 
     public URI getURI() {
         return this.metaData.getURI();
-    }
-
-    @Deprecated
-    public void markAsCloned() {
-        this.cloned = true;
     }
 
     @Override
@@ -64,16 +54,6 @@ public class ProjectImpl implements Project {
         } finally {
             lock.writeLock().unlock();
         }
-    }
-
-    @Deprecated
-    public void markAsNotCloned() {
-        this.cloned = false;
-        this.latestCommit = null;
-    }
-
-    public void setLatestCommit(Commit commit) {
-        this.latestCommit = commit;
     }
 
     @Override

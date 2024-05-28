@@ -59,7 +59,7 @@ public class GitView extends VerticalLayout {
     private final Renderer<ProjectItem> iconRenderer =
             LitRenderer.<ProjectItem>of(
                             "<img src=${item.image} style=\"height:32px; filter: grayscale(${item.grayscale});\" />")
-                    .withProperty("grayscale", item -> item.getProject().isCloned() ? "0.0" : "1.0")
+                    .withProperty("grayscale", item -> item.getWorkingCopy().isPresent() ? "0.0" : "1.0")
                     .withProperty("image", item -> {
                         Optional<Image> image = item.getImage();
                         return image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
@@ -205,7 +205,7 @@ public class GitView extends VerticalLayout {
     private void onWipeClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
         for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-            if (!item.getProject().isCloned()) {
+            if (item.getWorkingCopy().isEmpty()) {
                 continue;
             }
             operationExecutionService.executeAsyncOperation2(
@@ -219,7 +219,7 @@ public class GitView extends VerticalLayout {
     private void onClonePullClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
         for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-            if (item.getProject().isCloned()) {
+            if (item.getWorkingCopy().isPresent()) {
                 operationExecutionService.executeAsyncOperation2(
                         item.getProject(),
                         "git::pull",
@@ -271,6 +271,7 @@ public class GitView extends VerticalLayout {
                         .orElseThrow(() -> new ProjectNotFoundException(e.getFqpn())));
                 item.setText(newItem.getText());
                 item.setProject(newItem.getProject());
+                item.setWorkingCopy(this.workingCopyService.find(e.getFqpn()));
             }
             item.setText(text);
 
@@ -284,6 +285,7 @@ public class GitView extends VerticalLayout {
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
+                .workingCopy(workingCopy)
                 .latestCommit(workingCopy.flatMap(WorkingCopy::getLatestCommit))
                 .owner(p.getMetaData().getOwner())
                 .image(GitView.this.imageResolverService.getImage("gitprovider",

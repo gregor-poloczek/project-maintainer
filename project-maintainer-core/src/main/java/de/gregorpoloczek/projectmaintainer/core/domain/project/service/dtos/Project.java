@@ -9,13 +9,7 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 
 public interface Project {
 
-    @Deprecated
-    boolean isCloned();
-
     ProjectMetaData getMetaData();
-
-    @Deprecated
-    Commit getLatestCommit();
 
     SortedSet<Label> getLabels();
 

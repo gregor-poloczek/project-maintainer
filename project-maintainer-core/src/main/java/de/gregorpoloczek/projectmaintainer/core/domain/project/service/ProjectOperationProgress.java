@@ -1,6 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.ProjectResource;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.time.Instant;
 import lombok.Getter;
@@ -10,46 +9,40 @@ import lombok.Setter;
 @Setter
 public class ProjectOperationProgress {
 
-  private final FQPN fqpn;
-  private ProjectOperationState state = ProjectOperationState.SCHEDULED;
-  private final String operation;
-  private String message = null;
-  private double progress = 0.0d;
-  private ProjectResource project;
-  private Instant timestamp;
+    private final FQPN fqpn;
+    private ProjectOperationState state = ProjectOperationState.SCHEDULED;
+    private final String operation;
+    private String message = null;
+    private double progress = 0.0d;
+    private Instant timestamp;
 
-  public ProjectOperationProgress(final FQPN fqpn, final String operation) {
-    this.fqpn = fqpn;
-    this.operation = operation;
-  }
+    public ProjectOperationProgress(final FQPN fqpn, final String operation) {
+        this.fqpn = fqpn;
+        this.operation = operation;
+    }
 
-  public ProjectOperationProgress with(final ProjectOperationState projectOperationState) {
-    // TODO remove copy
-    ProjectOperationProgress other = new ProjectOperationProgress(this.fqpn, this.operation);
-    other.state = projectOperationState;
-    return other;
-  }
+    public ProjectOperationProgress with(final ProjectOperationState projectOperationState) {
+        // TODO remove copy
+        ProjectOperationProgress other = new ProjectOperationProgress(this.fqpn, this.operation);
+        other.state = projectOperationState;
+        return other;
+    }
 
-  public ProjectOperationProgress withMessage(final String message) {
-    this.message = message;
-    return this;
-  }
+    public ProjectOperationProgress withMessage(final String message) {
+        this.message = message;
+        return this;
+    }
 
-  // TODO rename to percentage
-  public ProjectOperationProgress withProgress(final double progress) {
-    this.progress = progress;
-    return this;
-  }
+    // TODO rename to percentage
+    public ProjectOperationProgress withProgress(final double progress) {
+        this.progress = progress;
+        return this;
+    }
 
-  public ProjectOperationProgress withProject(final ProjectResource project) {
-    this.project = project;
-    return this;
-  }
-
-  public ProjectOperationProgress withTimestamp(Instant timestamp) {
-    this.timestamp = timestamp;
-    return this;
-  }
+    public ProjectOperationProgress withTimestamp(Instant timestamp) {
+        this.timestamp = timestamp;
+        return this;
+    }
 
 
 }

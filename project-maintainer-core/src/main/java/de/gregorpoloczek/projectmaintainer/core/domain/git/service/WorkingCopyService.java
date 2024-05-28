@@ -45,12 +45,6 @@ public class WorkingCopyService {
 
     public WorkingCopyImpl save(FQPN fqpn, URI uri, File directory, Commit latestCommit,
             CredentialsProvider credentialsProvider) {
-        final ProjectImpl project = projectRepository.find(fqpn)
-                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
-
-        project.markAsCloned();
-        project.setLatestCommit(latestCommit);
-
         final WorkingCopyImpl result = new WorkingCopyImpl(fqpn, uri, directory, latestCommit,
                 credentialsProvider);
         this.workingCopies.put(fqpn, result);

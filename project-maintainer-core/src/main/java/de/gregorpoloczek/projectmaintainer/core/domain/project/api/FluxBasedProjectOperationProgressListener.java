@@ -1,6 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.api;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources.ProjectResource;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
@@ -48,7 +47,6 @@ public class FluxBasedProjectOperationProgressListener implements
                 new ProjectOperationProgress(fqpn, operation)
                         .with(ProjectOperationState.SUCCEEDED)
                         .withProgress(NO_PERCENTAGE)
-                        .withProject(ProjectResource.of(project))
 
         )
         ;
@@ -59,7 +57,6 @@ public class FluxBasedProjectOperationProgressListener implements
         this.send(new ProjectOperationProgress(fqpn, operation)
                 .with(ProjectOperationState.FAILED)
                 .withProgress(NO_PERCENTAGE)
-                .withProject(ProjectResource.of(project))
         );
         this.onComplete.accept(fqpn, Optional.of(e));
     }

@@ -105,9 +105,6 @@ public class ProjectService {
                 workingCopy.getCredentialsProvider()
 
         );
-        // TODO clean up
-        project.markAsCloned();
-        clone.getLatestCommit().ifPresent(project::setLatestCommit);
     }
 
     public void pullProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
@@ -131,9 +128,6 @@ public class ProjectService {
         project.withWriteLock(() -> {
             try {
                 workingCopyService.remove(fqpn);
-                // TODO clean up
-                project.setLatestCommit(null);
-                project.markAsNotCloned();
                 listener.succeeded(project);
             } catch (Exception e) {
                 listener.failed(project, e);

@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
@@ -20,6 +21,7 @@ public class ProjectItem {
 
     ProjectOperationState operationState = null;
     Project project;
+    Optional<WorkingCopy> workingCopy;
     Optional<Image> image;
     Optional<Commit> latestCommit;
     String text = "";
