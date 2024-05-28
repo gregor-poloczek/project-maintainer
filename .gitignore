@@ -45,3 +45,10 @@ build/
 project-maintainer-core/frontend/
 project-maintainer-ui/frontend/
 /**/application-local.yml
+/project-maintainer-ui/node_modules/
+/project-maintainer-ui/package.json
+/project-maintainer-ui/package-lock.json
+/project-maintainer-ui/tsconfig.json
+/project-maintainer-ui/types.d.ts
+/project-maintainer-ui/vite.config.ts
+/project-maintainer-ui/vite.generated.ts
