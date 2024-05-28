@@ -17,13 +17,14 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
 @Slf4j
 public class ProjectImpl implements Project {
 
     private final ProjectMetaData metaData;
-    private final Object gitCredentials;
+    private final CredentialsProvider credentialsProvider;
     @Deprecated
     private volatile boolean cloned;
     @Deprecated
@@ -31,9 +32,9 @@ public class ProjectImpl implements Project {
     private ReadWriteLock lock = new ReentrantReadWriteLock();
     private NavigableSet<Label> labels = new TreeSet<>();
 
-    public ProjectImpl(ProjectMetaData metaData, final Object gitCredentials) {
+    public ProjectImpl(ProjectMetaData metaData, final CredentialsProvider credentialsProvider) {
         this.metaData = metaData;
-        this.gitCredentials = gitCredentials;
+        this.credentialsProvider = credentialsProvider;
     }
 
     public URI getURI() {
@@ -105,7 +106,4 @@ public class ProjectImpl implements Project {
         return this.labels;
     }
 
-    public <T> T getGitCredentials(Class<? extends T> clazz) {
-        return clazz.cast(this.gitCredentials);
-    }
 }

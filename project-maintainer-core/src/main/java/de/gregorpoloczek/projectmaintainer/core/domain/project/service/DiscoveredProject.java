@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.Optional;
 import lombok.Builder;
 import lombok.Getter;
+import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
 @Builder
@@ -28,9 +29,5 @@ public class DiscoveredProject {
         return uri;
     }
 
-    public <T> T getCredentials(Class<? extends T> clazz) {
-        return clazz.cast(this.credentials);
-    }
-
-    private Object credentials;
+    private CredentialsProvider credentialsProvider;
 }

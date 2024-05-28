@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
 
 
@@ -83,16 +84,16 @@ public class BootstrapService {
                     .browserLink(discoveredProject.getBrowserLink())
                     .build();
 
-            final Object gitCredentials = discoveredProject.getCredentials(Object.class);
+            final CredentialsProvider credentialsProvider = discoveredProject.getCredentialsProvider();
 
-            final ProjectImpl project = new ProjectImpl(metaData, gitCredentials);
+            final ProjectImpl project = new ProjectImpl(metaData, credentialsProvider);
             this.projectRepository.save(project);
 
             final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN())
                     .map(w -> {
                         return this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
                                 w.getLatestCommit().orElse(null),
-                                gitCredentials);
+                                credentialsProvider);
                     });
 
             if (!workingCopy.isPresent()) {

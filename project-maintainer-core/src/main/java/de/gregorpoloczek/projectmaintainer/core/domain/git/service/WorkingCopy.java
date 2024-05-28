@@ -5,20 +5,21 @@ import java.io.File;
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.eclipse.jgit.transport.CredentialsProvider;
 
 public interface WorkingCopy {
 
-  File getDirectory();
+    File getDirectory();
 
-  Optional<Commit> getLatestCommit();
+    Optional<Commit> getLatestCommit();
 
-  FQPN getFQPN();
+    FQPN getFQPN();
 
-  URI getURI();
+    URI getURI();
 
-  <T> T withReadLock(Supplier<T> operation);
+    <T> T withReadLock(Supplier<T> operation);
 
-  <T> T withWriteLock(Supplier<T> operation);
+    <T> T withWriteLock(Supplier<T> operation);
 
-  <T> T getGitCredentials(Class<? extends T> clazz);
+    CredentialsProvider getCredentialsProvider();
 }

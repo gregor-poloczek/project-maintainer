@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
@@ -54,6 +55,9 @@ public class GithubProjectDiscovery implements ProjectDiscovery {
                     Optional.ofNullable(passwords.getProperty(username))
                             .orElseThrow(() -> new IllegalStateException(
                                     "Cannot find password for username name %s".formatted(username)));
+            UsernamePasswordCredentialsProvider credentialsProvider =
+                    new UsernamePasswordCredentialsProvider(username, password);
+
             try {
                 GitHub github = new GitHubBuilder().withPassword(username, password).build();
                 final PagedSearchIterable<GHRepository> list = github.searchRepositories()
@@ -67,7 +71,7 @@ public class GithubProjectDiscovery implements ProjectDiscovery {
                             .description(Optional.ofNullable(repository.getDescription()))
                             .owner(repository.getOwnerName())
                             .fqpn(FQPN.of("github", username, repository.getName()))
-                            .credentials(new GithubCredentials(username, password))
+                            .credentialsProvider(credentialsProvider)
                     );
                 }
             } catch (URISyntaxException | IOException e) {

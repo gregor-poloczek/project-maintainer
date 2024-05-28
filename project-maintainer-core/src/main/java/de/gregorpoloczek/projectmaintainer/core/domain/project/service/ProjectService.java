@@ -95,14 +95,14 @@ public class ProjectService {
         final ProjectImpl project = requireProject(fqpn);
         final WorkingCopy workingCopy =
                 this.workingCopyService.createNew(project.getMetaData().getFQPN(), project.getURI(),
-                        project.getGitCredentials(Object.class));
+                        project.getCredentialsProvider());
         final CloneResult clone = this.gitService.clone(workingCopy, listener);
         this.workingCopyService.save(
                 workingCopy.getFQPN(),
                 workingCopy.getURI(),
                 workingCopy.getDirectory(),
                 clone.getLatestCommit().orElse(null),
-                workingCopy.getGitCredentials(Object.class)
+                workingCopy.getCredentialsProvider()
 
         );
         // TODO clean up
@@ -119,7 +119,7 @@ public class ProjectService {
                 workingCopy.getURI(),
                 workingCopy.getDirectory(),
                 result.getLatestCommit().orElse(null),
-                workingCopy.getGitCredentials(Object.class)
+                workingCopy.getCredentialsProvider()
         );
     }
 

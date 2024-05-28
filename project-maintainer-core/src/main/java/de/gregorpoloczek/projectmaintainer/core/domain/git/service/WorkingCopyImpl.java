@@ -10,64 +10,62 @@ import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
 public class WorkingCopyImpl implements WorkingCopy {
 
-  private final File directory;
-  private final URI uri;
-  private final Object gitCredentials;
-  @Getter(AccessLevel.NONE)
-  private ReadWriteLock lock = new ReentrantReadWriteLock();
-  private final FQPN fqpn;
-  private final Optional<Commit> latestCommit;
+    private final File directory;
+    private final URI uri;
+    private final CredentialsProvider credentialsProvider;
+    @Getter(AccessLevel.NONE)
+    private ReadWriteLock lock = new ReentrantReadWriteLock();
+    private final FQPN fqpn;
+    private final Optional<Commit> latestCommit;
 
-  @Override
-  public URI getURI() {
-    return uri;
-  }
-
-  @Override
-  public FQPN getFQPN() {
-    return fqpn;
-  }
-
-
-  public WorkingCopyImpl(
-      @NonNull final FQPN fqpn,
-      @NonNull final URI uri,
-      @NonNull final File directory,
-      final Commit latestCommit,
-      Object gitCredentials
-  ) {
-    this.directory = directory;
-    this.uri = uri;
-    this.fqpn = fqpn;
-    this.latestCommit = Optional.ofNullable(latestCommit);
-    this.gitCredentials = gitCredentials;
-  }
-
-  @Override
-  public <T> T withReadLock(final Supplier<T> operation) {
-    lock.readLock().lock();
-    try {
-      return operation.get();
-    } finally {
-      lock.readLock().unlock();
+    @Override
+    public URI getURI() {
+        return uri;
     }
-  }
 
-  @Override
-  public <T> T withWriteLock(final Supplier<T> operation) {
-    lock.writeLock().lock();
-    try {
-      return operation.get();
-    } finally {
-      lock.writeLock().unlock();
+    @Override
+    public FQPN getFQPN() {
+        return fqpn;
     }
-  }
 
-  public <T> T getGitCredentials(Class<? extends T> clazz) {
-    return clazz.cast(this.gitCredentials);
-  }
+
+    public WorkingCopyImpl(
+            @NonNull final FQPN fqpn,
+            @NonNull final URI uri,
+            @NonNull final File directory,
+            final Commit latestCommit,
+            CredentialsProvider credentialsProvider
+    ) {
+        this.directory = directory;
+        this.uri = uri;
+        this.fqpn = fqpn;
+        this.latestCommit = Optional.ofNullable(latestCommit);
+        this.credentialsProvider = credentialsProvider;
+    }
+
+    @Override
+    public <T> T withReadLock(final Supplier<T> operation) {
+        lock.readLock().lock();
+        try {
+            return operation.get();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
+    @Override
+    public <T> T withWriteLock(final Supplier<T> operation) {
+        lock.writeLock().lock();
+        try {
+            return operation.get();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
 }

@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Properties;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.Resource;
@@ -48,6 +49,9 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
         for (String username : applicationProperties.getProjects().getDiscovery().getBitbucket().getUsers()) {
             String password = Optional.ofNullable(passwords.get(username)).map(String.class::cast)
                     .orElseThrow(() -> new IllegalStateException("Cannot find password for user " + username));
+            UsernamePasswordCredentialsProvider credentialsProvider =
+                    new UsernamePasswordCredentialsProvider(username, password);
+
             String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
             WebClient client = WebClient.builder().baseUrl("https://api.bitbucket.org/2.0")
                     .defaultHeader("Authorization", "Basic " + auth)
@@ -67,7 +71,7 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                                 .filter(l -> l.name().equals("https"))
                                 .findFirst()
                                 .orElseThrow(IllegalStateException::new).href()))
-                        .credentials(new BitbucketCredentials(username, password))
+                        .credentialsProvider(credentialsProvider)
                         .browserLink(Optional.of(
                                 "https://bitbucket.org/%s/%s/src/master/".formatted(username, repository.name())))
                         .name(repository.name()));

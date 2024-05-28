@@ -1,6 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.GitProjectResolver;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
 import java.io.File;
 import java.io.IOException;
@@ -21,105 +20,88 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class GitService {
 
-  private final List<GitProjectResolver> gitProjectResolvers;
+    public PullResult pull(@NonNull WorkingCopy workingCopy,
+            @NonNull ProjectOperationProgressListener listener) {
+        return workingCopy.withWriteLock(() -> {
+            final File directory = workingCopy.getDirectory();
+            try (Git git = Git.open(directory)) {
+                log.info("Pulling \"{}\".", directory);
 
-  public GitService(final List<GitProjectResolver> gitProjectResolvers) {
-    this.gitProjectResolvers = gitProjectResolvers;
-  }
+                final CredentialsProvider cP = workingCopy.getCredentialsProvider();
 
+                var p = git.pull()
+                        .setCredentialsProvider(cP)
+                        .setProgressMonitor(new GitOperationProgressMonitor(listener))
+                        .call();
 
-  public PullResult pull(@NonNull WorkingCopy workingCopy,
-      @NonNull ProjectOperationProgressListener listener) {
-    return workingCopy.withWriteLock(() -> {
-      final File directory = workingCopy.getDirectory();
-      try (Git git = Git.open(directory)) {
-        log.info("Pulling \"{}\".", directory);
-
-        final URI uri = workingCopy.getURI();
-        final CredentialsProvider cP = this.getProjectResolver(uri)
-            .getCredentialsProvider(workingCopy);
-
-        var p = git.pull()
-            .setCredentialsProvider(cP)
-            .setProgressMonitor(new GitOperationProgressMonitor(listener))
-            .call();
-
-        log.info("Pulling \"{}\" successfully.", directory);
-        return new PullResult() {
-          @Override
-          public Optional<Commit> getLatestCommit() {
-            return Optional.of(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead()));
-          }
-        };
-      } catch (IOException | GitAPIException e) {
-        throw new ProjectPullFailedException(e);
-      }
-    });
-  }
-
-  private Optional<Commit> getLatestCommitHash(@NonNull final WorkingCopy workingCopy) {
-    try (Git git = Git.open(workingCopy.getDirectory())) {
-      RevCommit latestCommit = git.
-          log().
-          setMaxCount(1).
-          call().
-          iterator().
-          next();
-
-      return Optional.of(CommitImpl.of(latestCommit));
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    } catch (NoHeadException e) {
-      return Optional.empty();
-    } catch (GitAPIException e) {
-      throw new RuntimeException(e);
+                log.info("Pulling \"{}\" successfully.", directory);
+                return new PullResult() {
+                    @Override
+                    public Optional<Commit> getLatestCommit() {
+                        return Optional.of(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead()));
+                    }
+                };
+            } catch (IOException | GitAPIException e) {
+                throw new ProjectPullFailedException(e);
+            }
+        });
     }
-  }
 
-  public CloneResult clone(@NonNull final WorkingCopy workingCopy,
-      ProjectOperationProgressListener listener) {
+    private Optional<Commit> getLatestCommitHash(@NonNull final WorkingCopy workingCopy) {
+        try (Git git = Git.open(workingCopy.getDirectory())) {
+            RevCommit latestCommit = git.
+                    log().
+                    setMaxCount(1).
+                    call().
+                    iterator().
+                    next();
 
-    return workingCopy.withWriteLock(() -> {
-      final File directory = workingCopy.getDirectory();
-      final URI uri = workingCopy.getURI();
-      if (directory.exists()) {
-        log.error("Project \"{}\" has already been cloned", workingCopy.getFQPN());
-        throw new ProjectAlreadyClonedException(workingCopy.getFQPN());
-      }
+            return Optional.of(CommitImpl.of(latestCommit));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (NoHeadException e) {
+            return Optional.empty();
+        } catch (GitAPIException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
-      final CredentialsProvider credentialProvider = this.getProjectResolver(uri)
-          .getCredentialsProvider(workingCopy);
+    public CloneResult clone(@NonNull final WorkingCopy workingCopy,
+            ProjectOperationProgressListener listener) {
 
-      try {
-        log.info("Cloning \"{}\".", workingCopy.getFQPN());
-        Git.cloneRepository().setURI(uri.toString())
-            .setDirectory(directory)
-            .setCredentialsProvider(credentialProvider)
-            .setProgressMonitor(new GitOperationProgressMonitor(listener))
-            .call()
-            .close();
-        final Optional<Commit> commit =
-            this.getLatestCommitHash(workingCopy);
+        return workingCopy.withWriteLock(() -> {
+            final File directory = workingCopy.getDirectory();
+            final URI uri = workingCopy.getURI();
+            if (directory.exists()) {
+                log.error("Project \"{}\" has already been cloned", workingCopy.getFQPN());
+                throw new ProjectAlreadyClonedException(workingCopy.getFQPN());
+            }
 
-        log.info("Cloned \"{}\" successfully.", workingCopy.getFQPN());
-        return new CloneResult() {
-          @Override
-          public Optional<Commit> getLatestCommit() {
-            return commit;
-          }
-        };
-      } catch (GitAPIException e) {
-        throw new RuntimeException(e);
-      }
-    });
-  }
+            final CredentialsProvider credentialProvider = workingCopy.getCredentialsProvider();
 
-  private GitProjectResolver getProjectResolver(final URI uri) {
-    return this.gitProjectResolvers.stream()
-        .filter(cP -> cP.supports(uri))
-        .findFirst()
-        .orElseThrow(() -> new IllegalStateException(
-            "Could not find a git credentials provider for uri " + uri));
-  }
+            try {
+                log.info("Cloning \"{}\".", workingCopy.getFQPN());
+                Git.cloneRepository().setURI(uri.toString())
+                        .setDirectory(directory)
+                        .setCredentialsProvider(credentialProvider)
+                        .setProgressMonitor(new GitOperationProgressMonitor(listener))
+                        .call()
+                        .close();
+                final Optional<Commit> commit =
+                        this.getLatestCommitHash(workingCopy);
+
+                log.info("Cloned \"{}\" successfully.", workingCopy.getFQPN());
+                return new CloneResult() {
+                    @Override
+                    public Optional<Commit> getLatestCommit() {
+                        return commit;
+                    }
+                };
+            } catch (GitAPIException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
 
 }

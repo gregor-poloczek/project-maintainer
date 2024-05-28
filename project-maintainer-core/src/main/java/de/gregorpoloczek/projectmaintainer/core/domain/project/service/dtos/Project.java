@@ -5,6 +5,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQ
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import java.util.SortedSet;
 import java.util.function.Supplier;
+import org.eclipse.jgit.transport.CredentialsProvider;
 
 public interface Project {
 
@@ -22,5 +23,5 @@ public interface Project {
 
     <T> T withWriteLock(Supplier<T> operation);
 
-    <T> T getGitCredentials(Class<? extends T> clazz);
+    CredentialsProvider getCredentialsProvider();
 }

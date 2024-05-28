@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.Resource;
@@ -47,6 +48,9 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
                 .matcher(username);
         final String password = (String) credentials.get("password");
 
+        UsernamePasswordCredentialsProvider credentialsProvider =
+                new UsernamePasswordCredentialsProvider(username, password);
+
         if (!matcher.matches()) {
             throw new IllegalStateException("Cannot determined account from " + username);
         }
@@ -62,7 +66,7 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
                                 .name(r.repositoryName())
                                 .owner(accountId)
                                 .description(Optional.ofNullable(r.repositoryDescription()))
-                                .credentials(new AWSCodeCommitCredentials(username, password))
+                                .credentialsProvider(credentialsProvider)
                         )
                 );
     }
