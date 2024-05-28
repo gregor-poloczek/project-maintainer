@@ -35,7 +35,7 @@ public class ImageResolverService {
                         ImageFormat.builder().extension("png").mimetype("image/x-png").build())
                 .map(format -> {
                     URL resource = this.getClass().getClassLoader().getResource(
-                            "de/gregorpoloczek/projectmaintainer/core/%s/%s.%s".formatted(path,
+                            "de/gregorpoloczek/projectmaintainer/ui/%s/%s.%s".formatted(path,
                                     name, format.getExtension()));
                     if (resource == null) {
                         return null;
