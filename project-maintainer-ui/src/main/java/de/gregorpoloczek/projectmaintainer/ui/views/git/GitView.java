@@ -21,6 +21,7 @@ import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
+import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
@@ -48,7 +49,14 @@ import net.time4j.PrettyTime;
 @Route
 public class GitView extends VerticalLayout {
 
-    private final LitRenderer<ProjectItem> iconRenderer =
+    private final transient ProjectService projectService;
+    private final transient OperationExecutionService operationExecutionService;
+    private final transient ImageResolverService imageResolverService;
+    private final Grid<ProjectItem> grid;
+    private final WorkingCopyService workingCopyService;
+    private transient Map<FQPN, ProjectItem> itemByFQPN;
+
+    private final Renderer<ProjectItem> iconRenderer =
             LitRenderer.<ProjectItem>of(
                             "<img src=${item.image} style=\"height:32px; filter: grayscale(${item.grayscale});\" />")
                     .withProperty("grayscale", item -> item.getProject().isCloned() ? "0.0" : "1.0")
@@ -59,12 +67,97 @@ public class GitView extends VerticalLayout {
                     });
 
 
-    private final transient ProjectService projectService;
-    private final transient OperationExecutionService operationExecutionService;
-    private final transient ImageResolverService imageResolverService;
-    private final Grid<ProjectItem> grid;
-    private final WorkingCopyService workingCopyService;
-    private transient Map<FQPN, ProjectItem> itemByFQPN;
+    private final Renderer<ProjectItem> progressBarRenderer = new ComponentRenderer<>(item -> {
+        Div progressBarLabelText = new Div();
+        progressBarLabelText.setText(item.getText());
+
+        Div progressBarLabelValue = new Div();
+        progressBarLabelValue.setText(
+                item.getOperationProgressValue() != null ? MessageFormat.format("{0,number,#.#}%",
+                        item.getOperationProgressValue() * 100) : "");
+        FlexLayout progressBarLabel = new FlexLayout();
+        progressBarLabel.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        progressBarLabel.add(progressBarLabelText, progressBarLabelValue);
+
+        ProgressBar progressBar = new ProgressBar();
+        if (item.getOperationProgressValue() != null) {
+            progressBar.setValue(item.getOperationProgressValue());
+            progressBar.setIndeterminate(false);
+        } else if (item.getOperationState() != null && item.getOperationState().isTerminated()) {
+            progressBar.setIndeterminate(false);
+            progressBar.setValue(1);
+        } else {
+            progressBar.setIndeterminate(true);
+        }
+        progressBar.setVisible(item.getOperationState() != null);
+        progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
+                ProgressBarVariant.LUMO_CONTRAST);
+        if (item.getOperationState() == ProjectOperationState.SUCCEEDED) {
+            progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
+        } else if (item.getOperationState() == ProjectOperationState.FAILED) {
+            progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
+        } else {
+            progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
+        }
+
+        VerticalLayout layout = new VerticalLayout();
+        layout.setSpacing(false);
+        layout.add(progressBarLabel, progressBar);
+        layout.setPadding(false);
+
+        return layout;
+    });
+
+    private final Renderer<ProjectItem> workingCopyRenderer = new ComponentRenderer<>(item -> {
+        FlexLayout layout = new FlexLayout();
+        layout.setFlexDirection(FlexDirection.COLUMN);
+        Text message = new Text("");
+
+        Span timestamp = createBadge();
+        Span hash = createBadge();
+        Span authorName = createBadge();
+
+        HorizontalLayout badges = new HorizontalLayout();
+        badges.add(hash, authorName, timestamp);
+
+        layout.add(badges, message);
+
+        Optional<Commit> maybeCommit = item.getLatestCommit();
+        maybeCommit.ifPresent(commit -> {
+            timestamp.setText(PrettyTime.of(Locale.US)
+                    .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
+            timestamp.setTitle(commit.getTimestamp().toString());
+            hash.setText(commit.getHash());
+            authorName.setText(commit.getAuthorName());
+        });
+        badges.setVisible(maybeCommit.isPresent());
+        message.setText(maybeCommit.map(Commit::getMessage).orElse(""));
+        return layout;
+    });
+
+    private final Renderer<ProjectItem> nameRenderer = new ComponentRenderer<>(item -> {
+        FlexLayout layout = new FlexLayout();
+        HorizontalLayout badges = new HorizontalLayout();
+        layout.setFlexDirection(FlexDirection.COLUMN);
+
+        Component name;
+        if (item.getProject().getMetaData().getBrowserLink().isPresent()) {
+            Anchor anchor = new Anchor();
+            anchor.setHref(item.getProject().getMetaData().getBrowserLink().get());
+            anchor.setTarget("_blank");
+            name = anchor;
+        } else {
+            name = new Text("");
+        }
+        ((HasText) name).setText(item.getName());
+
+        Span prefix = createBadge();
+        prefix.setText(item.getNamePrefix());
+        badges.add(prefix);
+        layout.add(badges, name);
+        return layout;
+    });
+
 
     public GitView(
             ProjectService projectService,
@@ -78,10 +171,9 @@ public class GitView extends VerticalLayout {
 
         this.grid = createGrid();
 
-        MenuBar menuBar = createManuBar();
+        MenuBar menuBar = createMenuBar();
 
-        this.add(menuBar);
-        this.add(grid);
+        this.add(menuBar, grid);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
@@ -91,82 +183,10 @@ public class GitView extends VerticalLayout {
         result = new Grid<>(ProjectItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(this.iconRenderer).setFlexGrow(0).setWidth("64px");
-        result.addColumn(createNameRenderer()).setHeader("Name");
-        result.addColumn(createWorkingCopyRendered()).setHeader("Working copy");
-        result.addColumn(this.createProgressBarRenderer());
+        result.addColumn(this.nameRenderer).setHeader("Name");
+        result.addColumn(this.workingCopyRenderer).setHeader("Working copy");
+        result.addColumn(this.progressBarRenderer);
         return result;
-    }
-
-    private ComponentRenderer<VerticalLayout, ProjectItem> createProgressBarRenderer() {
-        return new ComponentRenderer<>(item -> {
-            Div progressBarLabelText = new Div();
-            progressBarLabelText.setText(item.getText());
-
-            Div progressBarLabelValue = new Div();
-            progressBarLabelValue.setText(
-                    item.getOperationProgressValue() != null ? MessageFormat.format("{0,number,#.#}%",
-                            item.getOperationProgressValue() * 100) : "");
-            FlexLayout progressBarLabel = new FlexLayout();
-            progressBarLabel.setJustifyContentMode(JustifyContentMode.BETWEEN);
-            progressBarLabel.add(progressBarLabelText, progressBarLabelValue);
-
-            ProgressBar progressBar = new ProgressBar();
-            if (item.getOperationProgressValue() != null) {
-                progressBar.setValue(item.getOperationProgressValue());
-                progressBar.setIndeterminate(false);
-            } else if (item.getOperationState() != null && item.getOperationState().isTerminated()) {
-                progressBar.setIndeterminate(false);
-                progressBar.setValue(1);
-            } else {
-                progressBar.setIndeterminate(true);
-            }
-            progressBar.setVisible(item.getOperationState() != null);
-            progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
-                    ProgressBarVariant.LUMO_CONTRAST);
-            if (item.getOperationState() == ProjectOperationState.SUCCEEDED) {
-                progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
-            } else if (item.getOperationState() == ProjectOperationState.FAILED) {
-                progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
-            } else {
-                progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
-            }
-
-            VerticalLayout layout = new VerticalLayout();
-            layout.setSpacing(false);
-            layout.add(progressBarLabel, progressBar);
-            layout.setPadding(false);
-
-            return layout;
-        });
-    }
-
-    private ComponentRenderer<FlexLayout, ProjectItem> createWorkingCopyRendered() {
-        return new ComponentRenderer<>(item -> {
-            FlexLayout layout = new FlexLayout();
-            layout.setFlexDirection(FlexDirection.COLUMN);
-            Text message = new Text("");
-
-            Span timestamp = createBadge();
-            Span hash = createBadge();
-            Span authorName = createBadge();
-
-            HorizontalLayout badges = new HorizontalLayout();
-            badges.add(hash, authorName, timestamp);
-
-            layout.add(badges, message);
-
-            Optional<Commit> maybeCommit = item.getLatestCommit();
-            maybeCommit.ifPresent(commit -> {
-                timestamp.setText(PrettyTime.of(Locale.US)
-                        .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
-                timestamp.setTitle(commit.getTimestamp().toString());
-                hash.setText(commit.getHash());
-                authorName.setText(commit.getAuthorName());
-            });
-            badges.setVisible(maybeCommit.isPresent());
-            message.setText(maybeCommit.map(Commit::getMessage).orElse(""));
-            return layout;
-        });
     }
 
     private Span createBadge() {
@@ -175,32 +195,7 @@ public class GitView extends VerticalLayout {
         return timestamp;
     }
 
-    private ComponentRenderer<FlexLayout, ProjectItem> createNameRenderer() {
-        return new ComponentRenderer<>(item -> {
-            FlexLayout layout = new FlexLayout();
-            HorizontalLayout badges = new HorizontalLayout();
-            layout.setFlexDirection(FlexDirection.COLUMN);
-
-            Component name;
-            if (item.getProject().getMetaData().getBrowserLink().isPresent()) {
-                Anchor anchor = new Anchor();
-                anchor.setHref(item.getProject().getMetaData().getBrowserLink().get());
-                anchor.setTarget("_blank");
-                name = anchor;
-            } else {
-                name = new Text("");
-            }
-            ((HasText) name).setText(item.getName());
-
-            Span prefix = createBadge();
-            prefix.setText(item.getNamePrefix());
-            badges.add(prefix);
-            layout.add(badges, name);
-            return layout;
-        });
-    }
-
-    private MenuBar createManuBar() {
+    private MenuBar createMenuBar() {
         MenuBar menuBar = new MenuBar();
         menuBar.addItem("Clone / Pull", this::onClonePullClick);
         menuBar.addItem("Wipe", this::onWipeClick);
@@ -256,6 +251,7 @@ public class GitView extends VerticalLayout {
 
     private void onUpdateEvent(ProjectOperationProgress e, UI current) {
         if (!current.isAttached()) {
+            // browser has been reloaded or closed in the mean time
             return;
         }
         ProjectItem item = itemByFQPN.get(e.getFqpn());
@@ -283,12 +279,12 @@ public class GitView extends VerticalLayout {
     }
 
     private ProjectItem toProjectItem(Project p) {
-        String text = p.isCloned() ? "" : "Not cloned";
+        Optional<WorkingCopy> workingCopy = this.workingCopyService.find(p.getMetaData().getFQPN());
+        String text = workingCopy.isPresent() ? "" : "Not cloned";
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
-                .latestCommit(
-                        this.workingCopyService.find(p.getMetaData().getFQPN()).flatMap(WorkingCopy::getLatestCommit))
+                .latestCommit(workingCopy.flatMap(WorkingCopy::getLatestCommit))
                 .owner(p.getMetaData().getOwner())
                 .image(GitView.this.imageResolverService.getImage("gitprovider",
                         p.getMetaData().getGitProvider().name())).build();

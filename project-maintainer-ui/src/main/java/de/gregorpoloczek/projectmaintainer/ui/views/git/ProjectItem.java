@@ -6,23 +6,26 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOp
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
 @Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProjectItem {
 
-    private ProjectOperationState operationState = null;
-    private Project project;
-    private Optional<Image> image;
-    private Optional<Commit> latestCommit;
-    private String text = "";
-    private String owner;
-    private boolean operationInProgress;
-    private Double operationProgressValue;
+    ProjectOperationState operationState = null;
+    Project project;
+    Optional<Image> image;
+    Optional<Commit> latestCommit;
+    String text = "";
+    String owner;
+    boolean operationInProgress;
+    Double operationProgressValue;
 
     public String getNamePrefix() {
         return this.project.getMetaData().getFQPN().getSegments()
