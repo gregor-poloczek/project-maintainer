@@ -122,7 +122,7 @@ public class GitView extends VerticalLayout {
 
         layout.add(badges, message);
 
-        Optional<Commit> maybeCommit = item.getLatestCommit();
+        Optional<Commit> maybeCommit = item.getWorkingCopy().flatMap(WorkingCopy::getLatestCommit);
         maybeCommit.ifPresent(commit -> {
             timestamp.setText(PrettyTime.of(Locale.US)
                     .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
@@ -286,7 +286,6 @@ public class GitView extends VerticalLayout {
                 .project(p)
                 .text(text)
                 .workingCopy(workingCopy)
-                .latestCommit(workingCopy.flatMap(WorkingCopy::getLatestCommit))
                 .owner(p.getMetaData().getOwner())
                 .image(GitView.this.imageResolverService.getImage("gitprovider",
                         p.getMetaData().getGitProvider().name())).build();

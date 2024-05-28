@@ -23,7 +23,6 @@ public class ProjectItem {
     Project project;
     Optional<WorkingCopy> workingCopy;
     Optional<Image> image;
-    Optional<Commit> latestCommit;
     String text = "";
     String owner;
     boolean operationInProgress;
