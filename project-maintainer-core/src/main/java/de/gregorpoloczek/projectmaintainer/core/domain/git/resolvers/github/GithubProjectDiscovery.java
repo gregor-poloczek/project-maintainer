@@ -70,6 +70,8 @@ public class GithubProjectDiscovery implements ProjectDiscovery {
                             .name(repository.getName())
                             .description(Optional.ofNullable(repository.getDescription()))
                             .owner(repository.getOwnerName())
+                            .browserLink(
+                                    Optional.of("https://github.com/%s/%s".formatted(username, repository.getName())))
                             .fqpn(FQPN.of("github", username, repository.getName()))
                             .credentialsProvider(credentialsProvider)
                     );
