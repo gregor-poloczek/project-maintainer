@@ -1,6 +1,6 @@
-package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
+package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
-import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService.Image;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;

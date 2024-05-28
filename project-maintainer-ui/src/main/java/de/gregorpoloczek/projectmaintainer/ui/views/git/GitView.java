@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.common.ui.git;
+package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
@@ -22,8 +22,8 @@ import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.router.Route;
-import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService;
-import de.gregorpoloczek.projectmaintainer.core.common.ui.shared.ImageResolverService.Image;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.OperationExecutionService;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
@@ -261,9 +261,9 @@ public class GitView extends VerticalLayout {
         ProjectItem item = itemByFQPN.get(e.getFqpn());
         current.access(() -> {
             String text = switch (e.getState()) {
-                case SCHEDULED -> e.getOperation() + " ...";
-                case RUNNING -> e.getMessage();
-                case SUCCEEDED -> "";
+                case ProjectOperationState.SCHEDULED -> e.getOperation() + " ...";
+                case ProjectOperationState.RUNNING -> e.getMessage();
+                case ProjectOperationState.SUCCEEDED -> "";
                 default -> e.getState().name();
             };
 

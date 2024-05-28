@@ -11,6 +11,7 @@
 
   <modules>
     <module>project-maintainer-core</module>
+    <module>project-maintainer-ui</module>
   </modules>
 
   <properties>
@@ -24,6 +25,11 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>de.gregorpoloczek.project-maintainer</groupId>
+        <artifactId>project-maintainer-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
       <dependency>
         <groupId>com.vaadin</groupId>
         <artifactId>vaadin-bom</artifactId>

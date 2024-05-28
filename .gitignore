@@ -43,4 +43,5 @@ build/
 /project-maintainer-angular-ui/src/assets/icons/GITHUB.png
 /.idea/sonarlint/
 project-maintainer-core/frontend/
-/project-maintainer-core/src/main/resources/application-local.yml
+project-maintainer-ui/frontend/
+/**/application-local.yml

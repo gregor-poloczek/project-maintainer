@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.common.ui.shared;
+package de.gregorpoloczek.projectmaintainer.ui.common;
 
 import java.io.IOException;
 import java.net.URL;
