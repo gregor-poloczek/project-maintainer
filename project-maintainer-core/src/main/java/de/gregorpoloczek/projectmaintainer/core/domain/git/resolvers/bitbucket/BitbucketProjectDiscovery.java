@@ -62,19 +62,19 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                     .retrieve()
                     .bodyToMono(RepositoryListResource.class);
             RepositoryListResource list = response.blockOptional().orElseThrow(IllegalStateException::new);
-            for (RepositoryResource repository : list.values()) {
-                context.discovered(c -> c.fqpn(FQPN.of("bitbucket", username, repository.name()))
+            for (RepositoryResource repository : list.getValues()) {
+                context.discovered(c -> c.fqpn(FQPN.of("bitbucket", username, repository.getName()))
                         .owner(username)
-                        .uri(URI.create(repository.links()
-                                .klone()
+                        .uri(URI.create(repository.getLinks()
+                                .getClone()
                                 .stream()
-                                .filter(l -> l.name().equals("https"))
+                                .filter(l -> l.getName().equals("https"))
                                 .findFirst()
-                                .orElseThrow(IllegalStateException::new).href()))
+                                .orElseThrow(IllegalStateException::new).getHref()))
                         .credentialsProvider(credentialsProvider)
                         .browserLink(Optional.of(
-                                "https://bitbucket.org/%s/%s/src/master/".formatted(username, repository.name())))
-                        .name(repository.name()));
+                                "https://bitbucket.org/%s/%s/src/master/".formatted(username, repository.getName())))
+                        .name(repository.getName()));
             }
         }
 

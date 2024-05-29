@@ -1,5 +1,13 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.bitbucket;
 
-public record RepositoryLinkResource(String name, String href) {
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.experimental.FieldDefaults;
 
+@Data
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class RepositoryLinkResource {
+
+    String name;
+    String href;
 }
