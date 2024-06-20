@@ -52,3 +52,4 @@ project-maintainer-ui/frontend/
 /project-maintainer-ui/types.d.ts
 /project-maintainer-ui/vite.config.ts
 /project-maintainer-ui/vite.generated.ts
+/bitbucket-example.json
