@@ -4,6 +4,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.La
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasIconItem;
+import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasLabelsItem;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasProjectItem;
 import java.util.Optional;
 import java.util.SortedSet;
@@ -18,7 +19,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProjectAnalysisItem implements HasProjectItem, HasIconItem {
+public class ProjectAnalysisItem implements HasProjectItem, HasIconItem, HasLabelsItem {
 
     Project project;
     @Builder.Default

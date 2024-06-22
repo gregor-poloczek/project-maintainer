@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.ui.common;
 
+import ch.qos.logback.core.Layout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Text;
@@ -7,13 +8,17 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
+import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexWrap;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
@@ -24,6 +29,11 @@ public class Renderers {
     public interface HasProjectItem {
 
         Project getProject();
+    }
+
+    public interface HasLabelsItem {
+
+        Collection<Label> getLabels();
     }
 
     public interface HasIconItem {
@@ -49,6 +59,26 @@ public class Renderers {
                             .encodeToString(i.getBytes())).orElse("");
                 });
 
+    }
+
+    public <I extends HasLabelsItem> Renderer<I> getLabelsRenderer() {
+        return new ComponentRenderer<>((I item) -> {
+            FlexLayout layout = new FlexLayout();
+            layout.setFlexDirection(FlexDirection.ROW);
+            layout.setFlexWrap(FlexWrap.WRAP);
+
+            List<Component> list = item.getLabels().stream().map(l -> l.getValue()).map(v -> {
+                HorizontalLayout wrapper = new HorizontalLayout();
+                wrapper.getStyle().set("padding", "4px");
+                Span badge = createBadge();
+                badge.setText(v);
+                wrapper.add(badge);
+                return (Component) wrapper;
+            }).toList();
+
+            layout.add(list);
+            return layout;
+        });
     }
 
     public <I extends HasProjectItem> Renderer<I> getNameRenderer() {

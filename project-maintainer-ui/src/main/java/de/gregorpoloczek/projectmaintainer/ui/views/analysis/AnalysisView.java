@@ -63,9 +63,8 @@ public class AnalysisView extends VerticalLayout {
 
         this.grid = new Grid<>();
         this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name");
-        this.grid.addColumn(i -> i.getLabels().stream().map(Label::getValue)
-                        .collect(Collectors.joining(",")))
+        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(0).setWidth("300px");
+        this.grid.addColumn(Renderers.getLabelsRenderer())
                 .setHeader("Labels");
 
         search = new TextField();
