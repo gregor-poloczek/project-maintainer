@@ -1,0 +1,26 @@
+package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
+
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Setter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProjectAnalysisItem {
+
+    Project project;
+    @Builder.Default
+    SortedSet<Label> labels = new TreeSet<>();
+
+    public String getName() {
+        return this.getProject().getMetaData().getName();
+    }
+}
