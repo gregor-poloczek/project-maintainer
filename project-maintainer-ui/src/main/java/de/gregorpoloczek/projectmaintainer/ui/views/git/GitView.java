@@ -35,6 +35,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOp
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.List;
@@ -135,29 +136,6 @@ public class GitView extends VerticalLayout {
         return layout;
     });
 
-    private final Renderer<ProjectItem> nameRenderer = new ComponentRenderer<>(item -> {
-        FlexLayout layout = new FlexLayout();
-        HorizontalLayout badges = new HorizontalLayout();
-        layout.setFlexDirection(FlexDirection.COLUMN);
-
-        Component name;
-        if (item.getProject().getMetaData().getBrowserLink().isPresent()) {
-            Anchor anchor = new Anchor();
-            anchor.setHref(item.getProject().getMetaData().getBrowserLink().get());
-            anchor.setTarget("_blank");
-            name = anchor;
-        } else {
-            name = new Text("");
-        }
-        ((HasText) name).setText(item.getName());
-
-        Span prefix = createBadge();
-        prefix.setText(item.getNamePrefix());
-        badges.add(prefix);
-        layout.add(badges, name);
-        return layout;
-    });
-
 
     public GitView(
             ProjectService projectService,
@@ -183,16 +161,16 @@ public class GitView extends VerticalLayout {
         result = new Grid<>(ProjectItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(this.iconRenderer).setFlexGrow(0).setWidth("64px");
-        result.addColumn(this.nameRenderer).setHeader("Name");
+        result.addColumn(Renderers.getNameRenderer()).setHeader("Name");
         result.addColumn(this.workingCopyRenderer).setHeader("Working copy");
         result.addColumn(this.progressBarRenderer);
         return result;
     }
 
     private Span createBadge() {
-        Span timestamp = new Span("");
-        timestamp.getElement().getThemeList().add("badge");
-        return timestamp;
+        Span badge = new Span("");
+        badge.getElement().getThemeList().add("badge");
+        return badge;
     }
 
     private MenuBar createMenuBar() {

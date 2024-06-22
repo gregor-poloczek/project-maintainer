@@ -2,9 +2,9 @@ package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasProjectItem;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -17,7 +17,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProjectItem {
+public class ProjectItem implements HasProjectItem {
 
     ProjectOperationState operationState = null;
     Project project;

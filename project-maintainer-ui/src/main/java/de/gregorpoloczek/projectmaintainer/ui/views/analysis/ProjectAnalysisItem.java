@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasProjectItem;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import lombok.AccessLevel;
@@ -14,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProjectAnalysisItem {
+public class ProjectAnalysisItem implements HasProjectItem {
 
     Project project;
     @Builder.Default

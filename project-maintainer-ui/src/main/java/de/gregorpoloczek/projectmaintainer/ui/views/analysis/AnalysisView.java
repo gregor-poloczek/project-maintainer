@@ -19,6 +19,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +57,7 @@ public class AnalysisView extends VerticalLayout {
         text = new Text("asd");
 
         this.grid = new Grid<>();
-        this.grid.addColumn(ProjectAnalysisItem::getName).setHeader("Name").setSortable(true);
+        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name");
         this.grid.addColumn(i -> i.getLabels().stream().map(Label::getValue)
                         .collect(Collectors.joining(",")))
                 .setHeader("Labels");
