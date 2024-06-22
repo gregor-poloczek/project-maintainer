@@ -57,16 +57,6 @@ public class GitView extends VerticalLayout {
     private final WorkingCopyService workingCopyService;
     private transient Map<FQPN, ProjectItem> itemByFQPN;
 
-    private final Renderer<ProjectItem> iconRenderer =
-            LitRenderer.<ProjectItem>of(
-                            "<img src=${item.image} style=\"height:32px; filter: grayscale(${item.grayscale});\" />")
-                    .withProperty("grayscale", item -> item.getWorkingCopy().isPresent() ? "0.0" : "1.0")
-                    .withProperty("image", item -> {
-                        Optional<Image> image = item.getImage();
-                        return image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
-                                .encodeToString(i.getBytes())).orElse("");
-                    });
-
 
     private final Renderer<ProjectItem> progressBarRenderer = new ComponentRenderer<>(item -> {
         Div progressBarLabelText = new Div();
@@ -160,7 +150,7 @@ public class GitView extends VerticalLayout {
         final Grid<ProjectItem> result;
         result = new Grid<>(ProjectItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
-        result.addColumn(this.iconRenderer).setFlexGrow(0).setWidth("64px");
+        result.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(Renderers.getNameRenderer()).setHeader("Name");
         result.addColumn(this.workingCopyRenderer).setHeader("Working copy");
         result.addColumn(this.progressBarRenderer);
@@ -265,7 +255,7 @@ public class GitView extends VerticalLayout {
                 .text(text)
                 .workingCopy(workingCopy)
                 .owner(p.getMetaData().getOwner())
-                .image(GitView.this.imageResolverService.getImage("gitprovider",
+                .icon(GitView.this.imageResolverService.getImage("gitprovider",
                         p.getMetaData().getGitProvider().name())).build();
     }
 

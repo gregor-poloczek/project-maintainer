@@ -19,6 +19,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,21 +43,26 @@ public class AnalysisView extends VerticalLayout {
     private final TextField search;
     private final Grid<ProjectAnalysisItem> grid;
     private Map<FQPN, ProjectAnalysisItem> itemByFQPN = new HashMap<>();
+    private ImageResolverService imageResolverService;
 
     public AnalysisView(
             ProjectAnalysisService projectAnalysisService,
             ProjectService projectService,
             WorkingCopyService workingCopyService,
             OperationExecutionService operationExecutionService,
-            LabelService labelService) {
+            LabelService labelService,
+            ImageResolverService imageResolverService
+    ) {
         this.projectAnalysisService = projectAnalysisService;
         this.projectService = projectService;
         this.workingCopyService = workingCopyService;
         this.operationExecutionService = operationExecutionService;
         this.labelService = labelService;
+        this.imageResolverService = imageResolverService;
         text = new Text("asd");
 
         this.grid = new Grid<>();
+        this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
         this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name");
         this.grid.addColumn(i -> i.getLabels().stream().map(Label::getValue)
                         .collect(Collectors.joining(",")))
@@ -76,6 +82,9 @@ public class AnalysisView extends VerticalLayout {
         });
 
         this.add(search, grid);
+        this.setSizeFull();
+        this.grid.setSizeFull();
+
     }
 
     @Override
@@ -89,7 +98,11 @@ public class AnalysisView extends VerticalLayout {
             Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN());
 
             if (workingCopy.isPresent()) {
-                items.add(ProjectAnalysisItem.builder().project(project).build());
+                items.add(ProjectAnalysisItem.builder()
+                        .project(project)
+                        .icon(AnalysisView.this.imageResolverService.getImage("gitprovider",
+                                project.getMetaData().getGitProvider().name()))
+                        .build());
                 this.operationExecutionService.executeAsyncOperation2(
                                 project,
                                 "analysis::analyze",

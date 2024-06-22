@@ -9,8 +9,12 @@ import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
+import java.util.Base64;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 
@@ -22,10 +26,29 @@ public class Renderers {
         Project getProject();
     }
 
+    public interface HasIconItem {
+
+        boolean isIconBlurred();
+
+        Optional<Image> getIcon();
+    }
+
     private static Span createBadge() {
         Span badge = new Span("");
         badge.getElement().getThemeList().add("badge");
         return badge;
+    }
+
+    public <I extends HasIconItem> Renderer<I> getIconRenderer() {
+        return LitRenderer.<I>of(
+                        "<img src=${item.image} style=\"height:32px; filter: grayscale(${item.grayscale});\" />")
+                .withProperty("grayscale", item -> !item.isIconBlurred() ? "0.0" : "1.0")
+                .withProperty("image", item -> {
+                    Optional<Image> image = item.getIcon();
+                    return image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
+                            .encodeToString(i.getBytes())).orElse("");
+                });
+
     }
 
     public <I extends HasProjectItem> Renderer<I> getNameRenderer() {
