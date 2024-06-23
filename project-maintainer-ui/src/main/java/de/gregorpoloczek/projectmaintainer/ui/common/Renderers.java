@@ -20,8 +20,10 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 
 @UtilityClass
 public class Renderers {
@@ -61,20 +63,25 @@ public class Renderers {
 
     }
 
-    public <I extends HasLabelsItem> Renderer<I> getLabelsRenderer() {
+    public <I extends HasLabelsItem> Renderer<I> getLabelsRenderer(Supplier<String> queryProvider) {
         return new ComponentRenderer<>((I item) -> {
             FlexLayout layout = new FlexLayout();
             layout.setFlexDirection(FlexDirection.ROW);
             layout.setFlexWrap(FlexWrap.WRAP);
 
-            List<Component> list = item.getLabels().stream().map(l -> l.getValue()).map(v -> {
-                HorizontalLayout wrapper = new HorizontalLayout();
-                wrapper.getStyle().set("padding", "4px");
-                Span badge = createBadge();
-                badge.setText(v);
-                wrapper.add(badge);
-                return (Component) wrapper;
-            }).toList();
+            String query = queryProvider.get();
+
+            List<Component> list = item.getLabels().stream()
+                    .filter(l -> StringUtils.isBlank(query) || l.getValue().toLowerCase().contains(query))
+                    .map(l -> l.getValue())
+                    .map(v -> {
+                        HorizontalLayout wrapper = new HorizontalLayout();
+                        wrapper.getStyle().set("padding", "4px");
+                        Span badge = createBadge();
+                        badge.setText(v);
+                        wrapper.add(badge);
+                        return (Component) wrapper;
+                    }).toList();
 
             layout.add(list);
             return layout;

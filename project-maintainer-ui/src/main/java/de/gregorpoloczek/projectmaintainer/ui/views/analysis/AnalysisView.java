@@ -62,12 +62,13 @@ public class AnalysisView extends VerticalLayout {
         text = new Text("asd");
 
         this.grid = new Grid<>();
-        this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(0).setWidth("300px");
-        this.grid.addColumn(Renderers.getLabelsRenderer())
-                .setHeader("Labels");
 
         search = new TextField();
+
+        this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
+        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(0).setWidth("300px");
+        this.grid.addColumn(Renderers.getLabelsRenderer(search::getValue))
+                .setHeader("Labels");
         search.setPlaceholder("Search");
         search.setValueChangeMode(ValueChangeMode.EAGER);
         search.addValueChangeListener(e -> {
