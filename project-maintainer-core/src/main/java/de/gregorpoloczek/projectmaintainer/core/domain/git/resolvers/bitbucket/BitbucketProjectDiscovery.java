@@ -12,15 +12,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.Properties;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 @Service
+@Slf4j
 public class BitbucketProjectDiscovery implements ProjectDiscovery {
 
     private final ApplicationProperties applicationProperties;
@@ -67,30 +70,40 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
 
             for (WorkspaceMembershipResource membership : membershipList.getValues()) {
                 String workspace = membership.getWorkspace().getSlug();
-                Mono<RepositoryListResource> response = client.get()
-                        .uri("/repositories/" + workspace)
-                        .retrieve()
-                        .bodyToMono(RepositoryListResource.class);
-                RepositoryListResource list = response.blockOptional().orElseThrow(IllegalStateException::new);
-                for (RepositoryResource repository : list.getValues()) {
-                    // TODO the same workspace could be used by two different users
-                    // TODO workspace name necessary
-                    context.discovered(c -> c.fqpn(FQPN.of("bitbucket", workspace, repository.getName()))
-                            .owner(workspace)
-                            .uri(URI.create(repository.getLinks()
-                                    .getClone()
-                                    .stream()
-                                    .filter(l -> l.getName().equals("https"))
-                                    .findFirst()
-                                    .orElseThrow(IllegalStateException::new).getHref()))
-                            .credentialsProvider(credentialsProvider)
-                            // TODO incorrect browser link
-                            .browserLink(Optional.of(
-                                    "https://bitbucket.org/%s/%s/src/master/".formatted(workspace,
-                                            repository.getName())))
-                            .name(repository.getName()));
-                }
 
+                Integer nextPage = 1;
+                do {
+                    try {
+                        Mono<RepositoryListResource> response = client.get()
+                                .uri("/repositories/" + workspace + "?page=" + nextPage)
+                                .retrieve()
+                                .bodyToMono(RepositoryListResource.class);
+
+                        RepositoryListResource list = response.blockOptional().orElseThrow(IllegalStateException::new);
+
+                        for (RepositoryResource repository : list.getValues()) {
+                            // TODO the same workspace could be used by two different users
+                            // TODO workspace name necessary
+                            context.discovered(c -> c.fqpn(FQPN.of("bitbucket", workspace, repository.getName()))
+                                    .owner(workspace)
+                                    .uri(URI.create(repository.getLinks()
+                                            .getClone()
+                                            .stream()
+                                            .filter(l -> l.getName().equals("https"))
+                                            .findFirst()
+                                            .orElseThrow(IllegalStateException::new).getHref()))
+                                    .credentialsProvider(credentialsProvider)
+                                    .browserLink(Optional.of(
+                                            "https://bitbucket.org/%s/%s/src/master/".formatted(workspace,
+                                                    repository.getName())))
+                                    .name(repository.getName()));
+                        }
+                        nextPage = list.getNext() != null ? list.getPage() + 1 : null;
+                    } catch (WebClientResponseException e) {
+                        log.error("Error listing bitbucket repositories", e);
+                        break;
+                    }
+                } while (nextPage != null);
             }
         }
 

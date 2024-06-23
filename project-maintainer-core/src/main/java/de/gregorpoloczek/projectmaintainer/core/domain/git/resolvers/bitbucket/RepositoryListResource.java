@@ -9,5 +9,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RepositoryListResource {
 
+    int size;
+    int page;
+    int pagelen;
+    String next;
     List<RepositoryResource> values;
 }
