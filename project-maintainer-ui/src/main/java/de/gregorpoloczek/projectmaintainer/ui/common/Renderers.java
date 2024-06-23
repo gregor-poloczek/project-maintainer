@@ -1,8 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.ui.common;
 
-import ch.qos.logback.core.Layout;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasText;
+import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
@@ -73,12 +73,21 @@ public class Renderers {
 
             List<Component> list = item.getLabels().stream()
                     .filter(l -> StringUtils.isBlank(query) || l.getValue().toLowerCase().contains(query))
-                    .map(l -> l.getValue())
-                    .map(v -> {
+                    .map(l -> {
                         HorizontalLayout wrapper = new HorizontalLayout();
                         wrapper.getStyle().set("padding", "4px");
                         Span badge = createBadge();
-                        badge.setText(v);
+
+                        Component result;
+                        if (StringUtils.isBlank(query)) {
+                            result = new Span(l.getValue());
+                        } else {
+                            String adjusted =
+                                    l.getValue()
+                                            .replaceAll("(\\Q" + query + "\\E)", "<b style=\"color: white;\">$1</b>");
+                            result = new Html("<span style=\"color: gray;\">" + adjusted + "</span>");
+                        }
+                        badge.add(result);
                         wrapper.add(badge);
                         return (Component) wrapper;
                     }).toList();
