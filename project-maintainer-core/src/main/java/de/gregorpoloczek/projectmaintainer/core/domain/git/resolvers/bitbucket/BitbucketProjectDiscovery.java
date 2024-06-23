@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.bitbucket;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.bitbucket.WorkspaceMembershipListResource.WorkspaceMembershipResource;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
@@ -57,24 +58,39 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                     .defaultHeader("Authorization", "Basic " + auth)
                     .build();
 
-            Mono<RepositoryListResource> response = client.get()
-                    .uri("/repositories/" + username)
+            // can result in 403
+            WorkspaceMembershipListResource membershipList = client.get()
+                    .uri("/user/permissions/workspaces")
                     .retrieve()
-                    .bodyToMono(RepositoryListResource.class);
-            RepositoryListResource list = response.blockOptional().orElseThrow(IllegalStateException::new);
-            for (RepositoryResource repository : list.getValues()) {
-                context.discovered(c -> c.fqpn(FQPN.of("bitbucket", username, repository.getName()))
-                        .owner(username)
-                        .uri(URI.create(repository.getLinks()
-                                .getClone()
-                                .stream()
-                                .filter(l -> l.getName().equals("https"))
-                                .findFirst()
-                                .orElseThrow(IllegalStateException::new).getHref()))
-                        .credentialsProvider(credentialsProvider)
-                        .browserLink(Optional.of(
-                                "https://bitbucket.org/%s/%s/src/master/".formatted(username, repository.getName())))
-                        .name(repository.getName()));
+                    .bodyToMono(WorkspaceMembershipListResource.class)
+                    .blockOptional().orElseThrow(IllegalStateException::new);
+
+            for (WorkspaceMembershipResource membership : membershipList.getValues()) {
+                String workspace = membership.getWorkspace().getSlug();
+                Mono<RepositoryListResource> response = client.get()
+                        .uri("/repositories/" + workspace)
+                        .retrieve()
+                        .bodyToMono(RepositoryListResource.class);
+                RepositoryListResource list = response.blockOptional().orElseThrow(IllegalStateException::new);
+                for (RepositoryResource repository : list.getValues()) {
+                    // TODO the same workspace could be used by two different users
+                    // TODO workspace name necessary
+                    context.discovered(c -> c.fqpn(FQPN.of("bitbucket", workspace, repository.getName()))
+                            .owner(workspace)
+                            .uri(URI.create(repository.getLinks()
+                                    .getClone()
+                                    .stream()
+                                    .filter(l -> l.getName().equals("https"))
+                                    .findFirst()
+                                    .orElseThrow(IllegalStateException::new).getHref()))
+                            .credentialsProvider(credentialsProvider)
+                            // TODO incorrect browser link
+                            .browserLink(Optional.of(
+                                    "https://bitbucket.org/%s/%s/src/master/".formatted(workspace,
+                                            repository.getName())))
+                            .name(repository.getName()));
+                }
+
             }
         }
 
