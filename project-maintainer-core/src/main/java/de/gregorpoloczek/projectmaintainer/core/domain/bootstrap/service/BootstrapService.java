@@ -89,24 +89,24 @@ public class BootstrapService {
             final ProjectImpl project = new ProjectImpl(metaData, credentialsProvider);
             this.projectRepository.save(project);
 
-            final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN())
-                    .map(w -> {
-                        return this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
-                                w.getLatestCommit().orElse(null),
-                                credentialsProvider);
-                    });
+//            final Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN())
+//                    .map(w -> {
+//                        return this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
+//                                w.getLatestCommit().orElse(null),
+//                                credentialsProvider);
+//                    });
 
-            if (!workingCopy.isPresent()) {
-                this.operationExecutionService.executeAsyncOperation(
-                        project,
-                        "clone",
-                        this.projectService::cloneProject);
-            } else {
-                this.operationExecutionService.executeAsyncOperation(
-                        project,
-                        "pull",
-                        this.projectService::pullProject);
-            }
+//            if (!workingCopy.isPresent()) {
+//                this.operationExecutionService.executeAsyncOperation(
+//                        project,
+//                        "clone",
+//                        this.projectService::cloneProject);
+//            } else {
+//                this.operationExecutionService.executeAsyncOperation(
+//                        project,
+//                        "pull",
+//                        this.projectService::pullProject);
+//            }
         }
     }
 
