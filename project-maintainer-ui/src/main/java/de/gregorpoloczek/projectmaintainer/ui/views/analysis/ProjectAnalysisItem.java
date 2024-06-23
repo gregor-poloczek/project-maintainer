@@ -35,4 +35,15 @@ public class ProjectAnalysisItem implements HasProjectItem, HasIconItem, HasLabe
     public boolean isIconBlurred() {
         return false;
     }
+
+    public boolean matches(String query) {
+        boolean name = this.getName().toLowerCase().contains(query);
+
+        if (name) {
+            return true;
+        }
+        // TODO label matching with regexp
+
+        return this.getLabels().stream().anyMatch(l -> l.getValue().toLowerCase().contains(query));
+    }
 }

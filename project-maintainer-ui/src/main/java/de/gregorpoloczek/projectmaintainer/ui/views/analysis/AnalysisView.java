@@ -72,10 +72,9 @@ public class AnalysisView extends VerticalLayout {
         search.setValueChangeMode(ValueChangeMode.EAGER);
         search.addValueChangeListener(e -> {
             ListDataProvider<ProjectAnalysisItem> dataProvider = (ListDataProvider<ProjectAnalysisItem>) this.grid.getDataProvider();
-            String query = e.getValue();
-            // TODO label matching with regexp
+            String query = e.getValue().toLowerCase();
             dataProvider.setFilter(
-                    i -> StringUtils.isBlank(query) || i.getName().toLowerCase().contains(query.toLowerCase()));
+                    i -> StringUtils.isBlank(query) || i.matches(query));
             // TODO brauch ich das?
             dataProvider.refreshAll();
         });

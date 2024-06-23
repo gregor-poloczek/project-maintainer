@@ -37,7 +37,6 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQ
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.text.MessageFormat;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
