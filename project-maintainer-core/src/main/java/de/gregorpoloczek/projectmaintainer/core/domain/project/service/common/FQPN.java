@@ -3,7 +3,6 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service.common;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;

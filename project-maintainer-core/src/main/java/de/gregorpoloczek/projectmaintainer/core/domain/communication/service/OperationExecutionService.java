@@ -1,7 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.api.FluxBasedProjectOperationProgressListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.api.SinkBasedProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
@@ -52,28 +51,6 @@ public class OperationExecutionService {
                     }
             );
         });
-    }
-
-
-    public void executeAsyncOperation(final Project project, final String operationName,
-            final BiConsumer<FQPN, ProjectOperationProgressListener> operation) {
-
-        final ProjectOperationProgressListener emitter =
-                new SinkBasedProjectOperationProgressListener(this.sink, project.getMetaData().getFQPN(), operationName,
-                        (e, e2) -> {
-                        });
-        emitter.scheduled();
-
-        this.executor.execute(
-                () -> {
-                    try {
-                        operation.accept(project.getMetaData().getFQPN(), emitter);
-                        emitter.succeeded(project);
-                    } catch (RuntimeException e) {
-                        emitter.failed(project, e);
-                    }
-                }
-        );
     }
 
 }

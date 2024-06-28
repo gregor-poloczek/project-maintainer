@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.api.resources;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos;
 
 public enum GitProvider {
     AWS_CODECOMMIT,
