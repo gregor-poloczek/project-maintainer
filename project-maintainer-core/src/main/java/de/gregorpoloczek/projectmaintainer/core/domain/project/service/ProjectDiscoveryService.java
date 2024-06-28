@@ -1,6 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.ProjectDiscovery;
 import java.util.List;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

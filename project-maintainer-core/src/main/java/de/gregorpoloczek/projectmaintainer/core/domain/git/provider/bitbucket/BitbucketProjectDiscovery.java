@@ -7,7 +7,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.ap
 import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.api.WorkspaceMembershipListResource;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.api.WorkspaceMembershipListResource.WorkspaceMembershipResource;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.PasswordResolverService;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.ProjectDiscovery;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.net.URI;

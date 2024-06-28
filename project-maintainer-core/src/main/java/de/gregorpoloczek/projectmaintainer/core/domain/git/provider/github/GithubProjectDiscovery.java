@@ -3,7 +3,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.git.provider.github;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.GithubDiscoverySection;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.PasswordResolverService;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.ProjectDiscovery;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.IOException;
