@@ -1,14 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.Commit;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
 import java.net.URI;
-import java.util.Collection;
-import java.util.NavigableSet;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
@@ -24,8 +18,7 @@ public class ProjectImpl implements Project {
 
     private final ProjectMetaData metaData;
     private final CredentialsProvider credentialsProvider;
-    private ReadWriteLock lock = new ReentrantReadWriteLock();
-    private NavigableSet<Label> labels = new TreeSet<>();
+    private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     public ProjectImpl(ProjectMetaData metaData, final CredentialsProvider credentialsProvider) {
         this.metaData = metaData;
@@ -76,14 +69,5 @@ public class ProjectImpl implements Project {
         return new HashCodeBuilder(17, 37).append(this.getMetaData().getFQPN()).toHashCode();
     }
 
-    public void setLabels(final Collection<Label> labels) {
-        this.labels.clear();
-        this.labels.addAll(labels);
-    }
-
-    @Override
-    public SortedSet<Label> getLabels() {
-        return this.labels;
-    }
 
 }

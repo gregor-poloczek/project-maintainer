@@ -12,7 +12,10 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class LabelService {
 
     private final ProjectRepository projectRepository;
+    private SortedMap<FQPN, SortedSet<Label>> allLabels = Collections.synchronizedSortedMap(new TreeMap<>());
 
     public LabelService(final ProjectRepository projectRepository) {
         this.projectRepository = projectRepository;
@@ -50,11 +54,13 @@ public class LabelService {
                     removedLabels, project.getMetaData().getFQPN());
         }
 
-        project.setLabels(labels);
+        this.allLabels.put(fqpn, Collections.unmodifiableSortedSet(new TreeSet<>(finalLabels)));
     }
 
     public SortedSet<Label> find(FQPN fqpn) {
-        return Collections.unmodifiableSortedSet(this.require(fqpn).getLabels());
+        return this.allLabels.computeIfAbsent(
+                this.require(fqpn).getMetaData().getFQPN(),
+                k -> Collections.emptySortedSet());
     }
 
     private ProjectImpl require(final FQPN fqpn) {

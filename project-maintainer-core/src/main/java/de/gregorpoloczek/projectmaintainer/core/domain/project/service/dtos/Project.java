@@ -11,8 +11,6 @@ public interface Project {
 
     ProjectMetaData getMetaData();
 
-    SortedSet<Label> getLabels();
-
     <T> T withReadLock(Supplier<T> operation);
 
     <T> T withWriteLock(Supplier<T> operation);

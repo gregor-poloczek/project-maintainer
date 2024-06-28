@@ -11,8 +11,6 @@ import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.projectsfile.ProjectJSON;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.projectsfile.ProjectsFileJSON;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.io.File;
@@ -62,34 +60,6 @@ public class ProjectService {
         this.projectsFileRaw = new File(projectsDirectory, PROJECTS_FILE);
     }
 
-    private ProjectsFileJSON requireProjectsFile() {
-        return this.readProjectsFile().orElseThrow(() -> new IllegalStateException(
-                "Projects file not available, please clone projects firsts."));
-    }
-
-    private Optional<ProjectsFileJSON> readProjectsFile() {
-        if (!this.projectsFileRaw.exists()) {
-            return Optional.empty();
-        }
-        try {
-            final ProjectsFileJSON file = this.objectMapper.readValue(projectsFileRaw,
-                    ProjectsFileJSON.class);
-            Collections.sort(file.getProjects(), Comparator.comparing(ProjectJSON::getFQPN));
-            return Optional.of(file);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private void writeProjectsFile(ProjectsFileJSON projectsFile) {
-        try {
-            IOUtils.write(
-                    this.objectMapper.writer(new DefaultPrettyPrinter()).writeValueAsString(projectsFile),
-                    new FileOutputStream(projectsFileRaw), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
 
     public void cloneProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
         final ProjectImpl project = requireProject(fqpn);
