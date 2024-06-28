@@ -1,7 +1,11 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.ProjectNotClonedException;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
@@ -31,11 +35,63 @@ import org.springframework.stereotype.Service;
 public class WorkingCopyService {
 
     private final File projectsDirectory;
+    private final GitService gitService;
+    private final ProjectService projectService;
     private final Map<FQPN, WorkingCopyImpl> workingCopies = new TreeMap<>();
 
-    public WorkingCopyService(final ApplicationProperties applicationProperties) {
+    public WorkingCopyService(
+            final ApplicationProperties applicationProperties,
+            final GitService gitService,
+            final ProjectService projectService
+    ) {
         this.projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
+        this.gitService = gitService;
+        this.projectService = projectService;
     }
+
+    public void cloneProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
+        final Project project = this.projectService.requireProject(fqpn);
+        final WorkingCopy workingCopy =
+                this.createNew(project.getMetaData().getFQPN(), project.getURI(),
+                        project.getCredentialsProvider());
+        final CloneResult clone = this.gitService.clone(workingCopy, listener);
+        this.save(
+                workingCopy.getFQPN(),
+                workingCopy.getURI(),
+                workingCopy.getDirectory(),
+                clone.getLatestCommit().orElse(null),
+                workingCopy.getCredentialsProvider()
+        );
+    }
+
+    public void pullProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
+        final WorkingCopy workingCopy = this.find(fqpn)
+                .orElseThrow(() -> new ProjectNotClonedException(fqpn));
+        final PullResult result = this.gitService.pull(workingCopy, listener);
+        this.save(
+                workingCopy.getFQPN(),
+                workingCopy.getURI(),
+                workingCopy.getDirectory(),
+                result.getLatestCommit().orElse(null),
+                workingCopy.getCredentialsProvider()
+        );
+    }
+
+    public void wipeProject(@NonNull final FQPN fqpn,
+            @NonNull final ProjectOperationProgressListener listener) {
+        // TODO move code to working copy service
+        final Project project = this.projectService.requireProject(fqpn);
+        project.withWriteLock(() -> {
+            try {
+                this.remove(fqpn);
+                listener.succeeded(project);
+            } catch (Exception e) {
+                listener.failed(project, e);
+            }
+            return null;
+        });
+    }
+
 
     public WorkingCopyImpl save(FQPN fqpn, URI uri, File directory, Commit latestCommit,
             CredentialsProvider credentialsProvider) {

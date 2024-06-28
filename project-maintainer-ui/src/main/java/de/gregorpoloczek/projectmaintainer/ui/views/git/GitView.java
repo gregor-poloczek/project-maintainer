@@ -190,7 +190,7 @@ public class GitView extends VerticalLayout {
             operationExecutionService.executeAsyncOperation2(
                     item.getProject(),
                     "git::wipe",
-                    this.projectService::wipeProject).subscribe(e ->
+                    this.workingCopyService::wipeProject).subscribe(e ->
                     onUpdateEvent(e, ui));
         }
     }
@@ -202,13 +202,13 @@ public class GitView extends VerticalLayout {
                 operationExecutionService.executeAsyncOperation2(
                         item.getProject(),
                         "git::pull",
-                        this.projectService::pullProject).subscribe(e ->
+                        this.workingCopyService::pullProject).subscribe(e ->
                         onUpdateEvent(e, ui));
             } else {
                 operationExecutionService.executeAsyncOperation2(
                         item.getProject(),
                         "git::clone",
-                        this.projectService::cloneProject).subscribe(e ->
+                        this.workingCopyService::cloneProject).subscribe(e ->
                         onUpdateEvent(e, ui));
             }
         }
