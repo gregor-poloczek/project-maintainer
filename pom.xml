@@ -12,6 +12,7 @@
   <modules>
     <module>project-maintainer-core</module>
     <module>project-maintainer-ui</module>
+    <module>project-maintainer-analysis</module>
   </modules>
 
   <properties>
