@@ -3,20 +3,14 @@ package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.aws;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitDiscoverySection;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitLocation;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import java.util.Properties;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -28,43 +22,32 @@ import software.amazon.awssdk.services.sts.StsClient;
 @Slf4j
 public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
 
+    private final PasswordResolverService passwordResolverService;
     private final ApplicationProperties applicationProperties;
-    @Value("file:./.credentials/aws-codecommit.properties")
-    private Resource credentials;
 
-    public AWSCodeCommitProjectDiscovery(final ConversionService conversionService,
+    public AWSCodeCommitProjectDiscovery(
+            PasswordResolverService passwordResolverService,
             ApplicationProperties applicationProperties) {
-        this.conversionService = conversionService;
+        this.passwordResolverService = passwordResolverService;
         this.applicationProperties = applicationProperties;
     }
 
-    private final ConversionService conversionService;
-
     @Override
     public void discoverProjects(final ProjectDiscoveryContext context) {
-        AWSCodeCommitDiscoverySection awsCodeCommit = applicationProperties.getProjects()
+        AWSCodeCommitDiscoverySection awsCodeCommitSection = applicationProperties.getProjects()
                 .getDiscovery()
                 .getAwsCodeCommit();
-        if (awsCodeCommit == null) {
+        if (awsCodeCommitSection == null) {
             log.info("Nothing configured for AWS CodeCommit.");
             return;
         }
 
-        final Properties passwords;
-        try {
-            passwords = this.conversionService.convert(
-                    this.credentials.getContentAsString(StandardCharsets.UTF_8),
-                    Properties.class);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        for (final AWSCodeCommitLocation location : awsCodeCommit.getLocations()) {
+        for (final AWSCodeCommitLocation location : awsCodeCommitSection.getLocations()) {
             ProfileCredentialsProvider awsCredentialsProvider = ProfileCredentialsProvider.create(
                     location.getProfile());
 
             String username = location.getUsername();
-            String password = Optional.ofNullable(passwords.get(username)).map(String.class::cast)
-                    .orElseThrow(() -> new IllegalStateException("Cannot find password for user " + username));
+            String password = passwordResolverService.getPassword("aws-codecommit", username);
             UsernamePasswordCredentialsProvider credentialsProvider =
                     new UsernamePasswordCredentialsProvider(username, password);
 

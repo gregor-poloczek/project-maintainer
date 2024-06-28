@@ -1,60 +1,50 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.github;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.common.properties.GithubDiscoverySection;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.PagedSearchIterable;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.convert.ConversionService;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class GithubProjectDiscovery implements ProjectDiscovery {
 
     private final ApplicationProperties applicationProperties;
-    @Value("file:./.credentials/github.properties")
-    private Resource credentials;
 
-
-    public GithubProjectDiscovery(final ConversionService conversionService,
+    public GithubProjectDiscovery(final PasswordResolverService passwordResolverService,
             ApplicationProperties applicationProperties) {
-        this.conversionService = conversionService;
+        this.passwordResolverService = passwordResolverService;
         this.applicationProperties = applicationProperties;
     }
 
-    private final ConversionService conversionService;
+    private final PasswordResolverService passwordResolverService;
 
     @Override
     public void discoverProjects(final ProjectDiscoveryContext context) {
-        final List<String> users = applicationProperties.getProjects().getDiscovery().getGithub().getUsers();
-        final Properties passwords;
-        try {
-            passwords = this.conversionService.convert(
-                    this.credentials.getContentAsString(StandardCharsets.UTF_8),
-                    Properties.class);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        GithubDiscoverySection githubSection = applicationProperties.getProjects().getDiscovery().getGithub();
+        if (githubSection == null) {
+            log.info("Nothing configured for Github.");
+            return;
         }
 
+        final List<String> users = githubSection.getUsers();
+
         for (String username : users) {
-            final String password =
-                    Optional.ofNullable(passwords.getProperty(username))
-                            .orElseThrow(() -> new IllegalStateException(
-                                    "Cannot find password for username name %s".formatted(username)));
+            String password = passwordResolverService.getPassword("github", username);
             UsernamePasswordCredentialsProvider credentialsProvider =
                     new UsernamePasswordCredentialsProvider(username, password);
 
