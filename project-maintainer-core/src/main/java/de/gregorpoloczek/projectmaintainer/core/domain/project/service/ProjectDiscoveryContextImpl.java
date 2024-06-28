@@ -3,12 +3,15 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.experimental.FieldDefaults;
 
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectDiscoveryContextImpl implements ProjectDiscoveryContext {
 
-    @Getter
-    private List<DiscoveredProject> discoveredProjects = new ArrayList<>();
+    List<DiscoveredProject> discoveredProjects = new ArrayList<>();
 
     @Override
     public void discovered(

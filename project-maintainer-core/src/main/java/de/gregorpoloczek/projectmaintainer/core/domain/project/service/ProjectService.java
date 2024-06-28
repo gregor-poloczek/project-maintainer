@@ -71,7 +71,7 @@ public class ProjectService {
     public void wipeProject(@NonNull final FQPN fqpn,
             @NonNull final ProjectOperationProgressListener listener) {
         // TODO move code to working copy service
-        final ProjectImpl project = this.requireProject(fqpn);
+        final Project project = this.requireProject(fqpn);
         project.withWriteLock(() -> {
             try {
                 workingCopyService.remove(fqpn);
