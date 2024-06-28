@@ -1,10 +1,13 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.bitbucket;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.BitbucketDiscoverySection;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.bitbucket.WorkspaceMembershipListResource.WorkspaceMembershipResource;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.PasswordResolverService;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.ProjectDiscovery;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.api.RepositoryListResource;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.api.RepositoryResource;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.api.WorkspaceMembershipListResource;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.api.WorkspaceMembershipListResource.WorkspaceMembershipResource;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.PasswordResolverService;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.net.URI;

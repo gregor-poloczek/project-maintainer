@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.bitbucket;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.provider.bitbucket.api;
 
 import java.util.List;
 import lombok.AccessLevel;

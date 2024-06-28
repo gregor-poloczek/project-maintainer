@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

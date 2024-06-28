@@ -1,10 +1,10 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.aws;
+package de.gregorpoloczek.projectmaintainer.core.domain.git.provider.aws;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitDiscoverySection;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitLocation;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.PasswordResolverService;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.resolvers.common.ProjectDiscovery;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.PasswordResolverService;
+import de.gregorpoloczek.projectmaintainer.core.domain.git.provider.common.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.net.URI;
