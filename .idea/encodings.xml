@@ -3,6 +3,8 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/project-maintainer-analysis/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/project-maintainer-analysis/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/project-maintainer-bootstrap/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/project-maintainer-bootstrap/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/project-maintainer-core/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/project-maintainer-core/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/project-maintainer-ui/src/main/java" charset="UTF-8" />

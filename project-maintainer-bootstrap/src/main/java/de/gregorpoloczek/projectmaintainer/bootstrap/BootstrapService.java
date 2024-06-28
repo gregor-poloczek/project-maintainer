@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.bootstrap.service;
+package de.gregorpoloczek.projectmaintainer.bootstrap;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopyService;

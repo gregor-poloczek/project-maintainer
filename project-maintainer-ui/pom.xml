@@ -20,7 +20,7 @@
   <dependencies>
     <dependency>
       <groupId>de.gregorpoloczek.project-maintainer</groupId>
-      <artifactId>project-maintainer-core</artifactId>
+      <artifactId>project-maintainer-bootstrap</artifactId>
       <scope>compile</scope>
     </dependency>
 
