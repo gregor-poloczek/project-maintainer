@@ -83,6 +83,10 @@
       <groupId>software.amazon.awssdk</groupId>
       <artifactId>codecommit</artifactId>
     </dependency>
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>sts</artifactId>
+    </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
     <dependency>
