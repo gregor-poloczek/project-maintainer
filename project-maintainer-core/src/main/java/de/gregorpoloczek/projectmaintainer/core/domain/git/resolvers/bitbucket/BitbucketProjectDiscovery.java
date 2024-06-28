@@ -84,7 +84,10 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                         for (RepositoryResource repository : list.getValues()) {
                             // TODO the same workspace could be used by two different users
                             // TODO workspace name necessary
-                            context.discovered(c -> c.fqpn(FQPN.of("bitbucket", workspace, repository.getName()))
+                            context.discovered(c -> c.fqpn(FQPN.of("bitbucket",
+                                            workspace,
+                                            repository.getProject().getKey(),
+                                            repository.getName()))
                                     .owner(workspace)
                                     .uri(URI.create(repository.getLinks()
                                             .getClone()
@@ -93,6 +96,7 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                                             .findFirst()
                                             .orElseThrow(IllegalStateException::new).getHref()))
                                     .credentialsProvider(credentialsProvider)
+                                    .description(Optional.of(repository.getDescription()))
                                     .browserLink(Optional.of(
                                             "https://bitbucket.org/%s/%s/src/master/".formatted(workspace,
                                                     repository.getName())))

@@ -13,6 +13,7 @@ public class ProjectMetaData {
 
     private String owner;
     private String name;
+    private Optional<String> description = Optional.empty();
     private URI uri;
     @Builder.Default
     private Optional<String> browserLink = Optional.empty();
@@ -40,5 +41,4 @@ public class ProjectMetaData {
         return provider;
     }
 
-    ;
 }
