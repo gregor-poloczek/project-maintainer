@@ -13,7 +13,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import java.util.Base64;

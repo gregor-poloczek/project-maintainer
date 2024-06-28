@@ -1,26 +1,27 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service.common;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.Label;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 
 public class VersionedLabel extends Label {
 
-  @Getter
-  private final Label base;
+    @Getter
+    private final Label base;
 
-  public VersionedLabel(Label label, String version) {
-    super(VersionedLabel.join(label.getSegments(), version));
-    this.base = label;
-  }
+    public VersionedLabel(Label label, String version) {
+        super(VersionedLabel.join(label.getSegments(), version));
+        this.base = label;
+    }
 
-  private static List<String> join(final List<String> segments, final String version) {
-    final ArrayList list = new ArrayList(segments);
-    list.add(version);
-    return list;
-  }
+    private static List<String> join(final List<String> segments, final String version) {
+        final ArrayList list = new ArrayList(segments);
+        list.add(version);
+        return list;
+    }
 
-  public static VersionedLabel of(Label label, String version) {
-    return new VersionedLabel(label, version);
-  }
+    public static VersionedLabel of(Label label, String version) {
+        return new VersionedLabel(label, version);
+    }
 }

@@ -4,7 +4,6 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.Projec
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.VersionedLabel;
 import java.util.Collection;
 import java.util.Collections;
