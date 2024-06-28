@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.analyzers.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.Label;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.VersionedLabel;
+import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.VersionedLabel;
 import java.util.function.Consumer;
 import lombok.NonNull;
 

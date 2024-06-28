@@ -1,6 +1,5 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service.common;
+package de.gregorpoloczek.projectmaintainer.core.domain.analysis.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.Label;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
