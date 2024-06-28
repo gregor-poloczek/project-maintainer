@@ -4,9 +4,9 @@ import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitD
 import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitLocation;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.git.provider.common.PasswordResolverService;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscovery;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryContext;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
+import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.net.URI;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;

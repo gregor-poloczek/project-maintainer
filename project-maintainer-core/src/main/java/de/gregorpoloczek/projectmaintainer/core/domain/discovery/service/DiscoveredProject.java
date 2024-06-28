@@ -1,6 +1,6 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
+package de.gregorpoloczek.projectmaintainer.core.domain.discovery.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.net.URI;
 import java.util.Optional;
 import lombok.Builder;

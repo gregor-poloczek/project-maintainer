@@ -1,6 +1,6 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
+package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;

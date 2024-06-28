@@ -1,10 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.api.FluxBasedProjectOperationProgressListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import org.springframework.stereotype.Service;

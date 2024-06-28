@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
+package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
 public enum ProjectOperationState {
     SCHEDULED(false), STARTED(false), RUNNING(false), SUCCEEDED(true), FAILED(true);

@@ -1,6 +1,5 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.repository;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;

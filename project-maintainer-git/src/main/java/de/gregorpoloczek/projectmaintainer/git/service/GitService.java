@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;

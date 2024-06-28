@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service.common;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 
 import java.util.ArrayList;

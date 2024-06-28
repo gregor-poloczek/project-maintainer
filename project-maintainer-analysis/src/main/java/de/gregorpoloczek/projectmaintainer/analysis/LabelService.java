@@ -1,9 +1,9 @@
 package de.gregorpoloczek.projectmaintainer.analysis;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectImpl;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRepository;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;

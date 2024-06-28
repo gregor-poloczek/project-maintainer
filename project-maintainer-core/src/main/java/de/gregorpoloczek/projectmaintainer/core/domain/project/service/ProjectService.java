@@ -1,8 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import java.util.List;
 import java.util.Optional;
 import lombok.NonNull;

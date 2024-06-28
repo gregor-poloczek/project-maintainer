@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

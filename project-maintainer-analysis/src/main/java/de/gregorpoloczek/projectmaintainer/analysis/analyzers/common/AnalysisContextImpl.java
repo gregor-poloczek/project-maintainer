@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
 
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import java.util.NavigableSet;
 import java.util.TreeSet;

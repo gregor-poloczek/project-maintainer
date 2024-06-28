@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.io.File;
 import java.net.URI;
 import java.util.Optional;

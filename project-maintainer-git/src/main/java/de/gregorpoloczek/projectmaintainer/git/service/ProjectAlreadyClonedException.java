@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 
 public class ProjectAlreadyClonedException extends RuntimeException {
 

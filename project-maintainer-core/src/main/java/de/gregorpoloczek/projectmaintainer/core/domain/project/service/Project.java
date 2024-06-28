@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos;
+package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 import java.net.URI;
 import java.util.function.Supplier;

@@ -1,12 +1,12 @@
 package de.gregorpoloczek.projectmaintainer.bootstrap;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.DiscoveredProject;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryResult;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryService;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectImpl;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRepository;
+import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.DiscoveredProject;
+import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryResult;
+import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import jakarta.annotation.PostConstruct;

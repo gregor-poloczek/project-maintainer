@@ -1,10 +1,10 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;

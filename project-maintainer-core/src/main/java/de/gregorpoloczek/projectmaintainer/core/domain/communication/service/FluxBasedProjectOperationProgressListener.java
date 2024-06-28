@@ -1,10 +1,7 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.api;
+package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgress;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationProgressListener;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectOperationState;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.function.BiConsumer;

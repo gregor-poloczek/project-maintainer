@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
+package de.gregorpoloczek.projectmaintainer.core.domain.discovery.service;
 
 import java.util.List;
 import lombok.AccessLevel;
