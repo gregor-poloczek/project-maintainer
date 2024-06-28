@@ -15,7 +15,10 @@
     <dependency>
       <groupId>de.gregorpoloczek.project-maintainer</groupId>
       <artifactId>project-maintainer-core</artifactId>
-      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>de.gregorpoloczek.project-maintainer</groupId>
+      <artifactId>project-maintainer-git</artifactId>
     </dependency>
 
     <dependency>

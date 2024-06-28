@@ -1,12 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.analysis.service.ProjectNotClonedException;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.CloneResult;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.GitService;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.PullResult;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopyService;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;

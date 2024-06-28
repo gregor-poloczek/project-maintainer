@@ -21,7 +21,10 @@
     <dependency>
       <groupId>de.gregorpoloczek.project-maintainer</groupId>
       <artifactId>project-maintainer-bootstrap</artifactId>
-      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>de.gregorpoloczek.project-maintainer</groupId>
+      <artifactId>project-maintainer-analysis</artifactId>
     </dependency>
 
     <dependency>

@@ -1,7 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.bootstrap;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopy;
-import de.gregorpoloczek.projectmaintainer.core.domain.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.DiscoveredProject;
@@ -9,6 +7,8 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDi
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectDiscoveryService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.ProjectMetaData;
+import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.SortedSet;

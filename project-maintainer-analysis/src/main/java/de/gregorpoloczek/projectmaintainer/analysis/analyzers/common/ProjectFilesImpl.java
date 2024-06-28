@@ -1,0 +1,77 @@
+package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
+
+import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+
+public class ProjectFilesImpl implements ProjectFiles {
+
+    private final WorkingCopy workingCopy;
+
+    public ProjectFilesImpl(final WorkingCopy workingCopy) {
+        this.workingCopy = workingCopy;
+    }
+
+    @Override
+    public boolean hasAny(final String regex) {
+        MutableBoolean result = new MutableBoolean(false);
+        try {
+            Files.walkFileTree(workingCopy.getDirectory().toPath(), new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
+                        throws IOException {
+                    if (result.booleanValue()) {
+                        return FileVisitResult.TERMINATE;
+                    }
+                    return super.preVisitDirectory(dir, attrs);
+                }
+
+                @Override
+                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
+                    if (Pattern.compile(regex).matcher(file.toFile().getAbsolutePath()).find()) {
+                        result.setTrue();
+                        return FileVisitResult.TERMINATE;
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return result.booleanValue();
+    }
+
+    public SortedSet<File> find(String regex) {
+        SortedSet<File> result = new TreeSet<>();
+        try {
+            Files.walkFileTree(workingCopy.getDirectory().toPath(), new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
+                        throws IOException {
+                    return super.preVisitDirectory(dir, attrs);
+                }
+
+                @Override
+                public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) {
+                    if (Pattern.compile(regex).matcher(file.toFile().getName()).find()) {
+                        result.add(file.toFile());
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+
+}
