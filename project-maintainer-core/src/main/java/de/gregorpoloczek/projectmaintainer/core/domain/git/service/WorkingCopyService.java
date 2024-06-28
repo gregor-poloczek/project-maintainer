@@ -1,9 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectImpl;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.repository.ProjectRepository;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQPN;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
@@ -34,12 +31,9 @@ import org.springframework.stereotype.Service;
 public class WorkingCopyService {
 
     private final File projectsDirectory;
-    private Map<FQPN, WorkingCopyImpl> workingCopies = new TreeMap<>();
-    private final ProjectRepository projectRepository;
+    private final Map<FQPN, WorkingCopyImpl> workingCopies = new TreeMap<>();
 
-    public WorkingCopyService(final ApplicationProperties applicationProperties,
-            final ProjectRepository projectRepository) {
-        this.projectRepository = projectRepository;
+    public WorkingCopyService(final ApplicationProperties applicationProperties) {
         this.projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
     }
 
