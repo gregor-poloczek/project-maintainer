@@ -37,6 +37,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.common.FQ
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.dtos.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.text.MessageFormat;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -151,6 +152,17 @@ public class GitView extends VerticalLayout {
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(Renderers.getNameRenderer()).setHeader("Name");
+        result.addColumn(
+                LitRenderer.<ProjectItem>of(
+                                "<div style=\"text-wrap: balance;\">${item.text}</div>")
+                        .withProperty("text", ProjectItem::getDescription)
+                        .withProperty("grayscale", item -> !item.isIconBlurred() ? "0.0" : "1.0")
+                        .withProperty("image", item -> {
+                            Optional<Image> image = item.getIcon();
+                            return image.map(
+                                    i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
+                                            .encodeToString(i.getBytes())).orElse("");
+                        })).setHeader("Description");
         result.addColumn(this.workingCopyRenderer).setHeader("Working copy");
         result.addColumn(this.progressBarRenderer);
         return result;
@@ -252,6 +264,7 @@ public class GitView extends VerticalLayout {
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
+                .description(p.getMetaData().getDescription().orElse(""))
                 .workingCopy(workingCopy)
                 .owner(p.getMetaData().getOwner())
                 .icon(GitView.this.imageResolverService.getImage("gitprovider",

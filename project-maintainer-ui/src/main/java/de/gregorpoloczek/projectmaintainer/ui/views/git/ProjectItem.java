@@ -24,6 +24,7 @@ public class ProjectItem implements HasProjectItem, HasIconItem {
     Optional<WorkingCopy> workingCopy;
     Optional<Image> icon;
     String text = "";
+    String description = "";
     String owner;
     boolean operationInProgress;
     Double operationProgressValue;

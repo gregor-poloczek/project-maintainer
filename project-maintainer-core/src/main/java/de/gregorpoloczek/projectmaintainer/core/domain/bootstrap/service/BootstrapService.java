@@ -78,6 +78,7 @@ public class BootstrapService {
 
             final ProjectMetaData metaData = ProjectMetaData.builder()
                     .fqpn(fqpn)
+                    .description(discoveredProject.getDescription())
                     .name(discoveredProject.getName())
                     .uri(discoveredProject.getURI())
                     .owner(discoveredProject.getOwner())
