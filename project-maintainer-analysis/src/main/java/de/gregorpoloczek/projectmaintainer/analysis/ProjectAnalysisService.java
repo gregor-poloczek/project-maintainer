@@ -24,17 +24,20 @@ public class ProjectAnalysisService {
     private final LabelService labelService;
     private final WorkingCopyService workingCopyService;
     private final List<ProjectAnalyzer> projectAnalyzers;
+    private final DependencyService dependencyService;
 
     public ProjectAnalysisService(
             final ProjectService projectService,
-            final LabelService labelService,
             final List<ProjectAnalyzer> projectAnalyzers,
-            final WorkingCopyService workingCopyService
+            final WorkingCopyService workingCopyService,
+            final LabelService labelService,
+            final DependencyService dependencyService
     ) {
         this.projectService = projectService;
         this.labelService = labelService;
         this.projectAnalyzers = projectAnalyzers;
         this.workingCopyService = workingCopyService;
+        this.dependencyService = dependencyService;
     }
 
 
@@ -90,5 +93,6 @@ public class ProjectAnalysisService {
     private void saveAnalysisResult(final AnalysisContextImpl context) {
         final Project project = context.getProject();
         this.labelService.save(project.getMetaData().getFQPN(), context.getLabels());
+        this.dependencyService.save(project.getMetaData().getFQPN(), context.getDependencies());
     }
 }
