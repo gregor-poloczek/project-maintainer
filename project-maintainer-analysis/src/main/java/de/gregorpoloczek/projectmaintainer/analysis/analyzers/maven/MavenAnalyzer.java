@@ -51,7 +51,7 @@ public class MavenAnalyzer implements ProjectAnalyzer {
 
                 Model model = reader.read(new FileInputStream(effectivePom));
                 model.getDependencies().forEach(d -> facts.has(
-                        h -> h.dependency(d.getGroupId() + ":" + d.getArtifactId(), d.getVersion())));
+                        h -> h.dependency("maven", d.getGroupId() + ":" + d.getArtifactId(), d.getVersion())));
 
                 Optional.ofNullable(model.getProperties().get("maven.compiler.target"))
                         .filter(String.class::isInstance)

@@ -1,22 +1,31 @@
 package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
 
+import de.gregorpoloczek.projectmaintainer.analysis.Dependency;
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
 import de.gregorpoloczek.projectmaintainer.analysis.VersionedLabel;
+import java.util.Optional;
 import java.util.function.Consumer;
 import lombok.NonNull;
 
 public class FactsCollector {
 
     private final Consumer<Label> labelListener;
+    private final Consumer<Dependency> dependencyListener;
     private final boolean keep;
 
-    public FactsCollector(@NonNull final Consumer<Label> labelListener, boolean keep) {
+    public FactsCollector(
+            @NonNull final Consumer<Label> labelListener,
+            @NonNull final Consumer<Dependency> dependencyListener,
+            boolean keep) {
         this.labelListener = labelListener;
+        this.dependencyListener = dependencyListener;
         this.keep = keep;
     }
 
-    public FactsCollector(@NonNull final Consumer<Label> labelListener) {
-        this(labelListener, true);
+    public FactsCollector(
+            @NonNull final Consumer<Label> labelListener,
+            @NonNull final Consumer<Dependency> dependencyListener) {
+        this(labelListener, dependencyListener, true);
     }
 
     private void addLabel(Label label) {
@@ -67,19 +76,29 @@ public class FactsCollector {
 
     public class Has {
 
-        public Has dependency(@NonNull String name, String version) {
+        public Has dependency(String management, @NonNull String name, String version) {
             final Label base = Label.of("dep", name);
             if (version != null) {
                 addLabel(VersionedLabel.of(base, version));
             } else {
                 addLabel(base);
             }
+            addDependency(Dependency.builder()
+                    .type(management)
+                    .name(name)
+                    .version(Optional.ofNullable(version))
+                    .build());
             return this;
         }
+
+    }
+
+    private void addDependency(Dependency dependency) {
+        this.dependencyListener.accept(dependency);
     }
 
     public FactsCollector when(boolean keep) {
-        return new FactsCollector(this.labelListener, keep);
+        return new FactsCollector(this.labelListener, this.dependencyListener, keep);
     }
 
     public FactsCollector uses(@NonNull Consumer<Uses> usesConsumer) {
