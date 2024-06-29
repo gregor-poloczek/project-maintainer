@@ -1,5 +1,7 @@
-package de.gregorpoloczek.projectmaintainer.core.common.properties;
+package de.gregorpoloczek.projectmaintainer.git;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,12 +9,13 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-@ConfigurationProperties("project-maintainer")
-@Component
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ApplicationProperties {
+@ConfigurationProperties("project-maintainer.projects.discovery.bitbucket")
+@Component
+public final class ProjectsDiscoveryBitbucketProperties {
 
-    ProjectsSection projects = new ProjectsSection();
+    List<String> users = new ArrayList<>();
+
 }

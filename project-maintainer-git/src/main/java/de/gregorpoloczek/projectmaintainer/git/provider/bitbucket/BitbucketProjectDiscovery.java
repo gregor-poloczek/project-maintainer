@@ -1,7 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.git.provider.bitbucket;
 
-import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
-import de.gregorpoloczek.projectmaintainer.core.common.properties.BitbucketDiscoverySection;
+import de.gregorpoloczek.projectmaintainer.git.ProjectsDiscoveryBitbucketProperties;
 import de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api.RepositoryListResource;
 import de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api.RepositoryResource;
 import de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api.WorkspaceMembershipListResource;
@@ -25,26 +24,20 @@ import reactor.core.publisher.Mono;
 public class BitbucketProjectDiscovery implements ProjectDiscovery {
 
     private final PasswordResolverService passwordResolverService;
-    private final ApplicationProperties applicationProperties;
+    private final ProjectsDiscoveryBitbucketProperties discoveryProperties;
 
 
     public BitbucketProjectDiscovery(
             final PasswordResolverService passwordResolverService,
-            final ApplicationProperties applicationProperties) {
+            final ProjectsDiscoveryBitbucketProperties discoveryProperties) {
         this.passwordResolverService = passwordResolverService;
-        this.applicationProperties = applicationProperties;
+        this.discoveryProperties = discoveryProperties;
     }
 
 
     @Override
     public void discoverProjects(final ProjectDiscoveryContext context) {
-        BitbucketDiscoverySection bitbucketSection = applicationProperties.getProjects().getDiscovery().getBitbucket();
-        if (bitbucketSection == null) {
-            log.info("Nothing configured for Bitbucket.");
-            return;
-        }
-
-        for (String username : bitbucketSection.getUsers()) {
+        for (String username : discoveryProperties.getUsers()) {
             String password = passwordResolverService.getPassword("bitbucket", username);
             UsernamePasswordCredentialsProvider credentialsProvider =
                     new UsernamePasswordCredentialsProvider(username, password);

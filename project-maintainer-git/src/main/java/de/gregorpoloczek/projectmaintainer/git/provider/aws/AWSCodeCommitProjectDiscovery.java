@@ -1,8 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.git.provider.aws;
 
-import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitDiscoverySection;
+import de.gregorpoloczek.projectmaintainer.git.ProjectsDiscoveryAWSCodeCommitProperties;
 import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitLocation;
-import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.git.provider.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
@@ -23,26 +22,18 @@ import software.amazon.awssdk.services.sts.StsClient;
 public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
 
     private final PasswordResolverService passwordResolverService;
-    private final ApplicationProperties applicationProperties;
+    private final ProjectsDiscoveryAWSCodeCommitProperties discoveryProperties;
 
     public AWSCodeCommitProjectDiscovery(
             PasswordResolverService passwordResolverService,
-            ApplicationProperties applicationProperties) {
+            ProjectsDiscoveryAWSCodeCommitProperties discoveryProperties) {
         this.passwordResolverService = passwordResolverService;
-        this.applicationProperties = applicationProperties;
+        this.discoveryProperties = discoveryProperties;
     }
 
     @Override
     public void discoverProjects(final ProjectDiscoveryContext context) {
-        AWSCodeCommitDiscoverySection awsCodeCommitSection = applicationProperties.getProjects()
-                .getDiscovery()
-                .getAwsCodeCommit();
-        if (awsCodeCommitSection == null) {
-            log.info("Nothing configured for AWS CodeCommit.");
-            return;
-        }
-
-        for (final AWSCodeCommitLocation location : awsCodeCommitSection.getLocations()) {
+        for (final AWSCodeCommitLocation location : discoveryProperties.getLocations()) {
             ProfileCredentialsProvider awsCredentialsProvider = ProfileCredentialsProvider.create(
                     location.getProfile());
 

@@ -12,5 +12,4 @@ import lombok.experimental.FieldDefaults;
 public class ProjectsSection {
 
     File cloneDirectory = new File("./.projects");
-    DiscoverySection discovery;
 }

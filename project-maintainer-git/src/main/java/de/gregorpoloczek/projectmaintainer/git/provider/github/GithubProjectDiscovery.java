@@ -1,7 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.git.provider.github;
 
-import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
-import de.gregorpoloczek.projectmaintainer.core.common.properties.GithubDiscoverySection;
+import de.gregorpoloczek.projectmaintainer.git.ProjectsDiscoveryGithubProperties;
 import de.gregorpoloczek.projectmaintainer.git.provider.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
@@ -23,25 +22,21 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class GithubProjectDiscovery implements ProjectDiscovery {
 
-    private final ApplicationProperties applicationProperties;
+    private final ProjectsDiscoveryGithubProperties discoveryProperties;
 
-    public GithubProjectDiscovery(final PasswordResolverService passwordResolverService,
-            ApplicationProperties applicationProperties) {
+    public GithubProjectDiscovery(
+            final PasswordResolverService passwordResolverService,
+            ProjectsDiscoveryGithubProperties discoveryProperties) {
         this.passwordResolverService = passwordResolverService;
-        this.applicationProperties = applicationProperties;
+        this.discoveryProperties = discoveryProperties;
     }
 
     private final PasswordResolverService passwordResolverService;
 
     @Override
     public void discoverProjects(final ProjectDiscoveryContext context) {
-        GithubDiscoverySection githubSection = applicationProperties.getProjects().getDiscovery().getGithub();
-        if (githubSection == null) {
-            log.info("Nothing configured for Github.");
-            return;
-        }
 
-        final List<String> users = githubSection.getUsers();
+        final List<String> users = discoveryProperties.getUsers();
 
         for (String username : users) {
             String password = passwordResolverService.getPassword("github", username);
