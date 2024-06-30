@@ -23,4 +23,8 @@ public class VersionedLabel extends Label {
     public static VersionedLabel of(Label label, String version) {
         return new VersionedLabel(label, version);
     }
+
+    public String getVersion() {
+        return getSegments().getLast();
+    }
 }
