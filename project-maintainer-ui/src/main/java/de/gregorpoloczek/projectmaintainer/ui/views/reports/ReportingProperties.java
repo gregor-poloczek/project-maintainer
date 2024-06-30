@@ -37,7 +37,7 @@ public class ReportingProperties {
 
         @NotEmpty
         String name;
-        String dependencyVersion;
+        String versionLabelBase;
     }
 
     List<Report> reports = new ArrayList<>();

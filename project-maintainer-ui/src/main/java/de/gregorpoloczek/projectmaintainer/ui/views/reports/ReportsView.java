@@ -144,7 +144,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
                 int index = 0;
                 for (Column column : this.report.getColumns()) {
-                    Label label = Label.of(column.getDependencyVersion());
+                    Label label = Label.of(column.getVersionLabelBase());
                     Optional<VersionedLabel> match = labels.stream()
                             .filter(VersionedLabel.class::isInstance)
                             .map(VersionedLabel.class::cast)
