@@ -18,21 +18,19 @@ public class ReportRowItem implements HasIconItem, HasProjectItem {
 
     @Getter
     private Project project;
+    @Getter
+    private Optional<Image> icon;
     private String[] values;
 
-    public ReportRowItem(Project project, int columnsCount) {
-        this.values = new String[columnsCount];
+    public ReportRowItem(Project project, int columnsCount, Optional<Image> icon) {
         this.project = project;
+        this.values = new String[columnsCount];
+        this.icon = icon;
     }
 
     @Override
     public boolean isIconBlurred() {
         return false;
-    }
-
-    @Override
-    public Optional<Image> getIcon() {
-        return Optional.empty();
     }
 
     @Getter

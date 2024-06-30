@@ -21,7 +21,9 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
+import de.gregorpoloczek.projectmaintainer.ui.views.git.GitView;
 import de.gregorpoloczek.projectmaintainer.ui.views.reports.ReportingProperties.Column;
 import de.gregorpoloczek.projectmaintainer.ui.views.reports.ReportingProperties.Report;
 import java.util.ArrayList;
@@ -46,19 +48,21 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
     private ProjectAnalysisService projectAnalysisService;
     private LabelService labelService;
     private Report report;
+    private ImageResolverService imageResolverService;
 
     public ReportsView(
             ReportingProperties reportingProperties,
             ProjectService projectService,
             WorkingCopyService workingCopyService, OperationExecutionService operationExecutionService,
             ProjectAnalysisService projectAnalysisService,
-            LabelService labelService) {
+            LabelService labelService, ImageResolverService imageResolverService) {
         this.reportingProperties = reportingProperties;
         this.projectService = projectService;
         this.workingCopyService = workingCopyService;
         this.operationExecutionService = operationExecutionService;
         this.projectAnalysisService = projectAnalysisService;
         this.labelService = labelService;
+        this.imageResolverService = imageResolverService;
         this.title = new H1("");
 
         this.grid = new Grid<>();
@@ -113,7 +117,12 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
             Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN());
 
             if (workingCopy.isPresent()) {
-                items.add(new ReportRowItem(project, this.report.getColumns().size()));
+                items.add(
+                        new ReportRowItem(project,
+                                this.report.getColumns().size(),
+                                ReportsView.this.imageResolverService.getImage("gitprovider",
+                                        project.getMetaData().getGitProvider().name()))
+                );
                 this.operationExecutionService.executeAsyncOperation2(
                                 project,
                                 "analysis::analyze",
