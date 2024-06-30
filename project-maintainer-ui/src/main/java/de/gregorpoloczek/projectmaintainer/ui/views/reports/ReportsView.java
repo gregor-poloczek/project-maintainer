@@ -5,6 +5,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
@@ -112,8 +113,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
             Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN());
 
             if (workingCopy.isPresent()) {
-                items.add(new ReportRowItem(project, this.report.getColumns().size()))
-                ;
+                items.add(new ReportRowItem(project, this.report.getColumns().size()));
                 this.operationExecutionService.executeAsyncOperation2(
                                 project,
                                 "analysis::analyze",
@@ -122,6 +122,10 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
             }
         }
         this.grid.setItems(items);
+        ListDataProvider<ReportRowItem> dataProvider = (ListDataProvider<ReportRowItem>) this.grid.getDataProvider();
+        dataProvider.setFilter(ReportRowItem::hasValues);
+        dataProvider.refreshAll();
+
         this.itemByFQPN = items.stream()
                 .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
     }
@@ -149,6 +153,8 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
                     if (match.isPresent()) {
                         item.setValue(index, match.get().getVersion());
+                        ListDataProvider<ReportRowItem> dataProvider = (ListDataProvider<ReportRowItem>) this.grid.getDataProvider();
+                        dataProvider.refreshItem(item);
                     }
 
                     index++;

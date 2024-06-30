@@ -58,6 +58,11 @@ public class MavenAnalyzer implements ProjectAnalyzer {
                         .map(String.class::cast)
                         .map(this::convertJavaVersion)
                         .ifPresent(v -> facts.uses(u -> u.language("java", v)));
+                Optional.ofNullable(model.getProperties().get("java.version"))
+                        .filter(String.class::isInstance)
+                        .map(String.class::cast)
+                        .map(this::convertJavaVersion)
+                        .ifPresent(v -> facts.uses(u -> u.language("java", v)));
             } catch (IOException | InterruptedException | XmlPullParserException e) {
                 log.error("Analysis for \"%s\" failed.".formatted(pom), e);
             } finally {

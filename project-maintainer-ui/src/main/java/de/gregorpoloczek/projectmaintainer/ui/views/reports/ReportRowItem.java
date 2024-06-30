@@ -4,7 +4,10 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasIconItem;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasProjectItem;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -42,5 +45,9 @@ public class ReportRowItem implements HasIconItem, HasProjectItem {
 
     public Optional<String> getValue(int index) {
         return Optional.ofNullable(this.values[index]);
+    }
+
+    public boolean hasValues() {
+        return Stream.of(this.values).anyMatch(Predicate.not(Objects::isNull));
     }
 }
