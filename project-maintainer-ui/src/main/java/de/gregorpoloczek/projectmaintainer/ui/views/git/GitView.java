@@ -32,6 +32,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.Pro
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.text.MessageFormat;
 import java.util.Base64;
@@ -44,7 +45,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.time4j.PrettyTime;
 
-@Route
+@Route(layout = MainLayout.class)
 public class GitView extends VerticalLayout {
 
     private final transient ProjectService projectService;

@@ -20,6 +20,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
+import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +32,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
-@Route
+@Route(layout = MainLayout.class)
 public class AnalysisView extends VerticalLayout {
 
     private final ProjectAnalysisService projectAnalysisService;

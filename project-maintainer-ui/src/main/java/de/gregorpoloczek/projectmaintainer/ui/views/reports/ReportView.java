@@ -21,6 +21,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
+import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import de.gregorpoloczek.projectmaintainer.ui.views.reports.ReportingProperties.Column;
 import de.gregorpoloczek.projectmaintainer.ui.views.reports.ReportingProperties.Report;
@@ -34,20 +35,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Builder;
 
-@Route("/reports/:reportId")
+@Route(value = "/reports/:reportId", layout = MainLayout.class)
 public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final ReportingProperties reportingProperties;
-    private final ProjectService projectService;
+    private final transient ReportingProperties reportingProperties;
+    private final transient ProjectService projectService;
     private final Grid<ReportRowItem> grid;
     private final ReportHeader header;
-    private WorkingCopyService workingCopyService;
-    private OperationExecutionService operationExecutionService;
-    private ProjectAnalysisService projectAnalysisService;
-    private LabelService labelService;
-    private Report report;
-    private ImageResolverService imageResolverService;
-    private Map<FQPN, ReportRowItem> itemByFQPN = new HashMap<>();
+    private final transient WorkingCopyService workingCopyService;
+    private final transient OperationExecutionService operationExecutionService;
+    private final transient ProjectAnalysisService projectAnalysisService;
+    private final transient LabelService labelService;
+    private final transient ImageResolverService imageResolverService;
+    private transient Report report;
+    private transient Map<FQPN, ReportRowItem> itemByFQPN = new HashMap<>();
 
 
     public ReportView(
