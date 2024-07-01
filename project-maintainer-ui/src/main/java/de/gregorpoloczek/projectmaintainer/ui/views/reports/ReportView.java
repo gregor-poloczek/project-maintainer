@@ -98,13 +98,13 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         this.grid.removeAllColumns();
         this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(0).setWidth("350px");
+        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(1).setWidth("350px");
 
         int index = 0;
         for (Column columnId : report.getColumns()) {
             ReportRowItemCell cell = ReportRowItemCell.builder().index(index).build();
             this.grid.addColumn(cell::getValue)
-                    .setHeader(columnId.getName());
+                    .setHeader(columnId.getName()).setWidth("128px").setFlexGrow(0);
             index++;
         }
 
