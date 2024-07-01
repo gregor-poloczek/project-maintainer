@@ -1,10 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.reports;
 
-import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -49,6 +47,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private LabelService labelService;
     private Report report;
     private ImageResolverService imageResolverService;
+    private Map<FQPN, ReportRowItem> itemByFQPN = new HashMap<>();
+
 
     public ReportView(
             ReportingProperties reportingProperties,
@@ -144,8 +144,6 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     }
 
 
-    private Map<FQPN, ReportRowItem> itemByFQPN = new HashMap<>();
-
     private void onUpdateEvent(ProjectOperationProgress e, UI current) {
         if (!current.isAttached()) {
             // browser has been reloaded or closed in the mean time
@@ -156,8 +154,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                 FQPN fqpn = e.getFqpn();
                 synchronized (this) {
                     ReportRowItem item = this.itemByFQPN.get(fqpn);
-                    fillRowItem(fqpn, item);
-                    System.out.println("updated " + fqpn + " item has values " + item.hasValues());
+                    this.fillRowItem(fqpn, item);
                     this.grid.getDataProvider().refreshAll();
                 }
             }
