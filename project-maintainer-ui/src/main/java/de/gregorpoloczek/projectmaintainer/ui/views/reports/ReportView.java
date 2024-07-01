@@ -133,13 +133,14 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                         .subscribe(e -> onUpdateEvent(e, ui));
             }
         }
-        this.itemByFQPN = items.stream()
-                .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
-
-        this.grid.setItems(items);
-        ListDataProvider<ReportRowItem> dataProvider = (ListDataProvider<ReportRowItem>) this.grid.getDataProvider();
-        dataProvider.setFilter(ReportRowItem::hasValues);
-        dataProvider.refreshAll();
+        synchronized (this) {
+            this.itemByFQPN = items.stream()
+                    .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
+            this.grid.setItems(items);
+            ListDataProvider<ReportRowItem> dataProvider = (ListDataProvider<ReportRowItem>) this.grid.getDataProvider();
+            dataProvider.setFilter(ReportRowItem::hasValues);
+            dataProvider.refreshAll();
+        }
     }
 
 
@@ -153,9 +154,12 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         current.access(() -> {
             if (e.getState().isTerminated()) {
                 FQPN fqpn = e.getFqpn();
-                ReportRowItem item = this.itemByFQPN.get(fqpn);
-                fillRowItem(fqpn, item);
-                this.grid.getDataProvider().refreshItem(item);
+                synchronized (this) {
+                    ReportRowItem item = this.itemByFQPN.get(fqpn);
+                    fillRowItem(fqpn, item);
+                    System.out.println("updated " + fqpn + " item has values " + item.hasValues());
+                    this.grid.getDataProvider().refreshAll();
+                }
             }
         });
     }
@@ -173,10 +177,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
             if (match.isPresent()) {
                 item.setValue(index, match.get().getVersion());
-                ListDataProvider<ReportRowItem> dataProvider = (ListDataProvider<ReportRowItem>) this.grid.getDataProvider();
-                dataProvider.refreshItem(item);
             }
-
             index++;
         }
     }
