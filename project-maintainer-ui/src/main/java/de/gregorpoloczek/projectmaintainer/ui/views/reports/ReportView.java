@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.ui.views.reports;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -104,7 +105,9 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         for (Column columnId : report.getColumns()) {
             ReportRowItemCell cell = ReportRowItemCell.builder().index(index).build();
             this.grid.addColumn(cell::getValue)
-                    .setHeader(columnId.getName()).setWidth("128px").setFlexGrow(0);
+                    .setHeader(columnId.getName()).setWidth("128px")
+                    .setFlexGrow(0)
+                    .setTextAlign(ColumnTextAlign.CENTER);
             index++;
         }
 
