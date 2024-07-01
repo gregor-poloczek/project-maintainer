@@ -13,6 +13,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.springframework.stereotype.Component;
@@ -52,6 +53,16 @@ public class MavenAnalyzer implements ProjectAnalyzer {
                 Model model = reader.read(new FileInputStream(effectivePom));
                 model.getDependencies().forEach(d -> facts.has(
                         h -> h.dependency("maven", d.getGroupId() + ":" + d.getArtifactId(), d.getVersion())));
+
+                Parent parent = model.getParent();
+                if (parent != null) {
+                    facts.has(h -> h.dependency("maven", parent.getGroupId() + ":" + parent.getArtifactId(),
+                            parent.getVersion()));
+                }
+                model.getBuild().getPlugins().forEach(plugin -> {
+                    facts.has(h -> h.dependency("maven", plugin.getGroupId() + ":" + plugin.getArtifactId(),
+                            plugin.getVersion()));
+                });
 
                 Optional.ofNullable(model.getProperties().get("maven.compiler.target"))
                         .filter(String.class::isInstance)
