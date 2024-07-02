@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.ui.views.reports;
+package de.gregorpoloczek.projectmaintainer.reporting;
 
 import jakarta.validation.constraints.NotEmpty;
 import java.util.ArrayList;
@@ -20,25 +20,25 @@ public class ReportingProperties {
     @Getter
     @Setter
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class Report {
+    public static class ReportProperties {
 
         @NotEmpty
         String id;
         @NotEmpty
         String name;
         @NotEmpty
-        List<Column> columns = new ArrayList<>();
+        List<ColumnProperties> columns = new ArrayList<>();
     }
 
     @Getter
     @Setter
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class Column {
+    public static class ColumnProperties {
 
         @NotEmpty
         String name;
         String versionLabelBase;
     }
 
-    List<Report> reports = new ArrayList<>();
+    List<ReportProperties> reports = new ArrayList<>();
 }

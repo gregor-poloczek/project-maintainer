@@ -21,11 +21,15 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.reporting.ProjectReportGeneratorService;
+import de.gregorpoloczek.projectmaintainer.reporting.ProjectReportGeneratorService.Cell;
+import de.gregorpoloczek.projectmaintainer.reporting.ProjectReportGeneratorService.Column;
+import de.gregorpoloczek.projectmaintainer.reporting.ProjectReportGeneratorService.Row;
+import de.gregorpoloczek.projectmaintainer.reporting.ReportingProperties;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.views.reports.ReportingProperties.Column;
-import de.gregorpoloczek.projectmaintainer.ui.views.reports.ReportingProperties.Report;
+import de.gregorpoloczek.projectmaintainer.reporting.ReportingProperties.ColumnProperties;
+import de.gregorpoloczek.projectmaintainer.reporting.ReportingProperties.ReportProperties;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +53,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient LabelService labelService;
     private final ProjectReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
-    private transient Report report;
+    private transient ReportProperties reportProperties;
     private transient Map<FQPN, ReportRowItem> itemByFQPN = new HashMap<>();
 
 
@@ -95,55 +99,33 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         String reportId = parameters.get("reportId")
                 .orElseThrow(() -> new IllegalArgumentException("No report id defined"));
 
-        this.report = reportingProperties.getReports().stream()
+        this.reportProperties = reportingProperties.getReports().stream()
                 .filter(r -> r.getId().equals(reportId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Report " + reportId + " is unknown."));
 
-        this.header.setTitle(report.getName());
-        this.header.setSelectedReport(report);
+        this.header.setTitle(reportProperties.getName());
+        this.header.setSelectedReport(reportProperties);
 
         this.grid.removeAllColumns();
         this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
         this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(1).setWidth("350px");
 
-        int index = 0;
-        for (Column columnId : report.getColumns()) {
-            ReportRowItemCell cell = ReportRowItemCell.builder().index(index).build();
-            this.grid.addColumn(cell::getValue)
-                    .setHeader(columnId.getName()).setWidth("128px")
-                    .setFlexGrow(0)
-                    .setTextAlign(ColumnTextAlign.CENTER);
-            index++;
-        }
-
-        UI ui = UI.getCurrent();
-
         List<Project> projects = this.projectService.getProjects();
         List<ReportRowItem> items = new ArrayList<>();
-
-        projectReportGeneratorService.getReport(reportId)
-                .subscribe((report) -> UI.getCurrent().access(() -> {
-                    System.out.println(report.getRows());
-                }));
-
         for (Project project : projects) {
             Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN());
 
             if (workingCopy.isPresent()) {
                 items.add(
                         new ReportRowItem(project,
-                                this.report.getColumns().size(),
+                                this.reportProperties.getColumns().size(),
                                 ReportView.this.imageResolverService.getImage("gitprovider",
                                         project.getMetaData().getGitProvider().name()))
                 );
-                this.operationExecutionService.executeAsyncOperation2(
-                                project,
-                                "analysis::analyze",
-                                this.projectAnalysisService::analyze)
-                        .subscribe(e -> onUpdateEvent(e, ui));
             }
         }
+
         synchronized (this) {
             this.itemByFQPN = items.stream()
                     .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
@@ -152,43 +134,68 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             dataProvider.setFilter(ReportRowItem::hasValues);
             dataProvider.refreshAll();
         }
+
+        UI ui = UI.getCurrent();
+
+        projectReportGeneratorService.getReport(reportId)
+                .subscribe((report) -> ui.access(() -> {
+                    int index = 0;
+                    for (Column column : report.getDefinition().getColumns()) {
+                        ReportRowItemCell cell = ReportRowItemCell.builder().index(index).build();
+                        this.grid.addColumn(cell::getValue)
+                                .setHeader(column.getLabel()).setWidth("128px")
+                                .setFlexGrow(0)
+                                .setTextAlign(ColumnTextAlign.CENTER);
+                        index++;
+                    }
+
+                    for (Row row : report.getRows()) {
+                        ReportRowItem item = this.itemByFQPN.get(row.getProject().getMetaData().getFQPN());
+                        int i = 0;
+                        for (Cell cell : row.getCells()) {
+                            item.setValue(i, cell.getValue() != null ? cell.getValue() : "");
+                            i++;
+                        }
+                        grid.getDataProvider().refreshAll();
+                    }
+                }));
+
     }
 
+//    private void onUpdateEvent(ProjectOperationProgress e, UI current) {
+//        if (!current.isAttached()) {
+//            // browser has been reloaded or closed in the mean time
+//            return;
+//        }
+//        current.access(() -> {
+//            if (e.getState().isTerminated()) {
+//                FQPN fqpn = e.getFqpn();
+//                synchronized (this) {
+//                    ReportRowItem item = this.itemByFQPN.get(fqpn);
+//                    this.fillRowItem(fqpn, item);
+//                    this.grid.getDataProvider().refreshAll();
+//                }
+//            }
+//        });
+//    }
 
-    private void onUpdateEvent(ProjectOperationProgress e, UI current) {
-        if (!current.isAttached()) {
-            // browser has been reloaded or closed in the mean time
-            return;
-        }
-        current.access(() -> {
-            if (e.getState().isTerminated()) {
-                FQPN fqpn = e.getFqpn();
-                synchronized (this) {
-                    ReportRowItem item = this.itemByFQPN.get(fqpn);
-                    this.fillRowItem(fqpn, item);
-                    this.grid.getDataProvider().refreshAll();
-                }
-            }
-        });
-    }
-
-    private void fillRowItem(FQPN fqpn, ReportRowItem item) {
-        SortedSet<Label> labels = this.labelService.find(fqpn);
-        int index = 0;
-        for (Column column : this.report.getColumns()) {
-            Label label = Label.of(column.getVersionLabelBase());
-            Optional<VersionedLabel> match = labels.stream()
-                    .filter(VersionedLabel.class::isInstance)
-                    .map(VersionedLabel.class::cast)
-                    .filter(vL -> vL.getBase().equals(label))
-                    .findFirst();
-
-            if (match.isPresent()) {
-                item.setValue(index, match.get().getVersion());
-            }
-            index++;
-        }
-    }
+//    private void fillRowItem(FQPN fqpn, ReportRowItem item) {
+//        SortedSet<Label> labels = this.labelService.find(fqpn);
+//        int index = 0;
+//        for (ColumnProperties column : this.reportProperties.getColumns()) {
+//            Label label = Label.of(column.getVersionLabelBase());
+//            Optional<VersionedLabel> match = labels.stream()
+//                    .filter(VersionedLabel.class::isInstance)
+//                    .map(VersionedLabel.class::cast)
+//                    .filter(vL -> vL.getBase().equals(label))
+//                    .findFirst();
+//
+//            if (match.isPresent()) {
+//                item.setValue(index, match.get().getVersion());
+//            }
+//            index++;
+//        }
+//    }
 
 
 }
