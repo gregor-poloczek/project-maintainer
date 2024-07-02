@@ -20,6 +20,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.reporting.ProjectReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
@@ -46,6 +47,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient OperationExecutionService operationExecutionService;
     private final transient ProjectAnalysisService projectAnalysisService;
     private final transient LabelService labelService;
+    private final ProjectReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
     private transient Report report;
     private transient Map<FQPN, ReportRowItem> itemByFQPN = new HashMap<>();
@@ -56,13 +58,16 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             ProjectService projectService,
             WorkingCopyService workingCopyService, OperationExecutionService operationExecutionService,
             ProjectAnalysisService projectAnalysisService,
-            LabelService labelService, ImageResolverService imageResolverService) {
+            LabelService labelService,
+            ProjectReportGeneratorService projectReportGeneratorService,
+            ImageResolverService imageResolverService) {
         this.reportingProperties = reportingProperties;
         this.projectService = projectService;
         this.workingCopyService = workingCopyService;
         this.operationExecutionService = operationExecutionService;
         this.projectAnalysisService = projectAnalysisService;
         this.labelService = labelService;
+        this.projectReportGeneratorService = projectReportGeneratorService;
         this.imageResolverService = imageResolverService;
         this.header = new ReportHeader(reportingProperties);
 
@@ -116,6 +121,11 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         List<Project> projects = this.projectService.getProjects();
         List<ReportRowItem> items = new ArrayList<>();
+
+        projectReportGeneratorService.getReport(reportId)
+                .subscribe((report) -> UI.getCurrent().access(() -> {
+                    System.out.println(report.getRows());
+                }));
 
         for (Project project : projects) {
             Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN());

@@ -18,6 +18,7 @@ import java.util.Set;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
@@ -67,7 +68,7 @@ public class ProjectAnalysisService {
                     return null;
                 }
 
-                this.performAnalysis(context, listener);
+                this.performAnalysis(context);
                 this.saveAnalysisResult(context);
                 return null;
             });
@@ -80,15 +81,43 @@ public class ProjectAnalysisService {
         }
     }
 
+    public Mono<Void> analyze(@NonNull FQPN fqpn) {
+        final Project project = projectService.getProject(fqpn)
+                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
 
-    private void performAnalysis(final AnalysisContextImpl context,
-            final ProjectOperationProgressListener listener) {
+        final Optional<WorkingCopy> maybeWorkingCopy =
+                workingCopyService.find(fqpn);
+
+        if (!maybeWorkingCopy.isPresent()) {
+            return Mono.error(new ProjectNotClonedException(fqpn));
+        }
+
+        final WorkingCopy workingCopy = maybeWorkingCopy.get();
+        try {
+            project.withReadLock(() -> {
+                final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
+                if (this.analyzed.contains(context.getProject().getMetaData().getFQPN())) {
+                    return Mono.empty();
+                }
+
+                this.performAnalysis(context);
+                this.saveAnalysisResult(context);
+                return null;
+            });
+
+            return Mono.empty();
+        } catch (RuntimeException e) {
+            log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
+            return Mono.error(e);
+        }
+    }
+
+
+    private void performAnalysis(final AnalysisContextImpl context) {
         final Project project = context.getProject();
 
         double i = 0.0d;
         for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
-            listener.update(analyzer.getClass().getSimpleName(),
-                    i / (double) this.projectAnalyzers.size());
             try {
                 analyzer.analyze(context);
             } catch (RuntimeException e) {

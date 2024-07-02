@@ -26,6 +26,10 @@
       <groupId>de.gregorpoloczek.project-maintainer</groupId>
       <artifactId>project-maintainer-analysis</artifactId>
     </dependency>
+    <dependency>
+      <groupId>de.gregorpoloczek.project-maintainer</groupId>
+      <artifactId>project-maintainer-reporting</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>com.vaadin</groupId>
