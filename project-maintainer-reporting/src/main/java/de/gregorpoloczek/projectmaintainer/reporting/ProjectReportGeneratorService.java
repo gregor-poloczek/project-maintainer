@@ -18,6 +18,7 @@ import lombok.Getter;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Service
 public class ProjectReportGeneratorService {
@@ -53,16 +54,15 @@ public class ProjectReportGeneratorService {
                 .toList();
 
         Flux<Void> analysis = Flux.merge(projects.stream()
-                .map(p -> projectAnalysisService.analyze(p.getMetaData().getFQPN())).toList());
+                .map(p -> projectAnalysisService.analyze(p.getMetaData().getFQPN()).subscribeOn(Schedulers.parallel()))
+                .toList());
         return analysis
                 .collectList()
-                .flatMap((l) -> {
-                    Mono<ReportProperties> mono = Mono.justOrEmpty(properties)
-                            .switchIfEmpty(
-                                    Mono.error(new IllegalArgumentException(
-                                            "Cannot find report definition with id " + reportId)));
-                    return mono;
-                }).map(p -> {
+                .flatMap(list -> Mono.justOrEmpty(properties)
+                        .switchIfEmpty(
+                                Mono.error(new IllegalArgumentException(
+                                        "Cannot find report definition with id " + reportId))))
+                .map(p -> {
                     ReportDefinition reportDefinition = new ReportDefinition();
                     reportDefinition.id = p.getId();
                     reportDefinition.name = p.getName();

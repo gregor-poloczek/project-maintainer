@@ -92,24 +92,27 @@ public class ProjectAnalysisService {
             return Mono.error(new ProjectNotClonedException(fqpn));
         }
 
-        final WorkingCopy workingCopy = maybeWorkingCopy.get();
-        try {
-            project.withReadLock(() -> {
-                final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
-                if (this.analyzed.contains(context.getProject().getMetaData().getFQPN())) {
-                    return Mono.empty();
-                }
+        return Mono.fromCallable(() -> {
+            final WorkingCopy workingCopy = maybeWorkingCopy.get();
 
-                this.performAnalysis(context);
-                this.saveAnalysisResult(context);
-                return null;
-            });
+            try {
+                log.info("Analyzing project \"{}\".", fqpn);
+                return project.<Void>withReadLock(() -> {
+                    final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
+                    if (this.analyzed.contains(context.getProject().getMetaData().getFQPN())) {
+                        return null;
+                    }
 
-            return Mono.empty();
-        } catch (RuntimeException e) {
-            log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
-            return Mono.error(e);
-        }
+                    this.performAnalysis(context);
+                    this.saveAnalysisResult(context);
+                    return null;
+                });
+            } catch (RuntimeException e) {
+                log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
+                throw e;
+            }
+        });
+
     }
 
 

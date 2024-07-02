@@ -13,16 +13,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @EnableAsync
 public class ApplicationConfiguration implements AsyncConfigurer, WebMvcConfigurer {
 
-  @Override
-  public Executor getAsyncExecutor() {
-    ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
-    threadPoolTaskExecutor.setCorePoolSize(10);
-    threadPoolTaskExecutor.initialize();
-    return threadPoolTaskExecutor;
-  }
-
-  @Override
-  public void addCorsMappings(final CorsRegistry registry) {
-    registry.addMapping("/**");
-  }
+    @Override
+    public void addCorsMappings(final CorsRegistry registry) {
+        registry.addMapping("/**");
+    }
 }
