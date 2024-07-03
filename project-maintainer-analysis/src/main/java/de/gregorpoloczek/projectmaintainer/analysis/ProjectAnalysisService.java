@@ -7,14 +7,16 @@ import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.Pro
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.git.service.ProjectNotClonedException;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +31,7 @@ public class ProjectAnalysisService {
     private final WorkingCopyService workingCopyService;
     private final List<ProjectAnalyzer> projectAnalyzers;
     private final DependencyService dependencyService;
-    private Set<FQPN> analyzed = Collections.synchronizedSet(new HashSet<>());
+    private Map<FQPN, String> lastAnalyzedCommitHash = Collections.synchronizedMap(new HashMap<>());
 
     public ProjectAnalysisService(
             final ProjectService projectService,
@@ -63,13 +65,15 @@ public class ProjectAnalysisService {
         try {
             project.withReadLock(() -> {
                 final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
-                if (this.analyzed.contains(context.getProject().getMetaData().getFQPN())) {
+                String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
+                if (Objects.equals(latestHash,
+                        this.lastAnalyzedCommitHash.get(context.getProject().getMetaData().getFQPN()))) {
                     listener.succeeded(context.getProject());
                     return null;
                 }
 
                 this.performAnalysis(context);
-                this.saveAnalysisResult(context);
+                this.saveAnalysisResult(context, latestHash);
                 return null;
             });
 
@@ -99,12 +103,14 @@ public class ProjectAnalysisService {
                 log.info("Analyzing project \"{}\".", fqpn);
                 return project.<Void>withReadLock(() -> {
                     final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
-                    if (this.analyzed.contains(context.getProject().getMetaData().getFQPN())) {
+                    String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
+                    if (Objects.equals(latestHash,
+                            this.lastAnalyzedCommitHash.get(context.getProject().getMetaData().getFQPN()))) {
                         return null;
                     }
 
                     this.performAnalysis(context);
-                    this.saveAnalysisResult(context);
+                    this.saveAnalysisResult(context, latestHash);
                     return null;
                 });
             } catch (RuntimeException e) {
@@ -131,10 +137,10 @@ public class ProjectAnalysisService {
         }
     }
 
-    private void saveAnalysisResult(final AnalysisContextImpl context) {
+    private void saveAnalysisResult(final AnalysisContextImpl context, String latestHash) {
         final Project project = context.getProject();
         this.labelService.save(project.getMetaData().getFQPN(), context.getLabels());
         this.dependencyService.save(project.getMetaData().getFQPN(), context.getDependencies());
-        this.analyzed.add(context.getProject().getMetaData().getFQPN());
+        this.lastAnalyzedCommitHash.put(context.getProject().getMetaData().getFQPN(), latestHash);
     }
 }
