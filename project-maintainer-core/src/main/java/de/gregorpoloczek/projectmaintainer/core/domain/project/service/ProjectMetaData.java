@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class ProjectMetaData {
+public class ProjectMetaData implements HasProjectIdentifier {
 
     private String owner;
     private String name;

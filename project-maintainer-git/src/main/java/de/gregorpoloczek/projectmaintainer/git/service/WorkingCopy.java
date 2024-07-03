@@ -1,19 +1,20 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.HasProjectIdentifier;
 import java.io.File;
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.eclipse.jgit.transport.CredentialsProvider;
 
-public interface WorkingCopy {
+public interface WorkingCopy extends HasProjectIdentifier {
+
+    FQPN getFQPN();
 
     File getDirectory();
 
     Optional<Commit> getLatestCommit();
-
-    FQPN getFQPN();
 
     URI getURI();
 

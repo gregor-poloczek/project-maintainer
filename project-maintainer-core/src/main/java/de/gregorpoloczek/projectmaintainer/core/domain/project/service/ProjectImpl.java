@@ -68,4 +68,8 @@ public class ProjectImpl implements Project {
     }
 
 
+    @Override
+    public FQPN getFQPN() {
+        return this.metaData.getFQPN();
+    }
 }
