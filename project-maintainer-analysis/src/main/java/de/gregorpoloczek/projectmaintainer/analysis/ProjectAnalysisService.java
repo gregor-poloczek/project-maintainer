@@ -86,13 +86,13 @@ public class ProjectAnalysisService {
     }
 
     public Mono<Void> analyze(@NonNull FQPN fqpn) {
-        final Project project = projectService.getProject(fqpn)
-                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
+        final Optional<Project> maybeProject = projectService.getProject(fqpn);
+        if (maybeProject.isEmpty()) {
+            return Mono.error(new ProjectNotFoundException(fqpn));
+        }
 
-        final Optional<WorkingCopy> maybeWorkingCopy =
-                workingCopyService.find(fqpn);
-
-        if (!maybeWorkingCopy.isPresent()) {
+        final Optional<WorkingCopy> maybeWorkingCopy = workingCopyService.find(fqpn);
+        if (maybeWorkingCopy.isEmpty()) {
             return Mono.error(new ProjectNotClonedException(fqpn));
         }
 
@@ -101,6 +101,7 @@ public class ProjectAnalysisService {
 
             try {
                 log.info("Analyzing project \"{}\".", fqpn);
+                Project project = maybeProject.get();
                 return project.<Void>withReadLock(() -> {
                     final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
                     String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");

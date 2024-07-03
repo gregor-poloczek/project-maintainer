@@ -11,11 +11,18 @@ public class ProjectMetaData implements HasProjectIdentifier {
 
     private String owner;
     private String name;
-    private Optional<String> description = Optional.empty();
+    private String description;
     private URI uri;
-    @Builder.Default
-    private Optional<String> browserLink = Optional.empty();
+    private String browserLink;
     private FQPN fqpn;
+
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(description);
+    }
+
+    public Optional<String> getBrowserLink() {
+        return Optional.ofNullable(browserLink);
+    }
 
     public FQPN getFQPN() {
         return fqpn;

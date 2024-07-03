@@ -69,11 +69,11 @@ public class BootstrapService {
 
             final ProjectMetaData metaData = ProjectMetaData.builder()
                     .fqpn(fqpn)
-                    .description(discoveredProject.getDescription())
+                    .description(discoveredProject.getDescription().orElse(null))
                     .name(discoveredProject.getName())
                     .uri(discoveredProject.getURI())
                     .owner(discoveredProject.getOwner())
-                    .browserLink(discoveredProject.getBrowserLink())
+                    .browserLink(discoveredProject.getBrowserLink().orElse(null))
                     .build();
 
             final CredentialsProvider credentialsProvider = discoveredProject.getCredentialsProvider();
