@@ -78,7 +78,6 @@ public class WorkingCopyService {
 
     public void wipeProject(@NonNull final FQPN fqpn,
             @NonNull final ProjectOperationProgressListener listener) {
-        // TODO move code to working copy service
         final Project project = this.projectService.requireProject(fqpn);
         project.withWriteLock(() -> {
             try {
@@ -94,8 +93,14 @@ public class WorkingCopyService {
 
     public WorkingCopyImpl save(FQPN fqpn, URI uri, File directory, Commit latestCommit,
             CredentialsProvider credentialsProvider) {
-        final WorkingCopyImpl result = new WorkingCopyImpl(fqpn, uri, directory, latestCommit,
-                credentialsProvider);
+        final WorkingCopyImpl result =
+                WorkingCopyImpl.builder()
+                        .fqpn(fqpn)
+                        .uri(uri)
+                        .directory(directory)
+                        .latestCommit(latestCommit)
+                        .credentialsProvider(credentialsProvider)
+                        .build();
         this.workingCopies.put(fqpn, result);
         return result;
     }
@@ -144,7 +149,12 @@ public class WorkingCopyService {
             try (Git git = Git.open(file)) {
                 String url = git.getRepository().getConfig().getString("remote", "origin", "url");
 
-                this.workingCopies.put(fqpn, new WorkingCopyImpl(fqpn, URI.create(url), file, null, null));
+                WorkingCopyImpl workingCopy = WorkingCopyImpl.builder()
+                        .fqpn(fqpn)
+                        .uri(URI.create(url))
+                        .directory(file)
+                        .build();
+                this.workingCopies.put(fqpn, workingCopy);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -182,6 +192,12 @@ public class WorkingCopyService {
                 Path.of(fqpn.getValue().replaceAll("::", "/"))
         ).toFile();
 
-        return new WorkingCopyImpl(fqpn, uri, directory, null, credentialsProvider);
+        return WorkingCopyImpl.builder()
+                .fqpn(fqpn)
+                .directory(directory)
+                .uri(uri)
+                .credentialsProvider(credentialsProvider)
+                .build();
+
     }
 }

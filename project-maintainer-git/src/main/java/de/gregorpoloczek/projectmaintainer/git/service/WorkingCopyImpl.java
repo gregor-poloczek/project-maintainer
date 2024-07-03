@@ -8,20 +8,26 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
-import lombok.NonNull;
 import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
+@Builder
 public class WorkingCopyImpl implements WorkingCopy {
 
+    private final FQPN fqpn;
     private final File directory;
     private final URI uri;
     private final CredentialsProvider credentialsProvider;
+    private final Commit latestCommit;
     @Getter(AccessLevel.NONE)
+    @Builder.Default
     private ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final FQPN fqpn;
-    private final Optional<Commit> latestCommit;
+
+    public Optional<Commit> getLatestCommit() {
+        return Optional.ofNullable(latestCommit);
+    }
 
     @Override
     public URI getURI() {
@@ -33,20 +39,6 @@ public class WorkingCopyImpl implements WorkingCopy {
         return fqpn;
     }
 
-
-    public WorkingCopyImpl(
-            @NonNull final FQPN fqpn,
-            @NonNull final URI uri,
-            @NonNull final File directory,
-            final Commit latestCommit,
-            CredentialsProvider credentialsProvider
-    ) {
-        this.directory = directory;
-        this.uri = uri;
-        this.fqpn = fqpn;
-        this.latestCommit = Optional.ofNullable(latestCommit);
-        this.credentialsProvider = credentialsProvider;
-    }
 
     @Override
     public <T> T withReadLock(final Supplier<T> operation) {
