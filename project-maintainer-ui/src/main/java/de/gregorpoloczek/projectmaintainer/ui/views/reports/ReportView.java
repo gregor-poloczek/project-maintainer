@@ -114,23 +114,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         for (ProjectReportRow row : report.getRows()) {
             Project project = row.getProject();
 
-            // TODO refactor this
-            WorkingCopy workingCopy = workingCopyService.find(row.getProject().getMetaData().getFQPN()).get();
-            File icon = workingCopy.getDirectory().toPath().resolve("./.idea/icon.svg").toFile();
-
-            Optional<Image> image;
-            if (icon.exists()) {
-                try {
-                    image = Optional.of(Image.builder()
-                            .format(ImageFormat.builder().mimetype("image/svg+xml").extension("svg").build())
-                            .bytes(IOUtils.toByteArray(icon.toURI())).build());
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            } else {
-                image = ReportView.this.imageResolverService.getImage("gitprovider",
-                        project.getMetaData().getGitProvider().name());
-            }
+            Optional<Image> image = imageResolverService.getProjectImage(row.getProject());
 
             ReportRowItem item = new ReportRowItem(project,
                     this.reportProperties.getColumns().size(), image);

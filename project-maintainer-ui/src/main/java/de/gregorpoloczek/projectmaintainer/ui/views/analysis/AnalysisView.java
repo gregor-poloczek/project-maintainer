@@ -100,8 +100,7 @@ public class AnalysisView extends VerticalLayout {
             if (workingCopy.isPresent()) {
                 items.add(ProjectAnalysisItem.builder()
                         .project(project)
-                        .icon(AnalysisView.this.imageResolverService.getImage("gitprovider",
-                                project.getMetaData().getGitProvider().name()))
+                        .icon(AnalysisView.this.imageResolverService.getProjectImage(project))
                         .build());
                 this.operationExecutionService.executeAsyncOperation2(
                                 project,

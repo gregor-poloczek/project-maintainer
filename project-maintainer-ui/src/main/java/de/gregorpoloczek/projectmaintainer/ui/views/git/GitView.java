@@ -249,6 +249,7 @@ public class GitView extends VerticalLayout {
                 item.setText(newItem.getText());
                 item.setProject(newItem.getProject());
                 item.setWorkingCopy(this.workingCopyService.find(e.getFqpn()));
+                item.setIcon(this.imageResolverService.getProjectImage(newItem.getProject()));
             }
             item.setText(text);
 
@@ -265,8 +266,7 @@ public class GitView extends VerticalLayout {
                 .description(p.getMetaData().getDescription().orElse(""))
                 .workingCopy(workingCopy)
                 .owner(p.getMetaData().getOwner())
-                .icon(GitView.this.imageResolverService.getImage("gitprovider",
-                        p.getMetaData().getGitProvider().name())).build();
+                .icon(GitView.this.imageResolverService.getProjectImage(p)).build();
     }
 
 }
