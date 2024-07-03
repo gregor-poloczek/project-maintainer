@@ -20,6 +20,7 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteAlias;
 import de.gregorpoloczek.projectmaintainer.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
@@ -45,7 +46,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.time4j.PrettyTime;
 
-@Route(layout = MainLayout.class)
+@RouteAlias(value = "/", layout = MainLayout.class)
+@Route(value = "/git", layout = MainLayout.class)
 public class GitView extends VerticalLayout {
 
     private final transient ProjectService projectService;
