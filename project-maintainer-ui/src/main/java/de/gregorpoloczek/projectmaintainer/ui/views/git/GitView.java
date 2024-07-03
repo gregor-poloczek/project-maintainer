@@ -174,8 +174,9 @@ public class GitView extends VerticalLayout {
 
     private MenuBar createMenuBar() {
         MenuBar menuBar = new MenuBar();
-        menuBar.addItem("Clone / Pull", this::onClonePullClick);
-        menuBar.addItem("Wipe", this::onWipeClick);
+        menuBar.addItem("Clone", this::onCloneClick);
+        menuBar.addItem("Pull", this::onPullClick);
+        menuBar.addItem("Detach", this::onWipeClick);
         return menuBar;
     }
 
@@ -193,7 +194,20 @@ public class GitView extends VerticalLayout {
         }
     }
 
-    private void onClonePullClick(ClickEvent<MenuItem> event) {
+    private void onCloneClick(ClickEvent<MenuItem> event) {
+        UI ui = UI.getCurrent();
+        for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
+            if (item.getWorkingCopy().isEmpty()) {
+                operationExecutionService.executeAsyncOperation2(
+                        item.getProject(),
+                        "git::clone",
+                        this.workingCopyService::cloneProject).subscribe(e ->
+                        onUpdateEvent(e, ui));
+            }
+        }
+    }
+
+    private void onPullClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
         for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
             if (item.getWorkingCopy().isPresent()) {
@@ -201,12 +215,6 @@ public class GitView extends VerticalLayout {
                         item.getProject(),
                         "git::pull",
                         this.workingCopyService::pullProject).subscribe(e ->
-                        onUpdateEvent(e, ui));
-            } else {
-                operationExecutionService.executeAsyncOperation2(
-                        item.getProject(),
-                        "git::clone",
-                        this.workingCopyService::cloneProject).subscribe(e ->
                         onUpdateEvent(e, ui));
             }
         }
