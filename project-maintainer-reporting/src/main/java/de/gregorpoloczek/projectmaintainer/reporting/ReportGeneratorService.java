@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.reporting.projectreport;
+package de.gregorpoloczek.projectmaintainer.reporting;
 
 import static java.util.stream.Collectors.toList;
 
@@ -12,10 +12,15 @@ import de.gregorpoloczek.projectmaintainer.analysis.VersionedLabel;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ProjectReportConfig;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ProjectReportConfig.ColumnConfig;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ReportConfig;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ReportFile;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
+import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
+import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig.ColumnConfig;
+import de.gregorpoloczek.projectmaintainer.reporting.config.ReportConfig;
+import de.gregorpoloczek.projectmaintainer.reporting.config.ReportFile;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
@@ -34,7 +39,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Service
-public class ProjectReportGeneratorService {
+public class ReportGeneratorService {
 
     private final LabelService labelService;
     private final WorkingCopyService workingCopyService;
@@ -44,7 +49,7 @@ public class ProjectReportGeneratorService {
     @Value("file:./.reports/*.yml")
     private Resource[] reportFiles;
 
-    public ProjectReportGeneratorService(
+    public ReportGeneratorService(
             LabelService labelService,
             WorkingCopyService workingCopyService,
             ProjectService projectService,
@@ -110,15 +115,15 @@ public class ProjectReportGeneratorService {
 
     private ProjectReport buildReport(List<Project> projects, ProjectReportConfig reportConfig) {
         ProjectReportDefinition reportDefinition = new ProjectReportDefinition();
-        reportDefinition.id = reportConfig.getId();
-        reportDefinition.name = reportConfig.getName();
-        reportDefinition.columns = reportConfig.getColumns()
+        reportDefinition.setId(reportConfig.getId());
+        reportDefinition.setName(reportConfig.getName());
+        reportDefinition.setColumns(reportConfig.getColumns()
                 .stream()
                 .map(c -> ProjectReportColumn.builder().label(c.getName()).build())
-                .toList();
+                .toList());
 
         ProjectReport report = new ProjectReport();
-        report.definition = reportDefinition;
+        report.setDefinition(reportDefinition);
 
         for (Project project : projects) {
             ProjectReportRow row = new ProjectReportRow(project);
@@ -134,15 +139,15 @@ public class ProjectReportGeneratorService {
 
                 ProjectReportCell cell = new ProjectReportCell();
                 if (match.isPresent()) {
-                    cell.value = match.get().getVersion();
+                    cell.setValue(match.get().getVersion());
                 } else {
-                    cell.value = null;
+                    cell.setValue(null);
                 }
-                row.cells.add(cell);
+                row.getCells().add(cell);
             }
 
-            if (!row.cells.stream().allMatch(c -> c.value == null)) {
-                report.rows.add(row);
+            if (!row.getCells().stream().allMatch(c -> c.getValue() == null)) {
+                report.getRows().add(row);
             }
         }
 

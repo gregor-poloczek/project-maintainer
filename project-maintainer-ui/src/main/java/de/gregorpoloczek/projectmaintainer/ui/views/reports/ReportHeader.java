@@ -4,7 +4,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.router.RouteParameters;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ReportConfig;
+import de.gregorpoloczek.projectmaintainer.reporting.config.ReportConfig;
 import java.util.ArrayList;
 import java.util.List;
 

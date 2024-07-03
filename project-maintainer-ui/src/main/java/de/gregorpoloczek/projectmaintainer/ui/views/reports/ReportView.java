@@ -9,12 +9,12 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGeneratorService;
+import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ProjectReportConfig;
+import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
@@ -32,17 +32,17 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
     private final Grid<ReportRowItem> grid;
     private final ReportHeader header;
-    private final ProjectReportGeneratorService projectReportGeneratorService;
+    private final ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
     private transient ProjectReportConfig reportConfig;
 
 
     public ReportView(
-            ProjectReportGeneratorService projectReportGeneratorService,
+            ReportGeneratorService reportGeneratorService,
             ImageResolverService imageResolverService) {
-        this.projectReportGeneratorService = projectReportGeneratorService;
+        this.projectReportGeneratorService = reportGeneratorService;
         this.imageResolverService = imageResolverService;
-        this.header = new ReportHeader(projectReportGeneratorService.getProjectReportConfigs());
+        this.header = new ReportHeader(reportGeneratorService.getProjectReportConfigs());
 
         this.grid = new Grid<>();
 

@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.reporting.projectreport.config;
+package de.gregorpoloczek.projectmaintainer.reporting.config;
 
 
 import lombok.Getter;
