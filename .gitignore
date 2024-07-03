@@ -38,6 +38,7 @@ build/
 .DS_Store
 /.projects/
 /.credentials/
+/.reports/
 /project-maintainer-core/src/main/resources/application-private.yml
 /project-maintainer-angular-ui/src/assets/icons/AWS_CODECOMMIT.png
 /project-maintainer-angular-ui/src/assets/icons/GITHUB.png

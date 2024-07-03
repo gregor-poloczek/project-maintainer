@@ -4,23 +4,24 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.router.RouteParameters;
-import de.gregorpoloczek.projectmaintainer.reporting.ReportingProperties;
-import de.gregorpoloczek.projectmaintainer.reporting.ReportingProperties.ReportProperties;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ReportConfig;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ReportHeader extends FlexLayout {
 
-    private final ComboBox<ReportProperties> comboBox;
+    private final ComboBox<ReportConfig> comboBox;
     private H1 title;
 
     void setTitle(String title) {
         this.title.setText(title);
     }
 
-    public ReportHeader(ReportingProperties reportingProperties) {
+    public ReportHeader(List<? extends ReportConfig> reportConfigs) {
         this.title = new H1("");
         comboBox = new ComboBox<>("Report");
-        comboBox.setItems(reportingProperties.getReports());
-        comboBox.setItemLabelGenerator(ReportProperties::getName);
+        comboBox.setItems(new ArrayList<>(reportConfigs));
+        comboBox.setItemLabelGenerator(ReportConfig::getName);
         comboBox.addValueChangeListener(e -> comboBox.getUI()
                 .ifPresent(
                         ui -> {
@@ -36,7 +37,7 @@ public class ReportHeader extends FlexLayout {
     }
 
 
-    public void setSelectedReport(ReportProperties report) {
+    public void setSelectedReport(ReportConfig report) {
         this.comboBox.setValue(report);
     }
 }

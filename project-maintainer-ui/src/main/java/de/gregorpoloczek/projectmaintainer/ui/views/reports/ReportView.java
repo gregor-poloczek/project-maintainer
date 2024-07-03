@@ -9,53 +9,40 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
-import de.gregorpoloczek.projectmaintainer.reporting.ReportingProperties;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.config.ProjectReportConfig;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
-import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.ImageFormat;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.reporting.ReportingProperties.ReportProperties;
-import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
 import reactor.core.scheduler.Schedulers;
 
 @Route(value = "/reports/:reportId", layout = MainLayout.class)
 @Slf4j
 public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final transient ReportingProperties reportingProperties;
     private final Grid<ReportRowItem> grid;
     private final ReportHeader header;
     private final ProjectReportGeneratorService projectReportGeneratorService;
-    private final WorkingCopyService workingCopyService;
     private final transient ImageResolverService imageResolverService;
-    private transient ReportProperties reportProperties;
+    private transient ProjectReportConfig reportConfig;
 
 
     public ReportView(
-            ReportingProperties reportingProperties,
-            ProjectReportGeneratorService projectReportGeneratorService, WorkingCopyService workingCopyService,
+            ProjectReportGeneratorService projectReportGeneratorService,
             ImageResolverService imageResolverService) {
-        this.reportingProperties = reportingProperties;
         this.projectReportGeneratorService = projectReportGeneratorService;
-        this.workingCopyService = workingCopyService;
         this.imageResolverService = imageResolverService;
-        this.header = new ReportHeader(reportingProperties);
+        this.header = new ReportHeader(projectReportGeneratorService.getProjectReportConfigs());
 
         this.grid = new Grid<>();
 
@@ -81,13 +68,13 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         String reportId = parameters.get("reportId")
                 .orElseThrow(() -> new IllegalArgumentException("No report id defined"));
 
-        this.reportProperties = reportingProperties.getReports().stream()
+        this.reportConfig = projectReportGeneratorService.getProjectReportConfigs().stream()
                 .filter(r -> r.getId().equals(reportId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Report " + reportId + " is unknown."));
 
-        this.header.setTitle(reportProperties.getName());
-        this.header.setSelectedReport(reportProperties);
+        this.header.setTitle(reportConfig.getName());
+        this.header.setSelectedReport(reportConfig);
 
         this.grid.removeAllColumns();
         this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
@@ -117,7 +104,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             Optional<Image> image = imageResolverService.getProjectImage(row.getProject());
 
             ReportRowItem item = new ReportRowItem(project,
-                    this.reportProperties.getColumns().size(), image);
+                    this.reportConfig.getColumns().size(), image);
 
             int i = 0;
             for (ProjectReportCell cell : row.getCells()) {
