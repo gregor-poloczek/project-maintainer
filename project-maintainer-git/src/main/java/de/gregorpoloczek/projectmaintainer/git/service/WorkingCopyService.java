@@ -26,6 +26,8 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
 
@@ -148,13 +150,18 @@ public class WorkingCopyService {
 
             try (Git git = Git.open(file)) {
                 String url = git.getRepository().getConfig().getString("remote", "origin", "url");
+                List<RevCommit> revCommits = new ArrayList<>();
+                git.log().setMaxCount(1).call().forEach(revCommits::add);
 
                 WorkingCopyImpl workingCopy = WorkingCopyImpl.builder()
                         .fqpn(fqpn)
                         .uri(URI.create(url))
                         .directory(file)
+                        .latestCommit(revCommits.stream().findFirst().map(CommitImpl::of).orElse(null))
                         .build();
                 this.workingCopies.put(fqpn, workingCopy);
+            } catch (GitAPIException e) {
+                throw new IllegalStateException(e);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
