@@ -69,9 +69,11 @@ public class GitView extends VerticalLayout {
         progressBarLabelValue.setText(
                 item.getOperationProgressValue() != null ? MessageFormat.format("{0,number,#.#}%",
                         item.getOperationProgressValue() * 100) : "");
-        FlexLayout progressBarLabel = new FlexLayout();
-        progressBarLabel.setJustifyContentMode(JustifyContentMode.BETWEEN);
-        progressBarLabel.add(progressBarLabelText, progressBarLabelValue);
+        FlexLayout top = new FlexLayout();
+        top.setWidth("100%");
+        top.setJustifyContentMode(JustifyContentMode.BETWEEN);
+        top.setFlexDirection(FlexDirection.ROW);
+        top.add(progressBarLabelText, progressBarLabelValue);
 
         ProgressBar progressBar = new ProgressBar();
         if (item.getOperationProgressValue() != null) {
