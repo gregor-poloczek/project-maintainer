@@ -53,10 +53,10 @@ public class GithubProjectDiscovery implements ProjectDiscovery {
                     final URI uri = new URI(repository.getHttpTransportUrl());
                     context.discovered(b -> b.uri(uri)
                             .name(repository.getName())
-                            .description(Optional.ofNullable(repository.getDescription()))
+                            .description(repository.getDescription())
                             .owner(repository.getOwnerName())
                             .browserLink(
-                                    Optional.of("https://github.com/%s/%s".formatted(username, repository.getName())))
+                                    "https://github.com/%s/%s".formatted(username, repository.getName()))
                             .fqpn(FQPN.of("github", username, repository.getName()))
                             .credentialsProvider(credentialsProvider)
                     );

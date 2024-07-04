@@ -7,8 +7,10 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
@@ -45,6 +47,7 @@ import java.util.TimeZone;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.time4j.PrettyTime;
+import org.apache.commons.lang3.StringUtils;
 
 @RouteAlias(value = "/", layout = MainLayout.class)
 @Route(value = "/git", layout = MainLayout.class)
@@ -152,6 +155,17 @@ public class GitView extends VerticalLayout {
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(Renderers.getNameRenderer()).setHeader("Name");
+        result.addColumn(new ComponentRenderer<>(i -> {
+            HorizontalLayout r = new HorizontalLayout();
+            if (StringUtils.isNotBlank(i.getWebsite())) {
+                Anchor anchor = new Anchor();
+                anchor.add(VaadinIcon.GLOBE_WIRE.create());
+                anchor.setTarget("_blank");
+                anchor.setHref(i.getWebsite());
+                r.add(anchor);
+            }
+            return r;
+        })).setFlexGrow(0).setWidth("64px");
         result.addColumn(
                 LitRenderer.<ProjectItem>of(
                                 "<div style=\"text-wrap: balance;\">${item.text}</div>")
@@ -274,6 +288,7 @@ public class GitView extends VerticalLayout {
                 .project(p)
                 .text(text)
                 .description(p.getMetaData().getDescription().orElse(""))
+                .website(p.getMetaData().getWebsiteLink().orElse(""))
                 .workingCopy(workingCopy)
                 .owner(p.getMetaData().getOwner())
                 .icon(GitView.this.imageResolverService.getProjectImage(p)).build();

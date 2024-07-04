@@ -14,6 +14,7 @@ public class ProjectMetaData implements HasProjectIdentifier {
     private String description;
     private URI uri;
     private String browserLink;
+    private String websiteLink;
     private FQPN fqpn;
 
     public Optional<String> getDescription() {
@@ -22,6 +23,10 @@ public class ProjectMetaData implements HasProjectIdentifier {
 
     public Optional<String> getBrowserLink() {
         return Optional.ofNullable(browserLink);
+    }
+
+    public Optional<String> getWebsiteLink() {
+        return Optional.ofNullable(websiteLink);
     }
 
     public FQPN getFQPN() {

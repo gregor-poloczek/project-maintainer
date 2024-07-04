@@ -9,8 +9,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class RepositoryResource {
 
+    ProjectResource project;
     String name;
     String description;
-    ProjectResource project;
+    String website;
     RepositoryLinksResource links;
 }

@@ -13,11 +13,22 @@ public class DiscoveredProject {
 
     private final URI uri;
     private final String name;
-    @Builder.Default
-    private Optional<String> description = Optional.empty();
+    private String description;
     private final String owner;
-    @Builder.Default
-    private Optional<String> browserLink = Optional.empty();
+    private String browserLink;
+    private String websiteLink;
+
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(description);
+    }
+
+    public Optional<String> getBrowserLink() {
+        return Optional.ofNullable(browserLink);
+    }
+
+    public Optional<String> getWebsiteLink() {
+        return Optional.ofNullable(websiteLink);
+    }
 
     private FQPN fqpn;
 

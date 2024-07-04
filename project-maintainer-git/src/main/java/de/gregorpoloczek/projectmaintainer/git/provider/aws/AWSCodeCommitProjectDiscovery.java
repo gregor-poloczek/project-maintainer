@@ -55,13 +55,12 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
                                             .fqpn(FQPN.of("aws-codecommit", accountId, region.id(), r.repositoryName()))
                                             .uri(URI.create(r.cloneUrlHttp()))
                                             .browserLink(
-                                                    Optional.of(
-                                                            "https://%s.console.aws.amazon.com/codesuite/codecommit/repositories/%s/browse?region=%s"
-                                                                    .formatted(region.id(), r.repositoryName(), region.id()))
+                                                    "https://%s.console.aws.amazon.com/codesuite/codecommit/repositories/%s/browse?region=%s"
+                                                            .formatted(region.id(), r.repositoryName(), region.id())
                                             )
                                             .name(r.repositoryName())
                                             .owner(accountId)
-                                            .description(Optional.ofNullable(r.repositoryDescription()))
+                                            .description(r.repositoryDescription())
                                             .credentialsProvider(credentialsProvider)
                                     )
                             );

@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.Base64;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -82,10 +83,12 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                                             .findFirst()
                                             .orElseThrow(IllegalStateException::new).getHref()))
                                     .credentialsProvider(credentialsProvider)
-                                    .description(Optional.of(repository.getDescription()))
-                                    .browserLink(Optional.of(
-                                            "https://bitbucket.org/%s/%s/src/master/".formatted(workspace,
-                                                    repository.getName())))
+                                    .description(repository.getDescription())
+                                    .websiteLink(Optional.ofNullable(repository.getWebsite())
+                                            .filter(StringUtils::isNotBlank)
+                                            .orElse(null))
+                                    .browserLink("https://bitbucket.org/%s/%s/src/master/".formatted(workspace,
+                                            repository.getName()))
                                     .name(repository.getName()));
                         }
                         nextPage = list.getNext() != null ? list.getPage() + 1 : null;

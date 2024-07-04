@@ -25,6 +25,7 @@ public class ProjectItem implements HasProjectItem, HasIconItem {
     Optional<Image> icon;
     String text = "";
     String description = "";
+    String website = "";
     String owner;
     boolean operationInProgress;
     Double operationProgressValue;

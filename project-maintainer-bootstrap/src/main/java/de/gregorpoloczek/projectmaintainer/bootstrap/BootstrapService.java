@@ -74,6 +74,7 @@ public class BootstrapService {
                     .uri(discoveredProject.getURI())
                     .owner(discoveredProject.getOwner())
                     .browserLink(discoveredProject.getBrowserLink().orElse(null))
+                    .websiteLink(discoveredProject.getWebsiteLink().orElse(null))
                     .build();
 
             final CredentialsProvider credentialsProvider = discoveredProject.getCredentialsProvider();
