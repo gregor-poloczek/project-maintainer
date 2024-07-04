@@ -98,7 +98,7 @@ public class GitView extends VerticalLayout {
 
         VerticalLayout layout = new VerticalLayout();
         layout.setSpacing(false);
-        layout.add(progressBarLabel, progressBar);
+        layout.add(top, progressBar);
         layout.setPadding(false);
 
         return layout;
