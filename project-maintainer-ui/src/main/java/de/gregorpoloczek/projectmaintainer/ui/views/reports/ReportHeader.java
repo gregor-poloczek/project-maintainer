@@ -56,7 +56,12 @@ public class ReportHeader extends FlexLayout {
     }
 
     public void updateProgress(int progressCurrent, int progressTotal) {
+        this.progressBar.setVisible(true);
         this.progressBar.setMax(progressTotal);
         this.progressBar.setValue(progressCurrent);
+    }
+
+    public void hideProgress() {
+        this.progressBar.setVisible(false);
     }
 }

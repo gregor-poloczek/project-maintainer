@@ -116,13 +116,6 @@ public class ReportGeneratorService {
                         || this == ProjectReportGenerationProgress.State.FAILED;
             }
         }
-
-        public ProjectReport getProjectReport() {
-            if (this.state != State.DONE) {
-                throw new IllegalStateException("Project not generated");
-            }
-            return this.projectReport;
-        }
     }
 
     public Flux<ProjectReportGenerationProgress> generateProjectReport(String reportId) {
@@ -144,7 +137,9 @@ public class ReportGeneratorService {
         ProjectReport report = this.buildReport((ProjectReportConfig) reportConfig);
 
         return Flux.create(sink -> {
-            sink.next(ProjectReportGenerationProgress.builder().state(State.SCHEDULED).build());
+            sink.next(ProjectReportGenerationProgress.builder()
+                    .projectReport(report)
+                    .state(State.SCHEDULED).build());
 
             AtomicInteger analyzed = new AtomicInteger(0);
 
@@ -157,18 +152,22 @@ public class ReportGeneratorService {
                     .doOnNext(project -> {
                         addToReport(report, (ProjectReportConfig) reportConfig, project);
                         sink.next(ProjectReportGenerationProgress.builder()
+                                .projectReport(report)
+                                .state(State.RUNNING)
                                 .progressTotal(projects.size())
                                 .progressCurrent(analyzed.incrementAndGet())
-                                .state(State.RUNNING).build());
-                    }).doOnComplete(() -> {
+                                .build());
+                    })
+                    .doOnComplete(() -> {
                         sink.next(ProjectReportGenerationProgress.builder()
+                                .projectReport(report)
                                 .state(State.DONE)
                                 .progressCurrent(1)
                                 .progressTotal(1)
-                                .projectReport(report)
                                 .build());
                         sink.complete();
                     })
+                    .doOnError(sink::error)
                     .subscribe(c -> {
                     });
 

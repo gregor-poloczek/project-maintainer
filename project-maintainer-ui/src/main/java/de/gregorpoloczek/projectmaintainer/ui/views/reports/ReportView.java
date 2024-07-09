@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.reports;
 
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
@@ -14,6 +15,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService.Proj
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.Disposable;
 import reactor.core.scheduler.Schedulers;
 
 @Route(value = "/reports/:reportId", layout = MainLayout.class)
@@ -36,6 +39,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
     private transient ProjectReportConfig reportConfig;
+    private transient Disposable currentGeneration;
 
 
     public ReportView(
@@ -83,23 +87,38 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         UI ui = UI.getCurrent();
 
-        // TODO cancel subscription on route change
+        if (this.currentGeneration != null) {
+            this.currentGeneration.dispose();
+            this.currentGeneration = null;
+        }
+
         // TODO error handling
-        projectReportGeneratorService.generateProjectReport(reportId)
+        this.currentGeneration = projectReportGeneratorService.generateProjectReport(reportId)
                 .subscribeOn(Schedulers.parallel())
                 .subscribe(progress ->
                         ui.access(() -> {
-                            this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
+                            if (progress.getState() == State.SCHEDULED) {
+                                this.applyReportDefinition(progress.getProjectReport().getDefinition());
+                                this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
+                            }
+                            if (progress.getState() == State.RUNNING) {
+                                applyReport(progress.getProjectReport());
+                                this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
+                            }
                             if (progress.getState() == State.DONE) {
                                 applyReport(progress.getProjectReport());
+                            }
+                            if (progress.getState().isTerminated()) {
+                                this.header.hideProgress();
                             }
                         })
                 );
     }
 
-    private void applyReport(ProjectReport report) {
+    private void applyReportDefinition(ProjectReportDefinition definition) {
+        this.grid.setItems(new ArrayList<>());
         int index = 0;
-        for (ProjectReportColumn column : report.getDefinition().getColumns()) {
+        for (ProjectReportColumn column : definition.getColumns()) {
             ReportRowItemCell cell = ReportRowItemCell.builder().index(index).build();
             this.grid.addColumn(cell::getValue)
                     .setHeader(column.getLabel()).setWidth("128px")
@@ -107,7 +126,17 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                     .setTextAlign(ColumnTextAlign.CENTER);
             index++;
         }
+    }
 
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        if (this.currentGeneration != null) {
+            this.currentGeneration.dispose();
+            this.currentGeneration = null;
+        }
+    }
+
+    private void applyReport(ProjectReport report) {
         List<ReportRowItem> items = new ArrayList<>();
         for (ProjectReportRow row : report.getRows()) {
             Project project = row.getProject();
@@ -125,6 +154,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             items.add(item);
         }
         grid.setItems(items);
+        // TODO only add items that are missing, instead of replacing all of them
     }
 
 
