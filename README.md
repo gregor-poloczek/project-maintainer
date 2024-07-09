@@ -14,11 +14,23 @@
 
 ### Repository locations
 
-TBD
+1. Define a `src/main/resources/application-local.yml` profile
+   ```yaml
+   project-maintainer:
+     projects:
+       discovery:
+         bitbucket:
+           users:
+             - your-bitbucket-user
+   ```
 
 ### Credentials
 
-TBD
+1. Create a file `./credentials/passwords.properties`
+2. Add the credentials from the `application-local.yml` file.
+   ```
+   bitbucket.your-bitbucket-user=your-credential-in-plain-text
+   ```
 
 ## Assets
 
