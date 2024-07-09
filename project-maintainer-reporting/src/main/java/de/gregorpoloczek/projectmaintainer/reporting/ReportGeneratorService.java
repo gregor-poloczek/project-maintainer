@@ -147,14 +147,13 @@ public class ReportGeneratorService {
             sink.next(ProjectReportGenerationProgress.builder().state(State.SCHEDULED).build());
 
             AtomicInteger analyzed = new AtomicInteger(0);
-            Flux.merge(projects
-                            .stream()
-                            .map(p -> projectAnalysisService
-                                    .analyze(p)
-                                    .subscribeOn(Schedulers.parallel())
-                                    .last()
-                                    .thenReturn(p))
-                            .toList())
+
+            Flux.fromIterable(projects)
+                    .flatMap(p -> projectAnalysisService
+                            .analyze(p)
+                            .subscribeOn(Schedulers.parallel())
+                            .last()
+                            .thenReturn(p))
                     .doOnNext(project -> {
                         addToReport(report, (ProjectReportConfig) reportConfig, project);
                         sink.next(ProjectReportGenerationProgress.builder()
@@ -169,7 +168,8 @@ public class ReportGeneratorService {
                                 .projectReport(report)
                                 .build());
                         sink.complete();
-                    }).subscribe(c -> {
+                    })
+                    .subscribe(c -> {
                     });
 
         });
