@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
-public interface HasProjectIdentifier {
+public interface ProjectRelatable {
 
     FQPN getFQPN();
 }

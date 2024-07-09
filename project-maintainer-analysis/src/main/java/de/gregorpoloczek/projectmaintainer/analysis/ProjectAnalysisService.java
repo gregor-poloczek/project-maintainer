@@ -5,6 +5,7 @@ import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisCon
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
@@ -78,7 +79,8 @@ public class ProjectAnalysisService {
     }
 
 
-    public Flux<ProjectAnalysisProgress> analyze(@NonNull FQPN fqpn) {
+    public Flux<ProjectAnalysisProgress> analyze(@NonNull ProjectRelatable projectRelatable) {
+        FQPN fqpn = projectRelatable.getFQPN();
         final Optional<Project> maybeProject = projectService.getProject(fqpn);
         if (maybeProject.isEmpty()) {
             return Flux.error(new ProjectNotFoundException(fqpn));

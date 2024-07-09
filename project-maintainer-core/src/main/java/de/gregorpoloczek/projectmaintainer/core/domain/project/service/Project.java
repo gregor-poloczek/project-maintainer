@@ -4,7 +4,7 @@ import java.net.URI;
 import java.util.function.Supplier;
 import org.eclipse.jgit.transport.CredentialsProvider;
 
-public interface Project extends HasProjectIdentifier {
+public interface Project extends ProjectRelatable {
 
     URI getURI();
 

@@ -10,7 +10,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Getter
-public class FQPN implements Comparable<FQPN>, HasProjectIdentifier {
+public class FQPN implements Comparable<FQPN>, ProjectRelatable {
 
     private final String value;
     private final List<String> segments;

@@ -104,9 +104,9 @@ public class ReportGeneratorService {
 
         Flux<Project> analyzedProjects = Flux.merge(projectService.getProjects()
                 .stream()
-                .filter(p -> workingCopyService.find(p.getMetaData().getFQPN()).isPresent())
+                .filter(p -> workingCopyService.find(p).isPresent())
                 .map(p -> projectAnalysisService
-                        .analyze(p.getMetaData().getFQPN())
+                        .analyze(p)
                         .subscribeOn(Schedulers.parallel())
                         .last().thenReturn(p))
                 .toList());

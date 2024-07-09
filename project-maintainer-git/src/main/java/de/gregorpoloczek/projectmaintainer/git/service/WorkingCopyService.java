@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
@@ -125,8 +126,8 @@ public class WorkingCopyService {
         log.info("Removed working copy of \"{}\".", fqpn);
     }
 
-    public Optional<WorkingCopy> find(@NonNull FQPN fqpn) {
-        return Optional.ofNullable(this.workingCopies.get(fqpn));
+    public Optional<WorkingCopy> find(@NonNull ProjectRelatable identifiesProject) {
+        return Optional.ofNullable(this.workingCopies.get(identifiesProject.getFQPN()));
     }
 
     public List<WorkingCopy> findAll() {
