@@ -95,7 +95,7 @@ public class ProjectAnalysisService {
             final WorkingCopy workingCopy = maybeWorkingCopy.get();
 
             try {
-                log.info("Analyzing project \"{}\".", fqpn);
+                log.debug("Analyzing project \"{}\".", fqpn);
                 Project project = maybeProject.get();
                 sink.next(ProjectAnalysisProgress.builder()
                         .fqpn(fqpn).state(State.SCHEDULED)

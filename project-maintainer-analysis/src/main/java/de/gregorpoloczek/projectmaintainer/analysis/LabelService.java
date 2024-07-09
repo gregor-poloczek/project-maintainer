@@ -47,7 +47,7 @@ public class LabelService {
         finalLabels.removeAll(removedLabels);
 
         if (!removedLabels.isEmpty()) {
-            log.info(
+            log.debug(
                     "Replaced labels \"{}\" from analysis of \"{}\" because versioned alternatives were provided.",
                     removedLabels, project.getMetaData().getFQPN());
         }
