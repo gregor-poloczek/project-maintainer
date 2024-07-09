@@ -192,7 +192,7 @@ public class GitView extends VerticalLayout {
 
     private MenuBar createMenuBar() {
         MenuBar menuBar = new MenuBar();
-        menuBar.addItem("Clone", this::onCloneClick);
+        menuBar.addItem("Attach", this::onCloneClick);
         menuBar.addItem("Pull", this::onPullClick);
         menuBar.addItem("Detach", this::onWipeClick);
         return menuBar;
