@@ -10,6 +10,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
+import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
@@ -81,9 +82,17 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(1).setWidth("350px");
 
         UI ui = UI.getCurrent();
+        // TODO error handling
         projectReportGeneratorService.generateProjectReport(reportId)
                 .subscribeOn(Schedulers.parallel())
-                .subscribe(report -> ui.access(() -> applyReport(report)));
+                .subscribe(progress ->
+                        ui.access(() -> {
+                            System.out.println(progress);
+                            if (progress.getState() == State.DONE) {
+                                applyReport(progress.getProjectReport());
+                            }
+                        })
+                );
     }
 
     private void applyReport(ProjectReport report) {

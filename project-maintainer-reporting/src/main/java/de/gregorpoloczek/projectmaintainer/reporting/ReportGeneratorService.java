@@ -12,6 +12,7 @@ import de.gregorpoloczek.projectmaintainer.analysis.VersionedLabel;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
@@ -29,13 +30,17 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PostConstruct;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.ToString;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Service
@@ -90,29 +95,86 @@ public class ReportGeneratorService {
                 .collect(toList());
     }
 
-    public Mono<ProjectReport> generateProjectReport(String reportId) {
+    @Builder
+    @Getter
+    @ToString
+    public static class ProjectReportGenerationProgress {
+
+        private State state;
+        @ToString.Exclude
+        private ProjectReport projectReport;
+        @Builder.Default
+        private int progressCurrent = 0;
+        @Builder.Default
+        private int progressTotal = 1;
+
+        public enum State {
+            SCHEDULED, RUNNING, DONE, FAILED;
+
+            public boolean isTerminated() {
+                return this == ProjectReportGenerationProgress.State.DONE
+                        || this == ProjectReportGenerationProgress.State.FAILED;
+            }
+        }
+
+        public ProjectReport getProjectReport() {
+            if (this.state != State.DONE) {
+                throw new IllegalStateException("Project not generated");
+            }
+            return this.projectReport;
+        }
+    }
+
+    public Flux<ProjectReportGenerationProgress> generateProjectReport(String reportId) {
         ReportConfig reportConfig = this.reportConfigs.get(reportId);
 
         if (reportConfig == null) {
-            return Mono.error(new IllegalArgumentException(
+            return Flux.error(new IllegalArgumentException(
                     "Cannot find report definition with id " + reportId));
         }
         if (!(reportConfig instanceof ProjectReportConfig)) {
-            return Mono.error(new IllegalArgumentException(
+            return Flux.error(new IllegalArgumentException(
                     "Report definition is not of type project-report"));
         }
 
-        Flux<Project> analyzedProjects = Flux.merge(projectService.getProjects()
-                .stream()
-                .filter(p -> workingCopyService.find(p).isPresent())
-                .map(p -> projectAnalysisService
-                        .analyze(p)
-                        .subscribeOn(Schedulers.parallel())
-                        .last().thenReturn(p))
-                .toList());
-        return analyzedProjects
-                .collectList()
-                .map(projects -> buildReport(projects, (ProjectReportConfig) reportConfig));
+        return Flux.create(sink -> {
+            sink.next(ProjectReportGenerationProgress.builder().state(State.SCHEDULED).build());
+            List<Project> projects = projectService.getProjects()
+                    .stream()
+                    .filter(p -> workingCopyService.find(p).isPresent()).toList();
+
+            AtomicInteger analyzed = new AtomicInteger(0);
+            Flux<Project> analyzedProjects = Flux.merge(projects
+                            .stream()
+                            .map(p -> projectAnalysisService
+                                    .analyze(p)
+                                    // TODO notwendig?
+                                    .subscribeOn(Schedulers.parallel())
+                                    .last()
+                                    .doOnNext(progress -> analyzed.incrementAndGet())
+                                    .thenReturn(p))
+                            .toList())
+                    .doOnNext(p -> sink.next(ProjectReportGenerationProgress.builder()
+                            .progressTotal(projects.size())
+                            .progressCurrent(analyzed.get())
+                            .state(State.RUNNING).build()));
+
+            analyzedProjects
+                    .collectList()
+                    .map(ps -> buildReport(ps, (ProjectReportConfig) reportConfig))
+                    .subscribe(r -> {
+                        sink.next(ProjectReportGenerationProgress.builder()
+                                .state(State.DONE)
+                                .progressCurrent(1)
+                                .progressTotal(1)
+                                .projectReport(r)
+                                .build());
+                        sink.complete();
+                    });
+
+        });
+
+
     }
 
     private ProjectReport buildReport(List<Project> projects, ProjectReportConfig reportConfig) {
