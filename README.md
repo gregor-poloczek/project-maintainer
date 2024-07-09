@@ -1,15 +1,22 @@
-# project-maintainer
+# Project Maintainer
 
 ## Disclaimers
 
-1. This application does not store any credentials, or sends them to any external location apart
-   from the places where they are needed for authentication purposes (e.g. when accessing Github).
+1. This application does not store any credentials, or does it send them to any external location
+   apart
+   from when they are needed for authentication purposes (e.g. when accessing Github).
 2. This application does not send any cloned repository content anywhere. Everything is stored on
    the machine where the application is executed.
 3. This application does not perform any manipulation on source code, nor does it push any changes
    to the attached repositories.
 
 ## Configuration
+
+### Repository locations
+
+TBD
+
+### Credentials
 
 TBD
 
