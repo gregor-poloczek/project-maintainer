@@ -82,6 +82,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Name").setFlexGrow(1).setWidth("350px");
 
         UI ui = UI.getCurrent();
+
+        // TODO cancel subscription on route change
         // TODO error handling
         projectReportGeneratorService.generateProjectReport(reportId)
                 .subscribeOn(Schedulers.parallel())
