@@ -12,8 +12,6 @@ import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
 import de.gregorpoloczek.projectmaintainer.analysis.LabelService;
 import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService;
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.OperationExecutionService;
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
@@ -31,6 +29,8 @@ import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 @Route(layout = MainLayout.class)
 public class AnalysisView extends VerticalLayout {
@@ -38,7 +38,6 @@ public class AnalysisView extends VerticalLayout {
     private final ProjectAnalysisService projectAnalysisService;
     private final ProjectService projectService;
     private final WorkingCopyService workingCopyService;
-    private final OperationExecutionService operationExecutionService;
     private final LabelService labelService;
     private final Text text;
     private final TextField search;
@@ -50,14 +49,12 @@ public class AnalysisView extends VerticalLayout {
             ProjectAnalysisService projectAnalysisService,
             ProjectService projectService,
             WorkingCopyService workingCopyService,
-            OperationExecutionService operationExecutionService,
             LabelService labelService,
             ImageResolverService imageResolverService
     ) {
         this.projectAnalysisService = projectAnalysisService;
         this.projectService = projectService;
         this.workingCopyService = workingCopyService;
-        this.operationExecutionService = operationExecutionService;
         this.labelService = labelService;
         this.imageResolverService = imageResolverService;
         text = new Text("asd");
@@ -102,31 +99,36 @@ public class AnalysisView extends VerticalLayout {
                         .project(project)
                         .icon(AnalysisView.this.imageResolverService.getProjectImage(project))
                         .build());
-                this.operationExecutionService.executeAsyncOperation2(
-                                project,
-                                "analysis::analyze",
-                                this.projectAnalysisService::analyze)
-                        .subscribe(e -> onUpdateEvent(e, ui));
             }
         }
         this.grid.setItems(items);
         this.itemByFQPN = items.stream()
                 .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
+
+        Flux.merge(projectService.getProjects()
+                .stream()
+                .filter(p -> workingCopyService.find(p.getMetaData().getFQPN()).isPresent())
+                .map(p -> projectAnalysisService.analyze(p.getMetaData().getFQPN())
+                        .subscribeOn(Schedulers.parallel())
+                        .last())
+                .toList()).subscribe(progress -> {
+            this.onUpdateEvent(progress, ui);
+        });
     }
 
-    private void onUpdateEvent(ProjectOperationProgress e, UI current) {
+    private void onUpdateEvent(ProjectAnalysisService.ProjectAnalysisProgress e, UI current) {
         if (!current.isAttached()) {
             // browser has been reloaded or closed in the mean time
             return;
         }
         current.access(() -> {
             if (e.getState().isTerminated()) {
-                SortedSet<Label> labels = this.labelService.find(e.getFqpn());
-                ProjectAnalysisItem item = this.itemByFQPN.get(e.getFqpn());
+                SortedSet<Label> labels = this.labelService.find(e.getFQPN());
+                ProjectAnalysisItem item = this.itemByFQPN.get(e.getFQPN());
                 item.setLabels(labels);
                 this.grid.getDataProvider().refreshItem(item);
             }
-            this.text.setText("Analysis progress: " + e.getProgress());
+            // this.text.setText("Analysis progress: " + e.getProgress());
         });
     }
 

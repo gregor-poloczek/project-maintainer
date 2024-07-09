@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.analysis;
 
+import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService.ProjectAnalysisProgress.State;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisContextImpl;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
@@ -17,10 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 
 @Service
 @Slf4j
@@ -47,86 +51,98 @@ public class ProjectAnalysisService {
         this.dependencyService = dependencyService;
     }
 
+    @Getter
+    @Builder
+    public static class ProjectAnalysisProgress {
 
-    public void analyze(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
-        final Project project = projectService.getProject(fqpn)
-                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
+        private final FQPN fqpn;
+        @Builder.Default
+        private int progressCurrent = 0;
+        @Builder.Default
+        private int progressTotal = 1;
 
-        final Optional<WorkingCopy> maybeWorkingCopy =
-                workingCopyService.find(fqpn);
-
-        if (!maybeWorkingCopy.isPresent()) {
-            listener.failed(project, new ProjectNotClonedException(fqpn));
-            return;
+        public FQPN getFQPN() {
+            return fqpn;
         }
 
-        final WorkingCopy workingCopy = maybeWorkingCopy.get();
+        private final State state;
 
-        try {
-            project.withReadLock(() -> {
-                final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
-                String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
-                if (Objects.equals(latestHash,
-                        this.lastAnalyzedCommitHash.get(context.getProject().getMetaData().getFQPN()))) {
-                    listener.succeeded(context.getProject());
-                    return null;
-                }
+        public enum State {
+            SCHEDULED, RUNNING, DONE, FAILED;
 
-                this.performAnalysis(context);
-                this.saveAnalysisResult(context, latestHash);
-                return null;
-            });
-
-            // TODO kann fehlschlagen
-            listener.succeeded(project);
-        } catch (RuntimeException e) {
-            log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
-            listener.failed(project, e);
+            public boolean isTerminated() {
+                return this == State.DONE || this == State.FAILED;
+            }
         }
+
     }
 
-    public Mono<Void> analyze(@NonNull FQPN fqpn) {
+
+    public Flux<ProjectAnalysisProgress> analyze(@NonNull FQPN fqpn) {
         final Optional<Project> maybeProject = projectService.getProject(fqpn);
         if (maybeProject.isEmpty()) {
-            return Mono.error(new ProjectNotFoundException(fqpn));
+            return Flux.error(new ProjectNotFoundException(fqpn));
         }
 
         final Optional<WorkingCopy> maybeWorkingCopy = workingCopyService.find(fqpn);
         if (maybeWorkingCopy.isEmpty()) {
-            return Mono.error(new ProjectNotClonedException(fqpn));
+            return Flux.error(new ProjectNotClonedException(fqpn));
         }
 
-        return Mono.fromCallable(() -> {
+        return Flux.create(sink -> {
             final WorkingCopy workingCopy = maybeWorkingCopy.get();
 
             try {
                 log.info("Analyzing project \"{}\".", fqpn);
                 Project project = maybeProject.get();
-                return project.<Void>withReadLock(() -> {
+                sink.next(ProjectAnalysisProgress.builder()
+                        .fqpn(fqpn).state(State.SCHEDULED)
+                        .build());
+                project.<Void>withReadLock(() -> {
                     final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
                     String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
                     if (Objects.equals(latestHash,
                             this.lastAnalyzedCommitHash.get(context.getProject().getMetaData().getFQPN()))) {
+                        sink.next(ProjectAnalysisProgress.builder()
+                                .fqpn(fqpn)
+                                .state(State.DONE)
+                                .build());
+                        sink.complete();
                         return null;
                     }
 
-                    this.performAnalysis(context);
+                    this.performAnalysis(context, Optional.of(sink));
                     this.saveAnalysisResult(context, latestHash);
+                    sink.next(ProjectAnalysisProgress.builder()
+                            .fqpn(fqpn)
+                            .state(State.DONE)
+                            .progressCurrent(1)
+                            .progressTotal(1)
+                            .build());
+                    sink.complete();
                     return null;
                 });
             } catch (RuntimeException e) {
                 log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
-                throw e;
+                sink.next(ProjectAnalysisProgress.builder()
+                        .fqpn(fqpn).state(State.FAILED).build());
+                sink.error(e);
             }
         });
 
     }
 
 
-    private void performAnalysis(final AnalysisContextImpl context) {
+    private void performAnalysis(final AnalysisContextImpl context, Optional<FluxSink<ProjectAnalysisProgress>> sink) {
         final Project project = context.getProject();
 
-        double i = 0.0d;
+        sink.ifPresent(s -> s.next(ProjectAnalysisProgress.builder()
+                .fqpn(context.getProject().getFQPN())
+                .state(State.RUNNING)
+                .progressCurrent(0)
+                .progressTotal(this.projectAnalyzers.size())
+                .build()));
+        int i = 0;
         for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
             try {
                 analyzer.analyze(context);
@@ -134,7 +150,15 @@ public class ProjectAnalysisService {
                 log.error("Could not invoke analyzer %s on project %s".formatted(
                         analyzer.getClass().getSimpleName(), project.getMetaData().getFQPN()), e);
             }
-            i += 1.0d;
+
+            i++;
+            final int current = i;
+            sink.ifPresent(s -> s.next(ProjectAnalysisProgress.builder()
+                    .fqpn(context.getProject().getFQPN())
+                    .state(State.RUNNING)
+                    .progressCurrent(current)
+                    .progressTotal(this.projectAnalyzers.size())
+                    .build()));
         }
     }
 
