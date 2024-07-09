@@ -25,6 +25,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.config.ReportFile;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -36,7 +37,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -141,11 +141,13 @@ public class ReportGeneratorService {
                 .stream()
                 .filter(p -> workingCopyService.find(p).isPresent()).toList();
 
+        ProjectReport report = this.buildReport((ProjectReportConfig) reportConfig);
+
         return Flux.create(sink -> {
             sink.next(ProjectReportGenerationProgress.builder().state(State.SCHEDULED).build());
-            
+
             AtomicInteger analyzed = new AtomicInteger(0);
-            Flux<Project> analyzedProjects = Flux.merge(projects
+            Flux.merge(projects
                             .stream()
                             .map(p -> projectAnalysisService
                                     .analyze(p)
@@ -153,22 +155,21 @@ public class ReportGeneratorService {
                                     .last()
                                     .thenReturn(p))
                             .toList())
-                    .doOnNext(p -> sink.next(ProjectReportGenerationProgress.builder()
-                            .progressTotal(projects.size())
-                            .progressCurrent(analyzed.incrementAndGet())
-                            .state(State.RUNNING).build()));
-
-            analyzedProjects
-                    .collectList()
-                    .map(ps -> buildReport(ps, (ProjectReportConfig) reportConfig))
-                    .subscribe(r -> {
+                    .doOnNext(project -> {
+                        addToReport(report, (ProjectReportConfig) reportConfig, project);
+                        sink.next(ProjectReportGenerationProgress.builder()
+                                .progressTotal(projects.size())
+                                .progressCurrent(analyzed.incrementAndGet())
+                                .state(State.RUNNING).build());
+                    }).doOnComplete(() -> {
                         sink.next(ProjectReportGenerationProgress.builder()
                                 .state(State.DONE)
                                 .progressCurrent(1)
                                 .progressTotal(1)
-                                .projectReport(r)
+                                .projectReport(report)
                                 .build());
                         sink.complete();
+                    }).subscribe(c -> {
                     });
 
         });
@@ -176,7 +177,34 @@ public class ReportGeneratorService {
 
     }
 
-    private ProjectReport buildReport(List<Project> projects, ProjectReportConfig reportConfig) {
+    private void addToReport(ProjectReport report, ProjectReportConfig reportConfig, Project project) {
+        ProjectReportRow row = new ProjectReportRow(project);
+        SortedSet<Label> labels = this.labelService.find(project);
+
+        for (ColumnConfig column : reportConfig.getColumns()) {
+            Label label = Label.of(column.getVersionLabelBase());
+            Optional<VersionedLabel> match = labels.stream()
+                    .filter(VersionedLabel.class::isInstance)
+                    .map(VersionedLabel.class::cast)
+                    .filter(vL -> vL.getBase().equals(label))
+                    .findFirst();
+
+            ProjectReportCell cell = new ProjectReportCell();
+            if (match.isPresent()) {
+                cell.setValue(match.get().getVersion());
+            } else {
+                cell.setValue(null);
+            }
+            row.getCells().add(cell);
+        }
+
+        if (!row.getCells().stream().allMatch(c -> c.getValue() == null)) {
+            report.getRows().add(row);
+            report.getRows().sort(Comparator.comparing(r -> r.getProject().getFQPN()));
+        }
+    }
+
+    private ProjectReport buildReport(ProjectReportConfig reportConfig) {
         ProjectReportDefinition reportDefinition = new ProjectReportDefinition();
         reportDefinition.setId(reportConfig.getId());
         reportDefinition.setName(reportConfig.getName());
@@ -187,33 +215,6 @@ public class ReportGeneratorService {
 
         ProjectReport report = new ProjectReport();
         report.setDefinition(reportDefinition);
-
-        for (Project project : projects) {
-            ProjectReportRow row = new ProjectReportRow(project);
-            SortedSet<Label> labels = this.labelService.find(project);
-
-            for (ColumnConfig column : reportConfig.getColumns()) {
-                Label label = Label.of(column.getVersionLabelBase());
-                Optional<VersionedLabel> match = labels.stream()
-                        .filter(VersionedLabel.class::isInstance)
-                        .map(VersionedLabel.class::cast)
-                        .filter(vL -> vL.getBase().equals(label))
-                        .findFirst();
-
-                ProjectReportCell cell = new ProjectReportCell();
-                if (match.isPresent()) {
-                    cell.setValue(match.get().getVersion());
-                } else {
-                    cell.setValue(null);
-                }
-                row.getCells().add(cell);
-            }
-
-            if (!row.getCells().stream().allMatch(c -> c.getValue() == null)) {
-                report.getRows().add(row);
-            }
-        }
-
         return report;
     }
 
