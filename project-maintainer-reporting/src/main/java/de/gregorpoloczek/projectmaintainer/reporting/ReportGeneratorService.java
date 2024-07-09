@@ -137,26 +137,25 @@ public class ReportGeneratorService {
                     "Report definition is not of type project-report"));
         }
 
+        List<Project> projects = projectService.getProjects()
+                .stream()
+                .filter(p -> workingCopyService.find(p).isPresent()).toList();
+
         return Flux.create(sink -> {
             sink.next(ProjectReportGenerationProgress.builder().state(State.SCHEDULED).build());
-            List<Project> projects = projectService.getProjects()
-                    .stream()
-                    .filter(p -> workingCopyService.find(p).isPresent()).toList();
-
+            
             AtomicInteger analyzed = new AtomicInteger(0);
             Flux<Project> analyzedProjects = Flux.merge(projects
                             .stream()
                             .map(p -> projectAnalysisService
                                     .analyze(p)
-                                    // TODO notwendig?
                                     .subscribeOn(Schedulers.parallel())
                                     .last()
-                                    .doOnNext(progress -> analyzed.incrementAndGet())
                                     .thenReturn(p))
                             .toList())
                     .doOnNext(p -> sink.next(ProjectReportGenerationProgress.builder()
                             .progressTotal(projects.size())
-                            .progressCurrent(analyzed.get())
+                            .progressCurrent(analyzed.incrementAndGet())
                             .state(State.RUNNING).build()));
 
             analyzedProjects
