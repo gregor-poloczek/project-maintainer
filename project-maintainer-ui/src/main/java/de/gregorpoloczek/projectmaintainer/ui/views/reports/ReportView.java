@@ -87,7 +87,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                 .subscribeOn(Schedulers.parallel())
                 .subscribe(progress ->
                         ui.access(() -> {
-                            System.out.println(progress);
+                            this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
                             if (progress.getState() == State.DONE) {
                                 applyReport(progress.getProjectReport());
                             }
