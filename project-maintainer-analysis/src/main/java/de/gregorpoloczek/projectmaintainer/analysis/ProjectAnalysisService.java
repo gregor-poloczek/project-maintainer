@@ -4,7 +4,6 @@ import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService.Proje
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisContextImpl;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
@@ -166,7 +165,7 @@ public class ProjectAnalysisService {
 
     private void saveAnalysisResult(final AnalysisContextImpl context, String latestHash) {
         final Project project = context.getProject();
-        this.labelService.save(project.getMetaData().getFQPN(), context.getLabels());
+        this.labelService.save(project, context.getLabels());
         this.dependencyService.save(project.getMetaData().getFQPN(), context.getDependencies());
         this.lastAnalyzedCommitHash.put(context.getProject().getMetaData().getFQPN(), latestHash);
     }

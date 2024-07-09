@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectImpl;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRepository;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
@@ -29,7 +30,8 @@ public class LabelService {
         this.projectRepository = projectRepository;
     }
 
-    public void save(FQPN fqpn, Collection<Label> labels) {
+    public void save(ProjectRelatable projectRelatable, Collection<Label> labels) {
+        FQPN fqpn = projectRelatable.getFQPN();
         final ProjectImpl project = this.require(fqpn);
 
         final Set<Label> finalLabels = new HashSet<>(labels);
@@ -55,9 +57,9 @@ public class LabelService {
         this.allLabels.put(fqpn, Collections.unmodifiableSortedSet(new TreeSet<>(finalLabels)));
     }
 
-    public SortedSet<Label> find(FQPN fqpn) {
+    public SortedSet<Label> find(ProjectRelatable projectRelatable) {
         return this.allLabels.computeIfAbsent(
-                this.require(fqpn).getMetaData().getFQPN(),
+                this.require(projectRelatable.getFQPN()).getMetaData().getFQPN(),
                 k -> Collections.emptySortedSet());
     }
 

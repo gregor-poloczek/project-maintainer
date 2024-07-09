@@ -191,7 +191,7 @@ public class ReportGeneratorService {
 
         for (Project project : projects) {
             ProjectReportRow row = new ProjectReportRow(project);
-            SortedSet<Label> labels = this.labelService.find(project.getMetaData().getFQPN());
+            SortedSet<Label> labels = this.labelService.find(project);
 
             for (ColumnConfig column : reportConfig.getColumns()) {
                 Label label = Label.of(column.getVersionLabelBase());
