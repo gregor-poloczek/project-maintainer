@@ -4,14 +4,14 @@ import java.net.URI;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
 @Slf4j
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProjectImpl implements Project {
 
     private final ProjectMetaData metaData;
@@ -47,27 +47,7 @@ public class ProjectImpl implements Project {
         }
     }
 
-    @Override
-    public boolean equals(final Object object) {
-        if (this == object) {
-            return true;
-        }
-
-        if (object == null || getClass() != object.getClass()) {
-            return false;
-        }
-
-        final ProjectImpl that = (ProjectImpl) object;
-
-        return new EqualsBuilder().append(this.getMetaData().getFQPN(), that.getMetaData().getFQPN()).isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(17, 37).append(this.getMetaData().getFQPN()).toHashCode();
-    }
-
-
+    @EqualsAndHashCode.Include
     @Override
     public FQPN getFQPN() {
         return this.metaData.getFQPN();
