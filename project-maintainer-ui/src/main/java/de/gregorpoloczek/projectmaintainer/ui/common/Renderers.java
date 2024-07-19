@@ -53,7 +53,7 @@ public class Renderers {
 
     public <I extends HasIconItem> Renderer<I> getIconRenderer() {
         return LitRenderer.<I>of(
-                        "<img src=${item.image} style=\"height:32px; filter: grayscale(${item.grayscale});\" />")
+                        "<img src=${item.image} style=\"height:48px; filter: grayscale(${item.grayscale});\" />")
                 .withProperty("grayscale", item -> !item.isIconBlurred() ? "0.0" : "1.0")
                 .withProperty("image", item -> {
                     Optional<Image> image = item.getIcon();
