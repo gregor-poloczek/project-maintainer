@@ -34,4 +34,8 @@ public class ProjectItem implements HasProjectItem, HasIconItem {
     public boolean isIconBlurred() {
         return this.workingCopy.isEmpty();
     }
+
+    public boolean matches(String query) {
+        return project.getFQPN().toString().toLowerCase().contains(query.toLowerCase());
+    }
 }

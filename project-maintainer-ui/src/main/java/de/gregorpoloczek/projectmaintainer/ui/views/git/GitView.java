@@ -18,9 +18,12 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.progressbar.ProgressBarVariant;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import de.gregorpoloczek.projectmaintainer.git.service.Commit;
@@ -59,6 +62,7 @@ public class GitView extends VerticalLayout {
     private final Grid<ProjectItem> grid;
     private final WorkingCopyService workingCopyService;
     private transient Map<FQPN, ProjectItem> itemByFQPN;
+    private final TextField search;
 
 
     private final Renderer<ProjectItem> progressBarRenderer = new ComponentRenderer<>(item -> {
@@ -107,7 +111,8 @@ public class GitView extends VerticalLayout {
     private final Renderer<ProjectItem> workingCopyRenderer = new ComponentRenderer<>(item -> {
         FlexLayout layout = new FlexLayout();
         layout.setFlexDirection(FlexDirection.COLUMN);
-        Text message = new Text("");
+        Div message = new Div("");
+        message.getStyle().set("text-wrap", "balance");
 
         Span timestamp = createBadge();
         Span hash = createBadge();
@@ -127,7 +132,10 @@ public class GitView extends VerticalLayout {
             authorName.setText(commit.getAuthorName());
         });
         badges.setVisible(maybeCommit.isPresent());
-        message.setText(maybeCommit.map(Commit::getMessage).orElse(""));
+        message.setText(maybeCommit
+                .map(Commit::getMessage)
+                .map(s -> StringUtils.abbreviate(s, 200))
+                .orElse(""));
         return layout;
     });
 
@@ -146,7 +154,19 @@ public class GitView extends VerticalLayout {
 
         MenuBar menuBar = createMenuBar();
 
-        this.add(menuBar, grid);
+        this.search = new TextField();
+        search.setPlaceholder("Search");
+        search.setValueChangeMode(ValueChangeMode.EAGER);
+        this.search.addValueChangeListener(e -> {
+            ListDataProvider<ProjectItem> dataProvider = (ListDataProvider<ProjectItem>) this.grid.getDataProvider();
+            String query = e.getValue().toLowerCase();
+            dataProvider.setFilter(
+                    i -> StringUtils.isBlank(query) || i.matches(query));
+            // TODO brauch ich das?
+            dataProvider.refreshAll();
+        });
+
+        this.add(this.search, menuBar, grid);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
