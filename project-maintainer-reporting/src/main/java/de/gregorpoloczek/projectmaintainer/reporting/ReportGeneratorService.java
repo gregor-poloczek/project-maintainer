@@ -181,7 +181,7 @@ public class ReportGeneratorService {
         SortedSet<Label> labels = this.labelService.find(project);
 
         for (ColumnConfig column : reportConfig.getColumns()) {
-            Label label = Label.of(column.getVersionLabelBase());
+            Label label = Label.of(column.getVersionedLabelBase());
             Optional<VersionedLabel> match = labels.stream()
                     .filter(VersionedLabel.class::isInstance)
                     .map(VersionedLabel.class::cast)

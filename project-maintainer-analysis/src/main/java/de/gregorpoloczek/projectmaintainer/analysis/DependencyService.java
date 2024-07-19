@@ -3,10 +3,10 @@ package de.gregorpoloczek.projectmaintainer.analysis;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectImpl;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRepository;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -26,8 +26,8 @@ public class DependencyService {
         this.projectRepository = projectRepository;
     }
 
-    public void save(FQPN fqpn, List<Dependency> dependencies) {
-        this.dependencyByProject.put(fqpn, List.copyOf(dependencies));
+    public void save(ProjectRelatable projectRelatable, List<Dependency> dependencies) {
+        this.dependencyByProject.put(projectRelatable.getFQPN(), List.copyOf(dependencies));
     }
 
     public List<Dependency> find(FQPN fqpn) {

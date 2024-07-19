@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.analysis;
 
-import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService.ProjectAnalysisProgress.State;
+import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisProgress.State;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisContextImpl;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import lombok.Builder;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,63 +33,37 @@ public class ProjectAnalysisService {
     private final WorkingCopyService workingCopyService;
     private final List<ProjectAnalyzer> projectAnalyzers;
     private final DependencyService dependencyService;
-    private Map<FQPN, String> lastAnalyzedCommitHash = Collections.synchronizedMap(new HashMap<>());
+    private final Map<FQPN, String> lastAnalyzedCommitHash = Collections.synchronizedMap(new HashMap<>());
 
     public ProjectAnalysisService(
             final ProjectService projectService,
-            final List<ProjectAnalyzer> projectAnalyzers,
             final WorkingCopyService workingCopyService,
             final LabelService labelService,
-            final DependencyService dependencyService
+            final DependencyService dependencyService,
+            final List<ProjectAnalyzer> projectAnalyzers
     ) {
         this.projectService = projectService;
         this.labelService = labelService;
-        this.projectAnalyzers = projectAnalyzers;
         this.workingCopyService = workingCopyService;
         this.dependencyService = dependencyService;
-    }
-
-    @Getter
-    @Builder
-    public static class ProjectAnalysisProgress {
-
-        private final FQPN fqpn;
-        @Builder.Default
-        private int progressCurrent = 0;
-        @Builder.Default
-        private int progressTotal = 1;
-
-        public FQPN getFQPN() {
-            return fqpn;
-        }
-
-        private final State state;
-
-        public enum State {
-            SCHEDULED, RUNNING, DONE, FAILED;
-
-            public boolean isTerminated() {
-                return this == State.DONE || this == State.FAILED;
-            }
-        }
-
+        this.projectAnalyzers = projectAnalyzers;
     }
 
 
     public Flux<ProjectAnalysisProgress> analyze(@NonNull ProjectRelatable projectRelatable) {
-        FQPN fqpn = projectRelatable.getFQPN();
-        final Optional<Project> maybeProject = projectService.getProject(fqpn);
+        final Optional<Project> maybeProject = projectService.getProject(projectRelatable);
         if (maybeProject.isEmpty()) {
-            return Flux.error(new ProjectNotFoundException(fqpn));
+            return Flux.error(new ProjectNotFoundException(projectRelatable));
         }
 
-        final Optional<WorkingCopy> maybeWorkingCopy = workingCopyService.find(fqpn);
+        final Optional<WorkingCopy> maybeWorkingCopy = workingCopyService.find(projectRelatable);
         if (maybeWorkingCopy.isEmpty()) {
-            return Flux.error(new ProjectNotClonedException(fqpn));
+            return Flux.error(new ProjectNotClonedException(projectRelatable));
         }
+        final WorkingCopy workingCopy = maybeWorkingCopy.get();
 
         return Flux.create(sink -> {
-            final WorkingCopy workingCopy = maybeWorkingCopy.get();
+            FQPN fqpn = projectRelatable.getFQPN();
 
             try {
                 log.debug("Analyzing project \"{}\".", fqpn);
@@ -112,7 +84,7 @@ public class ProjectAnalysisService {
                         return null;
                     }
 
-                    this.performAnalysis(context, Optional.of(sink));
+                    this.performAnalysis(context, sink);
                     this.saveAnalysisResult(context, latestHash);
                     sink.next(ProjectAnalysisProgress.builder()
                             .fqpn(fqpn)
@@ -134,15 +106,17 @@ public class ProjectAnalysisService {
     }
 
 
-    private void performAnalysis(final AnalysisContextImpl context, Optional<FluxSink<ProjectAnalysisProgress>> sink) {
+    private void performAnalysis(
+            final AnalysisContextImpl context,
+            FluxSink<ProjectAnalysisProgress> sink) {
         final Project project = context.getProject();
 
-        sink.ifPresent(s -> s.next(ProjectAnalysisProgress.builder()
+        sink.next(ProjectAnalysisProgress.builder()
                 .fqpn(context.getProject().getFQPN())
                 .state(State.RUNNING)
                 .progressCurrent(0)
                 .progressTotal(this.projectAnalyzers.size())
-                .build()));
+                .build());
         int i = 0;
         for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
             try {
@@ -154,19 +128,18 @@ public class ProjectAnalysisService {
 
             i++;
             final int current = i;
-            sink.ifPresent(s -> s.next(ProjectAnalysisProgress.builder()
+            sink.next(ProjectAnalysisProgress.builder()
                     .fqpn(context.getProject().getFQPN())
                     .state(State.RUNNING)
                     .progressCurrent(current)
                     .progressTotal(this.projectAnalyzers.size())
-                    .build()));
+                    .build());
         }
     }
 
     private void saveAnalysisResult(final AnalysisContextImpl context, String latestHash) {
-        final Project project = context.getProject();
-        this.labelService.save(project, context.getLabels());
-        this.dependencyService.save(project.getMetaData().getFQPN(), context.getDependencies());
-        this.lastAnalyzedCommitHash.put(context.getProject().getMetaData().getFQPN(), latestHash);
+        this.labelService.save(context, context.getLabels());
+        this.dependencyService.save(context, context.getDependencies());
+        this.lastAnalyzedCommitHash.put(context.getFQPN(), latestHash);
     }
 }

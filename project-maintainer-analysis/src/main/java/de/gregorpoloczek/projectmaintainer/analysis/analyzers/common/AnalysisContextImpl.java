@@ -2,17 +2,18 @@ package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
 
 import de.gregorpoloczek.projectmaintainer.analysis.Dependency;
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 import lombok.Getter;
 import lombok.NonNull;
 
-public class AnalysisContextImpl implements AnalysisContext {
+public class AnalysisContextImpl implements AnalysisContext, ProjectRelatable {
 
     private final Project project;
 
@@ -43,4 +44,8 @@ public class AnalysisContextImpl implements AnalysisContext {
         return new FactsCollector(this.labels::add, this.dependencies::add);
     }
 
+    @Override
+    public FQPN getFQPN() {
+        return this.project.getFQPN();
+    }
 }

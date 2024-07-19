@@ -21,8 +21,8 @@ public class ProjectService {
     }
 
 
-    public Optional<Project> getProject(@NonNull final FQPN fqpn) {
-        return this.projectRepository.find(fqpn).map(Project.class::cast);
+    public Optional<Project> getProject(@NonNull final ProjectRelatable projectRelatable) {
+        return this.projectRepository.find(projectRelatable.getFQPN()).map(Project.class::cast);
     }
 
     public Project requireProject(final FQPN fqpn) {

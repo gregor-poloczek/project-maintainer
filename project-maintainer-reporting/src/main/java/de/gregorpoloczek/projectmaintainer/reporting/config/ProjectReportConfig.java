@@ -22,6 +22,6 @@ public class ProjectReportConfig extends ReportConfig {
 
         @NotEmpty
         String name;
-        String versionLabelBase;
+        String versionedLabelBase;
     }
 }
