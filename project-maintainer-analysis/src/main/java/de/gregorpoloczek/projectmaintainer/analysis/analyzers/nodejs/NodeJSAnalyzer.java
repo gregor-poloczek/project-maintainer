@@ -43,6 +43,8 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
 
             // collect dependencies
             final SortedMap<String, String> allDependencies = new TreeMap<>();
+            packageJSON.name().ifPresent(name -> facts.has(h -> h.label("nodejs", "package.json", "name", name)));
+
             packageJSON.dependencies().ifPresent(allDependencies::putAll);
             packageJSON.devDependencies().ifPresent(allDependencies::putAll);
             allDependencies.entrySet()
