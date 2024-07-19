@@ -1,5 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis.analyzers.maven;
 
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisContext;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.FactsCollector;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
@@ -12,6 +14,7 @@ import java.util.SortedSet;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -63,6 +66,11 @@ public class MavenAnalyzer implements ProjectAnalyzer {
                     facts.has(h -> h.dependency("maven", plugin.getGroupId() + ":" + plugin.getArtifactId(),
                             plugin.getVersion()));
                 });
+
+                facts.when(isNotBlank(model.getGroupId()))
+                        .has(h -> h.label("maven", "group-id", model.getGroupId()));
+                facts.when(isNotBlank(model.getArtifactId()))
+                        .has(h -> h.label("maven", "artifact-id", model.getArtifactId()));
 
                 Optional.ofNullable(model.getProperties().get("maven.compiler.target"))
                         .filter(String.class::isInstance)

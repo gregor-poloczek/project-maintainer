@@ -91,6 +91,9 @@ public class FactsCollector {
             return this;
         }
 
+        public void label(String segment, String... moreSegments) {
+            addLabel(Label.of(segment, moreSegments));
+        }
     }
 
     private void addDependency(Dependency dependency) {
