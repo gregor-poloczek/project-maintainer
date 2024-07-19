@@ -1,11 +1,13 @@
 package de.gregorpoloczek.projectmaintainer.reporting.projectreport;
 
+import lombok.Builder;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 
 @Getter
-@Setter
+@RequiredArgsConstructor
+@Builder
 public class ProjectReportCell {
 
-    String value;
+    final String value;
 }

@@ -23,5 +23,7 @@ public class ProjectReportConfig extends ReportConfig {
         @NotEmpty
         String name;
         String versionedLabelBase;
+        String labelBase;
+        String textAlignment = "left";
     }
 }

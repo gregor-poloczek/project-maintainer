@@ -16,9 +16,16 @@ public class Label implements Comparable<Label> {
     @Getter
     private final List<String> segments;
 
+    @Getter
+    private final Label base;
+    @Getter
+    private final String lastSegment;
+
     protected Label(final List<String> segments) {
         this.value = segments.stream().collect(Collectors.joining(":"));
         this.segments = Collections.unmodifiableList(segments);
+        this.base = segments.size() > 1 ? new Label(segments.subList(0, segments.size() - 1)) : null;
+        this.lastSegment = segments.getLast();
     }
 
     public static Label of(String segment, String... segments) {
@@ -26,6 +33,11 @@ public class Label implements Comparable<Label> {
         s.add(segment);
         s.addAll(Arrays.asList(segments));
         return new Label(s);
+    }
+
+    public static Label fromString(String string) {
+        // TODO validierung auf segment zahl
+        return new Label(Arrays.asList(string.split(":")));
     }
 
 

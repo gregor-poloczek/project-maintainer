@@ -12,6 +12,7 @@ import com.vaadin.flow.router.RouteParameters;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService.ProjectReportGenerationProgress.State;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
@@ -83,7 +84,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         this.grid.removeAllColumns();
         this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Project").setFlexGrow(1).setWidth("350px");
+        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Project").setFlexGrow(2).setWidth("350px");
 
         UI ui = UI.getCurrent();
 
@@ -121,11 +122,21 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         for (ProjectReportColumn column : definition.getColumns()) {
             ReportRowItemCell cell = ReportRowItemCell.builder().index(index).build();
             this.grid.addColumn(cell::getValue)
-                    .setHeader(column.getLabel()).setWidth("128px")
-                    .setFlexGrow(0)
-                    .setTextAlign(ColumnTextAlign.CENTER);
+                    .setHeader(column.getLabel())
+                    .setFlexGrow(1)
+                    // .setWidth("250px")
+                    .setTextAlign(
+                            toTextAlign(column.getTextAlignment()));
             index++;
         }
+    }
+
+    private ColumnTextAlign toTextAlign(ColumnTextAlignment textAlignment) {
+        return switch (textAlignment) {
+            case LEFT -> ColumnTextAlign.START;
+            case CENTER -> ColumnTextAlign.CENTER;
+            case RIGHT -> ColumnTextAlign.END;
+        };
     }
 
     @Override

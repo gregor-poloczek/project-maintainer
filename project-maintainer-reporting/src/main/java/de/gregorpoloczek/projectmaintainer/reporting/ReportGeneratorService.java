@@ -13,8 +13,10 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService.ProjectReportGenerationProgress.State;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell.ProjectReportCellBuilder;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
@@ -27,7 +29,6 @@ import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -181,20 +182,25 @@ public class ReportGeneratorService {
         SortedSet<Label> labels = this.labelService.find(project);
 
         for (ColumnConfig column : reportConfig.getColumns()) {
-            Label label = Label.of(column.getVersionedLabelBase());
-            Optional<VersionedLabel> match = labels.stream()
-                    .filter(VersionedLabel.class::isInstance)
-                    .map(VersionedLabel.class::cast)
-                    .filter(vL -> vL.getBase().equals(label))
-                    .findFirst();
-
-            ProjectReportCell cell = new ProjectReportCell();
-            if (match.isPresent()) {
-                cell.setValue(match.get().getVersion());
+            ProjectReportCellBuilder cellBuilder = ProjectReportCell.builder();
+            if (column.getVersionedLabelBase() != null) {
+                Label label = Label.of(column.getVersionedLabelBase());
+                labels.stream()
+                        .filter(VersionedLabel.class::isInstance)
+                        .map(VersionedLabel.class::cast)
+                        .filter(vL -> vL.getBase().equals(label))
+                        .findFirst().map(VersionedLabel::getVersion)
+                        .ifPresent(cellBuilder::value);
+            } else if (column.getLabelBase() != null) {
+                Label label = Label.fromString(column.getLabelBase());
+                labels.stream()
+                        .filter(vL -> vL.getBase().equals(label))
+                        .findFirst().map(Label::getLastSegment)
+                        .ifPresent(cellBuilder::value);
             } else {
-                cell.setValue(null);
+                cellBuilder.value("??column-type??");
             }
-            row.getCells().add(cell);
+            row.getCells().add(cellBuilder.build());
         }
 
         if (!row.getCells().stream().allMatch(c -> c.getValue() == null)) {
@@ -209,7 +215,10 @@ public class ReportGeneratorService {
         reportDefinition.setName(reportConfig.getName());
         reportDefinition.setColumns(reportConfig.getColumns()
                 .stream()
-                .map(c -> ProjectReportColumn.builder().label(c.getName()).build())
+                .map(c -> ProjectReportColumn.builder()
+                        .label(c.getName())
+                        .textAlignment(ColumnTextAlignment.fromString(c.getTextAlignment()))
+                        .build())
                 .toList());
 
         ProjectReport report = new ProjectReport();
