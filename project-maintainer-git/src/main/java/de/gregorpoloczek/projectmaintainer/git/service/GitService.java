@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.git.provider.github.GithubProjectDiscovery;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -18,6 +19,12 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class GitService {
+
+    private final GithubProjectDiscovery githubProjectDiscovery;
+
+    public GitService(GithubProjectDiscovery githubProjectDiscovery) {
+        this.githubProjectDiscovery = githubProjectDiscovery;
+    }
 
     public PullResult pull(@NonNull WorkingCopy workingCopy,
             @NonNull ProjectOperationProgressListener listener) {
@@ -84,10 +91,13 @@ public class GitService {
                         .setDirectory(directory)
                         .setCredentialsProvider(credentialProvider)
                         .setProgressMonitor(new GitOperationProgressMonitor(listener))
-                        .call()
-                        .close();
+                        .call().close();
+
                 final Optional<Commit> commit =
                         this.getLatestCommitHash(workingCopy);
+
+                final String currentBranch =
+                        this.getCurrentBranch(workingCopy);
 
                 log.info("Cloned \"{}\" successfully.", workingCopy.getFQPN());
                 return new CloneResult() {
@@ -95,11 +105,24 @@ public class GitService {
                     public Optional<Commit> getLatestCommit() {
                         return commit;
                     }
+
+                    @Override
+                    public String getCurrentBranch() {
+                        return currentBranch;
+                    }
                 };
             } catch (GitAPIException e) {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    private String getCurrentBranch(WorkingCopy workingCopy) {
+        try (Git git = Git.open(workingCopy.getDirectory())) {
+            return git.getRepository().getBranch();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
 

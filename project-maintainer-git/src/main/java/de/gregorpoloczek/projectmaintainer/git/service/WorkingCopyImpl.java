@@ -16,6 +16,7 @@ import org.eclipse.jgit.transport.CredentialsProvider;
 @Builder
 public class WorkingCopyImpl implements WorkingCopy {
 
+    private final String currentBranch;
     private final FQPN fqpn;
     private final File directory;
     private final URI uri;

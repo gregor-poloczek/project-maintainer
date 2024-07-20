@@ -81,7 +81,9 @@ public class BootstrapService {
 
             // synchronize credentials provider back to working copy
             this.workingCopyService.find(discoveredProject.getFQPN())
-                    .ifPresent(w -> this.workingCopyService.save(w.getFQPN(), w.getURI(), w.getDirectory(),
+                    .ifPresent(w -> this.workingCopyService.save(
+                            w.getFQPN(), w.getURI(), w.getDirectory(),
+                            w.getCurrentBranch(),
                             w.getLatestCommit().orElse(null), credentialsProvider));
 
             final ProjectImpl project = new ProjectImpl(metaData, credentialsProvider);

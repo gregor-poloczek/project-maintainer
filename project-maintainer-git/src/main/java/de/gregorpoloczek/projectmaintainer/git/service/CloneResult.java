@@ -5,4 +5,6 @@ import java.util.Optional;
 public interface CloneResult {
 
     Optional<Commit> getLatestCommit();
+
+    String getCurrentBranch();
 }

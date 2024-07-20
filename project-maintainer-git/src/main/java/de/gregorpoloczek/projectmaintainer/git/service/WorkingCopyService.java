@@ -61,6 +61,7 @@ public class WorkingCopyService {
                 workingCopy.getFQPN(),
                 workingCopy.getURI(),
                 workingCopy.getDirectory(),
+                clone.getCurrentBranch(),
                 clone.getLatestCommit().orElse(null),
                 workingCopy.getCredentialsProvider()
         );
@@ -74,6 +75,7 @@ public class WorkingCopyService {
                 workingCopy.getFQPN(),
                 workingCopy.getURI(),
                 workingCopy.getDirectory(),
+                workingCopy.getCurrentBranch(),
                 result.getLatestCommit().orElse(null),
                 workingCopy.getCredentialsProvider()
         );
@@ -94,13 +96,14 @@ public class WorkingCopyService {
     }
 
 
-    public WorkingCopyImpl save(FQPN fqpn, URI uri, File directory, Commit latestCommit,
+    public WorkingCopyImpl save(FQPN fqpn, URI uri, File directory, String currentBranch, Commit latestCommit,
             CredentialsProvider credentialsProvider) {
         final WorkingCopyImpl result =
                 WorkingCopyImpl.builder()
                         .fqpn(fqpn)
                         .uri(uri)
                         .directory(directory)
+                        .currentBranch(currentBranch)
                         .latestCommit(latestCommit)
                         .credentialsProvider(credentialsProvider)
                         .build();
@@ -153,11 +156,13 @@ public class WorkingCopyService {
                 String url = git.getRepository().getConfig().getString("remote", "origin", "url");
                 List<RevCommit> revCommits = new ArrayList<>();
                 git.log().setMaxCount(1).call().forEach(revCommits::add);
+                String currentBranch = git.getRepository().getBranch();
 
                 WorkingCopyImpl workingCopy = WorkingCopyImpl.builder()
                         .fqpn(fqpn)
                         .uri(URI.create(url))
                         .directory(file)
+                        .currentBranch(currentBranch)
                         .latestCommit(revCommits.stream().findFirst().map(CommitImpl::of).orElse(null))
                         .build();
                 this.workingCopies.put(fqpn, workingCopy);

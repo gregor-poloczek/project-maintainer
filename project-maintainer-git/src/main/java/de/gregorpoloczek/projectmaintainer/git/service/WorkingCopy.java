@@ -16,6 +16,8 @@ public interface WorkingCopy extends ProjectRelatable {
 
     Optional<Commit> getLatestCommit();
 
+    String getCurrentBranch();
+
     URI getURI();
 
     <T> T withReadLock(Supplier<T> operation);

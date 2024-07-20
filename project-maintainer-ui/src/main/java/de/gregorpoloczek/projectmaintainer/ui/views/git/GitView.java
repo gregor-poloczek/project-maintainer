@@ -114,16 +114,19 @@ public class GitView extends VerticalLayout {
         Div message = new Div("");
         message.getStyle().set("text-wrap", "balance");
 
+        Span branch = createBadge();
         Span timestamp = createBadge();
         Span hash = createBadge();
         Span authorName = createBadge();
 
         HorizontalLayout badges = new HorizontalLayout();
-        badges.add(hash, authorName, timestamp);
+        badges.add(branch, hash, authorName, timestamp);
 
         layout.add(badges, message);
 
         Optional<Commit> maybeCommit = item.getWorkingCopy().flatMap(WorkingCopy::getLatestCommit);
+        branch.setText(item.getWorkingCopy().map(WorkingCopy::getCurrentBranch).orElse(""));
+
         maybeCommit.ifPresent(commit -> {
             timestamp.setText(PrettyTime.of(Locale.US)
                     .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
