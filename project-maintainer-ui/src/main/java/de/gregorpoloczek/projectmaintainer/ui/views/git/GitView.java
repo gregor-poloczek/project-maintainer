@@ -305,7 +305,7 @@ public class GitView extends VerticalLayout {
 
     private ProjectItem toProjectItem(Project p) {
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(p.getMetaData().getFQPN());
-        String text = workingCopy.isPresent() ? "" : "Not cloned";
+        String text = workingCopy.isPresent() ? "" : "Not attached";
         return ProjectItem.builder()
                 .project(p)
                 .text(text)

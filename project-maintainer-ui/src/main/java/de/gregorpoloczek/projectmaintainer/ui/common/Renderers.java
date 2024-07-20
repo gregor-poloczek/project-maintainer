@@ -5,6 +5,7 @@ import com.vaadin.flow.component.HasText;
 import com.vaadin.flow.component.Html;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
@@ -118,7 +119,9 @@ public class Renderers {
             Span prefix = createBadge();
             prefix.setText(getNamePrefix(project));
             badges.add(prefix);
-            layout.add(badges, name);
+            Div spacer = new Div();
+            spacer.getStyle().set("height", "4px");
+            layout.add(badges, spacer, name);
             return layout;
         });
     }
