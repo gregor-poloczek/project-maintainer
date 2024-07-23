@@ -110,6 +110,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                                 this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
                             }
                             if (progress.getState() == State.RUNNING) {
+                                // TODO report can be concurrently modified
                                 applyReport(progress.getProjectReport());
                                 this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
                             }
