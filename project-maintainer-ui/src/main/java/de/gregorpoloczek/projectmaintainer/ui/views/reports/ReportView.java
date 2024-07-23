@@ -64,7 +64,14 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         int index;
 
         public String getValue(ReportRowItem item) {
-            return item.getValue(index).orElse("");
+            // TODO proper typing
+            String s = item.getValue(index).orElse("");
+            if (s.equals("true")) {
+                return "✅";
+            } else if (s.equals("false")) {
+                return "\uD83D\uDEAB";
+            }
+            return s;
         }
     }
 

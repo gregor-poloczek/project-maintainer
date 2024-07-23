@@ -29,6 +29,7 @@ import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -183,27 +184,34 @@ public class ReportGeneratorService {
 
         for (ColumnConfig column : reportConfig.getColumns()) {
             ProjectReportCellBuilder cellBuilder = ProjectReportCell.builder();
-            if (column.getVersionedLabelBase() != null) {
-                Label label = Label.of(column.getVersionedLabelBase());
-                labels.stream()
-                        .filter(VersionedLabel.class::isInstance)
-                        .map(VersionedLabel.class::cast)
-                        .filter(vL -> vL.getBase().equals(label))
-                        .findFirst().map(VersionedLabel::getVersion)
-                        .ifPresent(cellBuilder::value);
-            } else if (column.getLabelBase() != null) {
+            // TODO Anfragen an den label service stellen
+            if (column.getLabelBase() != null) {
+                // TODO Anfragen an den label service stellen
                 Label label = Label.fromString(column.getLabelBase());
                 labels.stream()
                         .filter(vL -> vL.getBase().equals(label))
                         .findFirst().map(Label::getLastSegment)
                         .ifPresent(cellBuilder::value);
+            } else if (column.getLabelPresence() != null) {
+                Label label = Label.fromString(column.getLabelPresence());
+                cellBuilder.value(labels.contains(label) ? "true" : "false");
             } else {
                 cellBuilder.value("??column-type??");
             }
             row.getCells().add(cellBuilder.build());
         }
 
-        if (!row.getCells().stream().allMatch(c -> c.getValue() == null)) {
+        boolean addRow;
+        Optional<List<String>> requiredLabels = reportConfig.getRequiredLabels();
+        if (requiredLabels.isPresent()) {
+            // TODO Anfragen an den label service stellen// TODO Anfragen an den label service stellen
+            List<String> patterns = requiredLabels.get();
+            addRow = patterns.stream().allMatch(p -> labels.stream().anyMatch(l -> l.getValue().matches(p)));
+        } else {
+            addRow = !row.getCells().stream().allMatch(c -> c.getValue() == null);
+        }
+
+        if (addRow) {
             report.getRows().add(row);
             report.getRows().sort(Comparator.comparing(r -> r.getProject().getFQPN()));
         }
