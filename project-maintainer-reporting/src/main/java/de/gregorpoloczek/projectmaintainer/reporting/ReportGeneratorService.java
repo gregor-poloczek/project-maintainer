@@ -34,6 +34,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import lombok.Builder;
 import lombok.Getter;
@@ -205,8 +206,8 @@ public class ReportGeneratorService {
         Optional<List<String>> requiredLabels = reportConfig.getRequiredLabels();
         if (requiredLabels.isPresent()) {
             // TODO Anfragen an den label service stellen// TODO Anfragen an den label service stellen
-            List<String> patterns = requiredLabels.get();
-            addRow = patterns.stream().allMatch(p -> labels.stream().anyMatch(l -> l.getValue().matches(p)));
+            List<Pattern> patterns = requiredLabels.get().stream().map(Pattern::compile).toList();
+            addRow = patterns.stream().allMatch(p -> labels.stream().anyMatch(l -> p.matcher(l.getValue()).matches()));
         } else {
             addRow = !row.getCells().stream().allMatch(c -> c.getValue() == null);
         }
