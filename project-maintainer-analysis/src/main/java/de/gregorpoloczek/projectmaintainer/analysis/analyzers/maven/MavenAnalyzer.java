@@ -14,7 +14,6 @@ import java.util.SortedSet;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Parent;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
@@ -71,6 +70,14 @@ public class MavenAnalyzer implements ProjectAnalyzer {
                         .has(h -> h.label("maven", "group-id", model.getGroupId()));
                 facts.when(isNotBlank(model.getArtifactId()))
                         .has(h -> h.label("maven", "artifact-id", model.getArtifactId()));
+
+                // TODO muss ".version" ignoriert werden?
+                model.getProperties()
+                        .keySet()
+                        .stream()
+                        .map(String.class::cast)
+                        .filter(key -> !key.endsWith(".version"))
+                        .forEach(key -> facts.has(h -> h.label("maven", "property", key)));
 
                 Optional.ofNullable(model.getProperties().get("maven.compiler.target"))
                         .filter(String.class::isInstance)
