@@ -8,7 +8,6 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
 import de.gregorpoloczek.projectmaintainer.analysis.LabelService;
 import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService;
-import de.gregorpoloczek.projectmaintainer.analysis.VersionedLabel;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
@@ -16,7 +15,6 @@ import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService.Proj
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell.ProjectReportCellBuilder;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
@@ -25,7 +23,9 @@ import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig.
 import de.gregorpoloczek.projectmaintainer.reporting.config.ReportConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ReportFile;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellBooleanValue;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellErrorValue;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellStringValue;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellValue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
@@ -33,10 +33,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 import lombok.Builder;
 import lombok.Getter;
@@ -183,35 +181,28 @@ public class ReportGeneratorService {
 
     private void addToReport(ProjectReport report, ProjectReportConfig reportConfig, Project project) {
         ProjectReportRow row = new ProjectReportRow(project);
-        SortedSet<Label> labels = this.labelService.find(project);
-
         for (ColumnConfig column : reportConfig.getColumns()) {
-            ProjectReportCellBuilder cellBuilder = ProjectReportCell.builder();
-            // TODO Anfragen an den label service stellen
+            Optional<ReportCellValue> value;
             if (column.getLabelBase() != null) {
-                // TODO Anfragen an den label service stellen
-                Label label = Label.fromString(column.getLabelBase());
-                labels.stream()
-                        .filter(vL -> vL.getBase().equals(label))
+                value = this.labelService.findLabelsByBase(project, Label.fromString(column.getLabelBase()))
+                        .stream()
                         .findFirst()
                         .map(Label::getLastSegment)
-                        .map(ReportCellStringValue::of)
-                        .ifPresent(cellBuilder::value);
+                        .map(ReportCellStringValue::of);
             } else if (column.getLabelPresence() != null) {
-                Label label = Label.fromString(column.getLabelPresence());
-                cellBuilder.value(ReportCellBooleanValue.of(labels.contains(label)));
+                boolean hasLabel = this.labelService.hasLabel(project, Label.fromString(column.getLabelPresence()));
+                value = Optional.of(ReportCellBooleanValue.of(hasLabel));
             } else {
-                cellBuilder.value(ReportCellStringValue.of("??column-type??"));
+                value = Optional.of(ReportCellErrorValue.of("??column-type??"));
             }
-            row.getCells().add(cellBuilder.build());
+
+            row.getCells().add(ProjectReportCell.builder().value(value.orElse(null)).build());
         }
 
         boolean addRow;
         Optional<List<String>> requiredLabels = reportConfig.getRequiredLabels();
         if (requiredLabels.isPresent()) {
-            // TODO Anfragen an den label service stellen// TODO Anfragen an den label service stellen
-            List<Pattern> patterns = requiredLabels.get().stream().map(Pattern::compile).toList();
-            addRow = patterns.stream().allMatch(p -> labels.stream().anyMatch(l -> p.matcher(l.getValue()).matches()));
+            addRow = labelService.hasLabelsMatchingAll(project, requiredLabels.get());
         } else {
             addRow = !row.getCells().stream().allMatch(c -> c.getValue() == null);
         }
