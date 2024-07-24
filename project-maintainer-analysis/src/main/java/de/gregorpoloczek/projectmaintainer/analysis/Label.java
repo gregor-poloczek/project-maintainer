@@ -22,7 +22,7 @@ public class Label implements Comparable<Label> {
     private final String lastSegment;
 
     protected Label(final List<String> segments) {
-        this.value = segments.stream().collect(Collectors.joining(":"));
+        this.value = String.join(":", segments);
         this.segments = Collections.unmodifiableList(segments);
         this.base = segments.size() > 1 ? new Label(segments.subList(0, segments.size() - 1)) : null;
         this.lastSegment = segments.getLast();
