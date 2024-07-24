@@ -67,7 +67,7 @@ public class ReportGeneratorService {
         this.projectAnalysisService = projectAnalysisService;
     }
 
-    private SortedMap<String, ReportConfig> reportConfigs = Collections.synchronizedSortedMap(new TreeMap<>());
+    private final SortedMap<String, ReportConfig> reportConfigs = Collections.synchronizedSortedMap(new TreeMap<>());
 
     @PostConstruct
     void init() {
@@ -93,7 +93,7 @@ public class ReportGeneratorService {
         return this.reportConfigs.values().stream()
                 .filter(ProjectReportConfig.class::isInstance)
                 .map(ProjectReportConfig.class::cast)
-                .collect(toList());
+                .toList();
     }
 
     public Flux<ProjectReportGenerationProgress> generateProjectReport(String reportId) {
