@@ -11,7 +11,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
-import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService.ProjectReportGenerationProgress.State;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
@@ -19,7 +19,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellValue;
+import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellValue;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;

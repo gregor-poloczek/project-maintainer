@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.reporting.projectreport;
+package de.gregorpoloczek.projectmaintainer.reporting.common;
 
 import lombok.AccessLevel;
 import lombok.Getter;

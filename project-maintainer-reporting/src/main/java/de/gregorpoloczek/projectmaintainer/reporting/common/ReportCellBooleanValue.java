@@ -1,7 +1,6 @@
-package de.gregorpoloczek.projectmaintainer.reporting.projectreport;
+package de.gregorpoloczek.projectmaintainer.reporting.common;
 
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
