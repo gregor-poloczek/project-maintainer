@@ -14,7 +14,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
+import de.gregorpoloczek.projectmaintainer.reporting.common.ReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
@@ -128,7 +128,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private void applyReportDefinition(ProjectReportDefinition definition) {
         this.grid.setItems(new ArrayList<>());
         int index = 0;
-        for (ProjectReportColumn column : definition.getColumns()) {
+        for (ReportColumn column : definition.getColumns()) {
             ReportRowItemCell cell = ReportRowItemCell.builder().index(index).build();
             this.grid.addColumn(cell::getValue)
                     .setHeader(column.getLabel())

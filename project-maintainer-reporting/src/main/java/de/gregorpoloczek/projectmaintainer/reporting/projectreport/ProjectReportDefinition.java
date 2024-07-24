@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.reporting.projectreport;
 
+import de.gregorpoloczek.projectmaintainer.reporting.common.ReportColumn;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
@@ -11,5 +12,5 @@ public class ProjectReportDefinition {
 
     String id;
     String name;
-    List<ProjectReportColumn> columns = new ArrayList<>();
+    List<ReportColumn> columns = new ArrayList<>();
 }

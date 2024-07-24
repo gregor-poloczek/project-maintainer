@@ -1,7 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.reporting;
 
-import static java.util.stream.Collectors.toList;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -16,7 +14,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportColumn;
+import de.gregorpoloczek.projectmaintainer.reporting.common.ReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
@@ -206,7 +204,7 @@ public class ReportGeneratorService {
         reportDefinition.setName(reportConfig.getName());
         reportDefinition.setColumns(reportConfig.getColumns()
                 .stream()
-                .map(c -> ProjectReportColumn.builder()
+                .map(c -> ReportColumn.builder()
                         .label(c.getName())
                         .textAlignment(ColumnTextAlignment.fromString(c.getTextAlignment()))
                         .build())
