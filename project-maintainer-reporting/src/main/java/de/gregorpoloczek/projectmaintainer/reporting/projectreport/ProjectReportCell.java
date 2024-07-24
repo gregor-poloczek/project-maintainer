@@ -9,5 +9,5 @@ import lombok.RequiredArgsConstructor;
 @Builder
 public class ProjectReportCell {
 
-    final String value;
+    final ReportCellValue value;
 }

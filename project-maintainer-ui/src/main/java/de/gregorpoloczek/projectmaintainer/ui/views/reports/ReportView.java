@@ -19,6 +19,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellValue;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
@@ -167,7 +168,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
             int i = 0;
             for (ProjectReportCell cell : row.getCells()) {
-                item.setValue(i, cell.getValue() != null ? cell.getValue() : "");
+                item.setValue(i, Optional.ofNullable(cell.getValue()).map(ReportCellValue::getStringValue).orElse(""));
                 i++;
             }
             items.add(item);

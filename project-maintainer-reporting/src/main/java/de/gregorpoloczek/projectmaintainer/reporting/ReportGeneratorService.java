@@ -24,6 +24,8 @@ import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig.ColumnConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ReportConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ReportFile;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellBooleanValue;
+import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ReportCellStringValue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
@@ -191,13 +193,15 @@ public class ReportGeneratorService {
                 Label label = Label.fromString(column.getLabelBase());
                 labels.stream()
                         .filter(vL -> vL.getBase().equals(label))
-                        .findFirst().map(Label::getLastSegment)
+                        .findFirst()
+                        .map(Label::getLastSegment)
+                        .map(ReportCellStringValue::of)
                         .ifPresent(cellBuilder::value);
             } else if (column.getLabelPresence() != null) {
                 Label label = Label.fromString(column.getLabelPresence());
-                cellBuilder.value(labels.contains(label) ? "true" : "false");
+                cellBuilder.value(ReportCellBooleanValue.of(labels.contains(label)));
             } else {
-                cellBuilder.value("??column-type??");
+                cellBuilder.value(ReportCellStringValue.of("??column-type??"));
             }
             row.getCells().add(cellBuilder.build());
         }
