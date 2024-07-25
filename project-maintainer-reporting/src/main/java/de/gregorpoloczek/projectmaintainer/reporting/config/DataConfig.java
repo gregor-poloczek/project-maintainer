@@ -3,7 +3,6 @@ package de.gregorpoloczek.projectmaintainer.reporting.config;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,13 +14,8 @@ import lombok.Setter;
         property = "type"
 )
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = ProjectReportConfig.class, name = "project-report"),
+        @JsonSubTypes.Type(value = LastLabelSegmentDataConfig.class, name = "last-label-segment"),
 })
-public class ReportConfig {
-
-    @NotEmpty
-    @NotNull
-    String name;
-    String id;
+public class DataConfig {
 
 }

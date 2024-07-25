@@ -18,23 +18,30 @@ import de.gregorpoloczek.projectmaintainer.reporting.common.ReportColumn;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportDefinition;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
-import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig.ColumnConfig;
+import de.gregorpoloczek.projectmaintainer.reporting.config.ColumnConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ReportConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ReportFile;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellBooleanValue;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellErrorValue;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellStringValue;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellValue;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -43,6 +50,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @Service
+@RequiredArgsConstructor
 public class ReportGeneratorService {
 
     private final LabelService labelService;
@@ -53,19 +61,8 @@ public class ReportGeneratorService {
     @Value("file:./.reports/*.yml")
     private Resource[] reportFiles;
 
-    public ReportGeneratorService(
-            LabelService labelService,
-            WorkingCopyService workingCopyService,
-            ProjectService projectService,
-            ProjectAnalysisService projectAnalysisService
-    ) {
-        this.labelService = labelService;
-        this.workingCopyService = workingCopyService;
-        this.projectService = projectService;
-        this.projectAnalysisService = projectAnalysisService;
-    }
-
-    private final SortedMap<String, ReportConfig> reportConfigs = Collections.synchronizedSortedMap(new TreeMap<>());
+    private final SortedMap<String, ReportConfig> reportConfigs =
+            Collections.synchronizedSortedMap(new TreeMap<>());
 
     @PostConstruct
     void init() {
@@ -77,6 +74,19 @@ public class ReportGeneratorService {
                 ReportFile reportFile =
                         objectMapper.readValue(resource.getURL(),
                                 ReportFile.class);
+
+                try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+                    Validator validator = factory.getValidator();
+
+                    Set<ConstraintViolation<ReportFile>> violations = validator.validate(reportFile);
+                    if (!violations.isEmpty()) {
+                        String text = violations.stream()
+                                .map(v -> "* " +
+                                        v.getPropertyPath() + ": " + v.getInvalidValue() + " -> " + v.getMessage())
+                                .collect(Collectors.joining("\n"));
+                        throw new IllegalStateException("Yaml is invalid:\n" + text);
+                    }
+                }
 
                 String reportId = FilenameUtils.removeExtension(resource.getFile().getName());
                 reportFile.getReport().setId(reportId);
