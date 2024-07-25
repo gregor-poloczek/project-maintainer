@@ -39,7 +39,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
     private final Grid<ReportRowItem> grid;
     private final ReportHeader header;
-    private final ReportGeneratorService projectReportGeneratorService;
+    private final transient ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
     private transient ProjectReportConfig reportConfig;
     private transient Disposable.Swap currentGeneration = Disposables.swap();
@@ -146,10 +146,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
-        if (this.currentGeneration != null) {
-            this.currentGeneration.dispose();
-            this.currentGeneration = null;
-        }
+        this.currentGeneration.dispose();
     }
 
     private void applyReport(ProjectReport report) {
