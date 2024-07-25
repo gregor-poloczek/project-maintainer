@@ -37,8 +37,8 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
         if (packageJsonFiles.isEmpty()) {
             return;
         }
-        final FactsCollector facts = context.facts();
         for (File file : packageJsonFiles) {
+            final FactsCollector facts = context.facts(file);
             PackageJSON packageJSON = this.readPackageJSON(file);
 
             // collect dependencies

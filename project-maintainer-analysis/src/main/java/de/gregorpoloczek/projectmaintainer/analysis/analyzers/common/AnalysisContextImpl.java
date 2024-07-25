@@ -6,6 +6,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
@@ -42,6 +43,12 @@ public class AnalysisContextImpl implements AnalysisContext, ProjectRelatable {
     @Override
     public FactsCollector facts() {
         return new FactsCollector(this.labels::add, this.dependencies::add);
+    }
+
+    @Override
+    public FactsCollector facts(File file) {
+        return new FactsCollector(
+                (Label label) -> this.labels.add(label.withLocation(file)), this.dependencies::add);
     }
 
     @Override

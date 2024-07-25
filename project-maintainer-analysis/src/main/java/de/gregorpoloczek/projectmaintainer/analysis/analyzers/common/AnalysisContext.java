@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import java.io.File;
 
 public interface AnalysisContext {
 
@@ -9,4 +10,6 @@ public interface AnalysisContext {
     ProjectFiles files();
 
     FactsCollector facts();
+
+    FactsCollector facts(File file);
 }

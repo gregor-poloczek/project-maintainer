@@ -1,10 +1,11 @@
 package de.gregorpoloczek.projectmaintainer.analysis;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -20,6 +21,11 @@ public class Label implements Comparable<Label> {
     private final List<String> segments;
     private final Label base;
     private final String lastSegment;
+    private File location;
+
+    public Optional<File> getLocation() {
+        return Optional.ofNullable(location);
+    }
 
     protected Label(final List<String> segments) {
         this.value = String.join(":", segments);
@@ -45,4 +51,9 @@ public class Label implements Comparable<Label> {
         return this.value.compareTo(o.value);
     }
 
+    public Label withLocation(File location) {
+        Label label = new Label(List.copyOf(this.segments));
+        label.location = location;
+        return label;
+    }
 }

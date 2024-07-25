@@ -29,8 +29,8 @@ public class MavenAnalyzer implements ProjectAnalyzer {
         final ProjectFiles files = context.files();
         final SortedSet<File> poms = files.find("pom\\.xml");
         MavenXpp3Reader reader = new MavenXpp3Reader();
-        final FactsCollector facts = context.facts();
         for (File pom : poms) {
+            final FactsCollector facts = context.facts(pom);
             final File cwd = pom.getParentFile();
             final File effectivePom = new File(cwd, "effective-pom.xml");
             try {
@@ -96,7 +96,7 @@ public class MavenAnalyzer implements ProjectAnalyzer {
             }
         }
 
-        facts
+        context.facts()
                 .when(files.hasAny("pom\\.xml"))
                 .uses(u -> u.dependencyManagement("maven"));
     }

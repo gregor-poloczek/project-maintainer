@@ -9,6 +9,7 @@ import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellHrefValue;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
@@ -31,6 +32,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -198,13 +200,21 @@ public class ReportGeneratorService {
     }
 
     private Optional<ReportCellValue> generateReportCellValue(Project project, ColumnConfig column) {
+        Path projectPath = Path.of(workingCopyService.find(project).get().getDirectory().toURI());
         Optional<ReportCellValue> value;
         if (column.getLabelBase() != null) {
             value = this.labelService.findLabelsByBase(project, Label.fromString(column.getLabelBase()))
                     .stream()
                     .findFirst()
-                    .map(Label::getLastSegment)
-                    .map(ReportCellStringValue::of);
+                    .map(label -> {
+                        if (label.getLocation().isPresent() && project.getMetaData().getBrowserLink().isPresent()) {
+                            Path relativePath = projectPath.relativize(Path.of(label.getLocation().get().toURI()));
+                            String s = project.getMetaData().getBrowserLink().get() + relativePath;
+                            return ReportCellHrefValue.of(label.getLastSegment(), s);
+                        } else {
+                            return ReportCellStringValue.of(label.getLastSegment());
+                        }
+                    });
         } else if (column.getLabelPresence() != null) {
             boolean hasLabel = this.labelService.hasLabel(project, Label.fromString(column.getLabelPresence()));
             value = Optional.of(ReportCellBooleanValue.of(hasLabel));
