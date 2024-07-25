@@ -84,7 +84,8 @@ public class ReportGeneratorService {
                                 .map(v -> "* " +
                                         v.getPropertyPath() + ": " + v.getInvalidValue() + " -> " + v.getMessage())
                                 .collect(Collectors.joining("\n"));
-                        throw new IllegalStateException("Yaml is invalid:\n" + text);
+                        throw new IllegalStateException(
+                                "Yaml \"%s\" is invalid:%n%s".formatted(resource.getFilename(), text));
                     }
                 }
 
