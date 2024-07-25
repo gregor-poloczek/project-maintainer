@@ -41,8 +41,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final ReportHeader header;
     private final transient ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
+    private final transient Disposable.Swap currentGeneration = Disposables.swap();
     private transient ProjectReportConfig reportConfig;
-    private transient Disposable.Swap currentGeneration = Disposables.swap();
 
 
     public ReportView(
