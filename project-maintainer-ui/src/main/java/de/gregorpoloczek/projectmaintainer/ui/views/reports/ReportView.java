@@ -33,7 +33,6 @@ import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
@@ -130,6 +129,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             int columnIndex) {
         return new ComponentRenderer<>(
                 (ReportRowItem item) -> {
+                    // TODO durch horizontal layout ist die text ausrichtung nun total broken
                     HorizontalLayout result = new HorizontalLayout();
                     Optional<ReportCellValue> maybeValue = item.getValue(columnIndex);
 
