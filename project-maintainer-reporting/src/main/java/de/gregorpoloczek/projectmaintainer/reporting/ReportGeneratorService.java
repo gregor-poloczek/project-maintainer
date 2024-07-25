@@ -42,21 +42,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.DispatcherServlet;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReportGeneratorService {
 
     private final LabelService labelService;
     private final WorkingCopyService workingCopyService;
     private final ProjectService projectService;
     private final ProjectAnalysisService projectAnalysisService;
+    private final DispatcherServlet dispatcherServlet;
 
     @Value("file:./.reports/*.yml")
     private Resource[] reportFiles;
@@ -129,8 +134,7 @@ public class ReportGeneratorService {
                     .state(State.SCHEDULED).build());
 
             AtomicInteger analyzed = new AtomicInteger(0);
-
-            Flux.fromIterable(projects)
+            Disposable subscription = Flux.fromIterable(projects)
                     .flatMap(p -> projectAnalysisService
                             .analyze(p)
                             .subscribeOn(Schedulers.parallel())
@@ -155,9 +159,10 @@ public class ReportGeneratorService {
                         sink.complete();
                     })
                     .doOnError(sink::error)
-                    .subscribe(c -> {
-                    });
+                    .subscribe();
 
+            // TODO ist das korrekt?
+            sink.onDispose(subscription);
         });
 
 

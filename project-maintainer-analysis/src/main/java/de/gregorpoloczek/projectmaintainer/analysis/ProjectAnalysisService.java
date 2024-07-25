@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -26,6 +27,7 @@ import reactor.core.publisher.FluxSink;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ProjectAnalysisService {
 
     private final ProjectService projectService;
@@ -34,21 +36,6 @@ public class ProjectAnalysisService {
     private final List<ProjectAnalyzer> projectAnalyzers;
     private final DependencyService dependencyService;
     private final Map<FQPN, String> lastAnalyzedCommitHash = Collections.synchronizedMap(new HashMap<>());
-
-    public ProjectAnalysisService(
-            final ProjectService projectService,
-            final WorkingCopyService workingCopyService,
-            final LabelService labelService,
-            final DependencyService dependencyService,
-            final List<ProjectAnalyzer> projectAnalyzers
-    ) {
-        this.projectService = projectService;
-        this.labelService = labelService;
-        this.workingCopyService = workingCopyService;
-        this.dependencyService = dependencyService;
-        this.projectAnalyzers = projectAnalyzers;
-    }
-
 
     public Flux<ProjectAnalysisProgress> analyze(@NonNull ProjectRelatable projectRelatable) {
         final Optional<Project> maybeProject = projectService.getProject(projectRelatable);
@@ -120,8 +107,10 @@ public class ProjectAnalysisService {
         int i = 0;
         for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
             try {
+                log.trace("Analyzing {} with {}", project.getFQPN(), analyzer.getClass().getSimpleName());
                 analyzer.analyze(context);
             } catch (RuntimeException e) {
+                // TODO an sink propagieren??
                 log.error("Could not invoke analyzer %s on project %s".formatted(
                         analyzer.getClass().getSimpleName(), project.getMetaData().getFQPN()), e);
             }
