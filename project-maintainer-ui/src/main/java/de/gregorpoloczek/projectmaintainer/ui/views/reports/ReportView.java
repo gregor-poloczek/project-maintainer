@@ -30,6 +30,7 @@ import java.util.Optional;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
+import reactor.core.Disposables;
 import reactor.core.scheduler.Schedulers;
 
 @Route(value = "/reports/:reportId", layout = MainLayout.class)
@@ -41,7 +42,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
     private transient ProjectReportConfig reportConfig;
-    private transient Disposable currentGeneration;
+    private transient Disposable.Swap currentGeneration = Disposables.swap();
 
 
     public ReportView(
@@ -96,13 +97,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         UI ui = UI.getCurrent();
 
-        if (this.currentGeneration != null) {
-            this.currentGeneration.dispose();
-            this.currentGeneration = null;
-        }
-
         // TODO error handling
-        this.currentGeneration = projectReportGeneratorService.generateProjectReport(reportId)
+        this.currentGeneration.update(projectReportGeneratorService.generateProjectReport(reportId)
                 .subscribeOn(Schedulers.parallel())
                 .subscribe(progress ->
                         ui.access(() -> {
@@ -122,7 +118,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                                 this.header.hideProgress();
                             }
                         })
-                );
+                ));
     }
 
     private void applyReportDefinition(ProjectReportDefinition definition) {
