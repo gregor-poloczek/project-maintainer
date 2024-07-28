@@ -70,6 +70,8 @@ public class MavenAnalyzer implements ProjectAnalyzer {
                         .has(h -> h.label("maven", "group-id", model.getGroupId()));
                 facts.when(isNotBlank(model.getArtifactId()))
                         .has(h -> h.label("maven", "artifact-id", model.getArtifactId()));
+                facts.when(isNotBlank(model.getVersion()))
+                        .has(h -> h.label("maven", "version", model.getVersion()));
 
                 // TODO muss ".version" ignoriert werden?
                 model.getProperties()
