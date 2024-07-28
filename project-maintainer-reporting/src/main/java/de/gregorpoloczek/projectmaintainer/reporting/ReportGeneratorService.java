@@ -33,6 +33,7 @@ import jakarta.validation.ValidatorFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -184,8 +185,10 @@ public class ReportGeneratorService {
         }
 
         if (addRow) {
-            report.getRows().add(row);
-            report.getRows().sort(Comparator.comparing(r -> r.getProject().getFQPN()));
+            List<ProjectReportRow> rows = new ArrayList<>(report.getRows());
+            rows.add(row);
+            rows.sort(Comparator.comparing(r -> r.getProject().getFQPN()));
+            report.setRows(rows);
         }
     }
 
@@ -209,6 +212,8 @@ public class ReportGeneratorService {
                     .map(label -> {
                         if (label.getLocation().isPresent() && project.getMetaData().getBrowserLink().isPresent()) {
                             Path relativePath = projectPath.relativize(Path.of(label.getLocation().get().toURI()));
+
+                            // TODO funktioniert nicht notwendigerweise mit anderen git repo arten
                             String s = project.getMetaData().getBrowserLink().get() + relativePath;
                             return ReportCellHrefValue.of(label.getLastSegment(), s);
                         } else {
