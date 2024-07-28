@@ -47,8 +47,7 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
 
             packageJSON.dependencies().ifPresent(allDependencies::putAll);
             packageJSON.devDependencies().ifPresent(allDependencies::putAll);
-            allDependencies.entrySet()
-                    .forEach(entry -> facts.has(h -> h.dependency("nodejs", entry.getKey(), entry.getValue())));
+            allDependencies.forEach((key, value) -> facts.has(h -> h.dependency("nodejs", key, value)));
 
             // identify typescript version
             Optional.ofNullable(allDependencies.get("typescript"))
