@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.analysis;
 
-import java.io.File;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -21,9 +21,9 @@ public class Label implements Comparable<Label> {
     private final List<String> segments;
     private final Label base;
     private final String lastSegment;
-    private File location;
+    private ProjectFileLocation location;
 
-    public Optional<File> getLocation() {
+    public Optional<ProjectFileLocation> getLocation() {
         return Optional.ofNullable(location);
     }
 
@@ -51,7 +51,7 @@ public class Label implements Comparable<Label> {
         return this.value.compareTo(o.value);
     }
 
-    public Label withLocation(File location) {
+    public Label withLocation(ProjectFileLocation location) {
         Label label = new Label(List.copyOf(this.segments));
         label.location = location;
         return label;

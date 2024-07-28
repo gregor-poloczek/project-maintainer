@@ -3,6 +3,8 @@ package de.gregorpoloczek.projectmaintainer.analysis;
 import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisProgress.State;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisContextImpl;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
+import de.gregorpoloczek.projectmaintainer.analysis.fulltext.ProjectFullTextSearchService;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
@@ -36,6 +38,7 @@ public class ProjectAnalysisService {
     private final List<ProjectAnalyzer> projectAnalyzers;
     private final DependencyService dependencyService;
     private final Map<FQPN, String> lastAnalyzedCommitHash = Collections.synchronizedMap(new HashMap<>());
+    private final ProjectFullTextSearchService projectFullTextSearchService;
 
     public Flux<ProjectAnalysisProgress> analyze(@NonNull ProjectRelatable projectRelatable) {
         final Optional<Project> maybeProject = projectService.getProject(projectRelatable);
@@ -104,6 +107,10 @@ public class ProjectAnalysisService {
                 .progressCurrent(0)
                 .progressTotal(this.projectAnalyzers.size())
                 .build());
+
+        List<ProjectFileLocation> locations = context.files().findLocations("\\.(java|json|js|ts|groovy|html)$");
+        this.projectFullTextSearchService.index(context, locations);
+
         int i = 0;
         for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
             try {

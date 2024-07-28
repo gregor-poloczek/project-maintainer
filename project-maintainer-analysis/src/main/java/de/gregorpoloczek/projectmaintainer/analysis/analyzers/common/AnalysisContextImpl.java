@@ -4,9 +4,9 @@ import de.gregorpoloczek.projectmaintainer.analysis.Dependency;
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
@@ -20,6 +20,7 @@ public class AnalysisContextImpl implements AnalysisContext, ProjectRelatable {
 
     @Getter
     private final NavigableSet<Label> labels = new TreeSet<>();
+    @Getter
     private final WorkingCopy workingCopy;
     @Getter
     private final List<Dependency> dependencies = new ArrayList<>();
@@ -46,9 +47,9 @@ public class AnalysisContextImpl implements AnalysisContext, ProjectRelatable {
     }
 
     @Override
-    public FactsCollector facts(File file) {
+    public FactsCollector facts(ProjectFileLocation location) {
         return new FactsCollector(
-                (Label label) -> this.labels.add(label.withLocation(file)), this.dependencies::add);
+                (Label label) -> this.labels.add(label.withLocation(location)), this.dependencies::add);
     }
 
     @Override

@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import java.io.File;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 
 public interface AnalysisContext {
 
@@ -11,5 +11,5 @@ public interface AnalysisContext {
 
     FactsCollector facts();
 
-    FactsCollector facts(File file);
+    FactsCollector facts(ProjectFileLocation location);
 }

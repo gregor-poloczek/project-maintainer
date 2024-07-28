@@ -6,11 +6,12 @@ import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisCon
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.FactsCollector;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectFiles;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
-import java.util.SortedSet;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
@@ -27,11 +28,11 @@ public class MavenAnalyzer implements ProjectAnalyzer {
     @Override
     public void analyze(final @NonNull AnalysisContext context) {
         final ProjectFiles files = context.files();
-        final SortedSet<File> poms = files.find("pom\\.xml");
+        final List<ProjectFileLocation> poms = files.findLocations("pom\\.xml");
         MavenXpp3Reader reader = new MavenXpp3Reader();
-        for (File pom : poms) {
+        for (ProjectFileLocation pom : poms) {
             final FactsCollector facts = context.facts(pom);
-            final File cwd = pom.getParentFile();
+            final File cwd = pom.getAbsolutePath().toFile().getParentFile();
             final File effectivePom = new File(cwd, "effective-pom.xml");
             try {
                 final Process process = new ProcessBuilder("mvn", "help:effective-pom",

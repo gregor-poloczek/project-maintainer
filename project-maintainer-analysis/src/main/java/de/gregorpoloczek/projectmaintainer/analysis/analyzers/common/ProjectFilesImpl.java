@@ -1,5 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
 
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
+import de.gregorpoloczek.projectmaintainer.git.service.ProjectFileLocationImpl;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import java.io.File;
 import java.io.IOException;
@@ -8,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -72,6 +75,14 @@ public class ProjectFilesImpl implements ProjectFiles {
             throw new RuntimeException(e);
         }
         return result;
+    }
+
+    @Override
+    public List<ProjectFileLocation> findLocations(String regex) {
+        return this.find(regex).stream()
+                .map(f -> ProjectFileLocationImpl.of(workingCopy, f))
+                .map(ProjectFileLocation.class::cast)
+                .toList();
     }
 
 }

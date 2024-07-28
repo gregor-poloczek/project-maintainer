@@ -16,7 +16,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
-import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellHrefValue;
+import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellBooleanValue;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
@@ -137,13 +137,23 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                         ReportCellValue value = maybeValue.get();
 
                         Component c = switch (value) {
-                            case ReportCellHrefValue href -> {
-                                Anchor anchor = new Anchor(href.getHref(), href.getText());
-                                anchor.setTarget("_blank");
-                                yield anchor;
-                            }
+                            case ReportCellBooleanValue booleanValue ->
+                                    new Span(booleanValue.getBooleanValue() ? "✅" : "❌");
                             default -> new Span(value.getStringValue());
                         };
+
+                        if (value.getLocation().isPresent() && item.getProject()
+                                .getMetaData()
+                                .getBrowserLink()
+                                .isPresent()) {
+                            String href = item.getProject().getMetaData().getBrowserLink().get() + value.getLocation()
+                                    .get()
+                                    .getRelativePath()
+                                    .toString();
+                            Anchor anchor = new Anchor(href, c);
+                            anchor.setTarget("_blank");
+                            c = anchor;
+                        }
                         result.add(c);
                     }
                     return result;

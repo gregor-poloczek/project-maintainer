@@ -5,14 +5,15 @@ import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.AnalysisCon
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.FactsCollector;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.analysis.analyzers.common.ProjectFiles;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,14 +33,14 @@ public class NodeJSAnalyzer implements ProjectAnalyzer {
     @Override
     public void analyze(final @NonNull AnalysisContext context) {
         final ProjectFiles files = context.files();
-        final SortedSet<File> packageJsonFiles = files.find("package\\.json$");
+        final List<ProjectFileLocation> packageJsonFiles = files.findLocations("package\\.json$");
 
         if (packageJsonFiles.isEmpty()) {
             return;
         }
-        for (File file : packageJsonFiles) {
+        for (ProjectFileLocation file : packageJsonFiles) {
             final FactsCollector facts = context.facts(file);
-            PackageJSON packageJSON = this.readPackageJSON(file);
+            PackageJSON packageJSON = this.readPackageJSON(file.getAbsolutePath().toFile());
 
             // collect dependencies
             final SortedMap<String, String> allDependencies = new TreeMap<>();

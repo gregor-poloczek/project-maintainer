@@ -1,9 +1,11 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import java.io.File;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.eclipse.jgit.transport.CredentialsProvider;

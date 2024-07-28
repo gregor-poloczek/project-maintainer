@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.reporting.config;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -15,6 +16,8 @@ public class ColumnConfig {
     String name;
     String labelPresence;
     String labelBase;
+    @Valid
+    FilePresenceConfig filePresence;
     @NotEmpty
     String textAlignment = "left";
 }
