@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 import reactor.core.publisher.FluxSink;
 
+@Deprecated
 public class FluxBasedProjectOperationProgressListener implements
         ProjectOperationProgressListener {
 

@@ -5,6 +5,7 @@ import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
 
+@Deprecated
 @Getter
 @Setter
 public class ProjectOperationProgress {

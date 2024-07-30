@@ -293,8 +293,7 @@ public class GitView extends VerticalLayout {
             item.setOperationProgressValue(e.getProgress() == -1 ? null : e.getProgress());
             item.setOperationState(e.getState());
             if (e.getState() == ProjectOperationState.SUCCEEDED) {
-                ProjectItem newItem = toProjectItem(this.projectService.getProject(e.getFqpn())
-                        .orElseThrow(() -> new ProjectNotFoundException(e.getFqpn())));
+                ProjectItem newItem = toProjectItem(this.projectService.requireProject(e.getFqpn()));
                 item.setText(newItem.getText());
                 item.setProject(newItem.getProject());
                 item.setWorkingCopy(this.workingCopyService.find(e.getFqpn()));

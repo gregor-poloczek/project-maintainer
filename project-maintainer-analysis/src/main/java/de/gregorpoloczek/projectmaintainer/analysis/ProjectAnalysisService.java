@@ -41,23 +41,13 @@ public class ProjectAnalysisService {
     private final ProjectFullTextSearchService projectFullTextSearchService;
 
     public Flux<ProjectAnalysisProgress> analyze(@NonNull ProjectRelatable projectRelatable) {
-        final Optional<Project> maybeProject = projectService.getProject(projectRelatable);
-        if (maybeProject.isEmpty()) {
-            return Flux.error(new ProjectNotFoundException(projectRelatable));
-        }
-
-        final Optional<WorkingCopy> maybeWorkingCopy = workingCopyService.find(projectRelatable);
-        if (maybeWorkingCopy.isEmpty()) {
-            return Flux.error(new ProjectNotClonedException(projectRelatable));
-        }
-        final WorkingCopy workingCopy = maybeWorkingCopy.get();
-
         return Flux.create(sink -> {
+            Project project = projectService.requireProject(projectRelatable);
+            WorkingCopy workingCopy = workingCopyService.require(projectRelatable);
             FQPN fqpn = projectRelatable.getFQPN();
 
             try {
                 log.debug("Analyzing project \"{}\".", fqpn);
-                Project project = maybeProject.get();
                 sink.next(ProjectAnalysisProgress.builder()
                         .fqpn(fqpn).state(State.SCHEDULED)
                         .build());

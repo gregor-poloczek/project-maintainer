@@ -25,8 +25,7 @@ public class ProjectService {
         return this.projectRepository.find(projectRelatable.getFQPN()).map(Project.class::cast);
     }
 
-    public Project requireProject(final FQPN fqpn) {
-        return this.projectRepository.find(fqpn)
-                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
+    public Project requireProject(final ProjectRelatable projectRelatable) {
+        return this.projectRepository.require(projectRelatable);
     }
 }

@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 
+@Deprecated
 public interface ProjectOperationProgressListener {
 
     void scheduled();

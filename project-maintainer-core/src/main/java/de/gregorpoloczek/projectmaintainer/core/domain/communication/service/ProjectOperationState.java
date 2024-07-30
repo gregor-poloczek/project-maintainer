@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.communication.service;
 
+@Deprecated
 public enum ProjectOperationState {
     SCHEDULED(false), STARTED(false), RUNNING(false), SUCCEEDED(true), FAILED(true);
 
