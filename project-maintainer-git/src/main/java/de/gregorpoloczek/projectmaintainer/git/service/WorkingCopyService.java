@@ -133,6 +133,11 @@ public class WorkingCopyService {
         return Optional.ofNullable(this.workingCopies.get(identifiesProject.getFQPN()));
     }
 
+    public WorkingCopy require(@NonNull ProjectRelatable identifiesProject) {
+        return Optional.ofNullable(this.workingCopies.get(identifiesProject.getFQPN()))
+                .orElseThrow(IllegalStateException::new);
+    }
+
     public List<WorkingCopy> findAll() {
         return new ArrayList<>(this.workingCopies.values());
     }

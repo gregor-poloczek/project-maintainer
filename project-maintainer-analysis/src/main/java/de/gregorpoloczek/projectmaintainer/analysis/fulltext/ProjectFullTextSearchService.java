@@ -19,10 +19,11 @@ public class ProjectFullTextSearchService {
 
 
     public void index(ProjectRelatable projectRelatable, Collection<? extends ProjectFileLocation> locations) {
-        WorkingCopy workingCopy = this.workingCopyService.find(projectRelatable)
-                .orElseThrow(IllegalStateException::new);
+        WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
 
         try (ProjectIndexWriterFacade indexWriterFacade = new ProjectIndexWriterFacade(workingCopy)) {
+            // TODO remove files that are no longer in the working copy
+            // TODO only index when really necessary (e.g. git commit hash)
             for (ProjectFileLocation location : locations) {
                 indexWriterFacade.indexFile(location);
             }
@@ -30,8 +31,8 @@ public class ProjectFullTextSearchService {
     }
 
     public List<ProjectFileLocation> search(ProjectRelatable projectRelatable, String fileNameQuery) {
-        WorkingCopy workingCopy = this.workingCopyService.find(projectRelatable)
-                .orElseThrow(IllegalStateException::new);
+        WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
+
         try (ProjectIndexReaderFacade indexReaderFacade = new ProjectIndexReaderFacade(workingCopy)) {
             return indexReaderFacade.search(fileNameQuery);
         } catch (IOException e) {
@@ -41,8 +42,8 @@ public class ProjectFullTextSearchService {
 
     public List<ProjectFileLocation> search(ProjectRelatable projectRelatable, String fileNameQuery,
             String contentQuery) {
-        WorkingCopy workingCopy = this.workingCopyService.find(projectRelatable)
-                .orElseThrow(IllegalStateException::new);
+        WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
+
         try (ProjectIndexReaderFacade indexReaderFacade = new ProjectIndexReaderFacade(workingCopy)) {
             return indexReaderFacade.search(fileNameQuery, contentQuery);
         } catch (IOException e) {
