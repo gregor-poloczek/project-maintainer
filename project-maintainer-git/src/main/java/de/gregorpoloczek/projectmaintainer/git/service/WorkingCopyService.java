@@ -115,7 +115,7 @@ public class WorkingCopyService {
 
     public void remove(FQPN fqpn) {
         final Optional<WorkingCopy> workingCopy = this.find(fqpn);
-        if (!workingCopy.isPresent()) {
+        if (workingCopy.isEmpty()) {
             log.info("Project \"%s\" does not have a working copy, nothing to remove.".formatted(fqpn));
             return;
         }

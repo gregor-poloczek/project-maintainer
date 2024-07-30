@@ -87,7 +87,7 @@ public class BootstrapService {
                             w.getLatestCommit().orElse(null), credentialsProvider));
 
             final ProjectImpl project = new ProjectImpl(metaData, credentialsProvider);
-            this.projectRepository.save(project);
+            this.projectRepository.save(project, project);
         }
     }
 

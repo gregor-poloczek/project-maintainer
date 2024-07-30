@@ -93,7 +93,7 @@ public class AnalysisView extends VerticalLayout {
         UI ui = UI.getCurrent();
         List<ProjectAnalysisItem> items = new ArrayList<>();
         for (Project project : projects) {
-            Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project.getMetaData().getFQPN());
+            Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project);
 
             if (workingCopy.isPresent()) {
                 items.add(ProjectAnalysisItem.builder()
