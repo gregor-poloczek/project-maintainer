@@ -14,10 +14,10 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellBooleanValue;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportColumn;
@@ -90,17 +90,17 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                 .subscribeOn(Schedulers.parallel())
                 .subscribe(progress ->
                         ui.access(() -> {
-                            if (progress.getState() == State.SCHEDULED) {
-                                this.applyReportDefinition(progress.getProjectReport().getDefinition());
+                            if (progress.getState() == OperationProgress.State.SCHEDULED) {
+                                this.applyReportDefinition(progress.getResult().getDefinition());
                                 this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
                             }
-                            if (progress.getState() == State.RUNNING) {
+                            if (progress.getState() == OperationProgress.State.RUNNING) {
                                 // TODO report can be concurrently modified
-                                applyReport(progress.getProjectReport());
+                                applyReport(progress.getResult());
                                 this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
                             }
-                            if (progress.getState() == State.DONE) {
-                                applyReport(progress.getProjectReport());
+                            if (progress.getState() == OperationProgress.State.DONE) {
+                                applyReport(progress.getResult());
                             }
                             if (progress.getState().isTerminated()) {
                                 this.header.hideProgress();

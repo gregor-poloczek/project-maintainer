@@ -1,9 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
-import de.gregorpoloczek.projectmaintainer.core.common.repository.GenericProjectRelatableRepository;
-import de.gregorpoloczek.projectmaintainer.core.common.repository.ProjectRelatableRepository;
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
@@ -31,6 +30,8 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -53,48 +54,77 @@ public class WorkingCopyService {
         this.workingCopyRepository = workingCopyRepository;
     }
 
-    public void cloneProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
-        final Project project = this.projectService.requireProject(fqpn);
+    public Flux<ProjectOperationProgress<Void>> cloneProject(@NonNull ProjectRelatable projectRelatable) {
+        final Project project = this.projectService.requireProject(projectRelatable);
         final WorkingCopy workingCopy =
                 this.createNew(project.getMetaData().getFQPN(), project.getURI(),
                         project.getCredentialsProvider());
-        final CloneResult clone = this.gitService.clone(workingCopy, listener);
-        this.save(
-                workingCopy.getFQPN(),
-                workingCopy.getURI(),
-                workingCopy.getDirectory(),
-                clone.getCurrentBranch(),
-                clone.getLatestCommit().orElse(null),
-                workingCopy.getCredentialsProvider()
-        );
+        final Flux<ProjectOperationProgress<CloneResult>> clone = this.gitService.clone(workingCopy);
+
+        return clone.doOnNext(p -> {
+                    if (p.getState() == OperationProgress.State.DONE) {
+                        CloneResult result = p.getResult();
+                        this.save(
+                                workingCopy.getFQPN(),
+                                workingCopy.getURI(),
+                                workingCopy.getDirectory(),
+                                result.getCurrentBranch(),
+                                result.getLatestCommit().orElse(null),
+                                workingCopy.getCredentialsProvider()
+                        );
+                    }
+                })
+                .map(this::toProgressWithoutResult);
+
     }
 
-    public void pullProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
-        final WorkingCopy workingCopy = this.find(fqpn)
-                .orElseThrow(() -> new ProjectNotClonedException(fqpn));
-        final PullResult result = this.gitService.pull(workingCopy, listener);
-        this.save(
-                workingCopy.getFQPN(),
-                workingCopy.getURI(),
-                workingCopy.getDirectory(),
-                workingCopy.getCurrentBranch(),
-                result.getLatestCommit().orElse(null),
-                workingCopy.getCredentialsProvider()
-        );
+    public Flux<ProjectOperationProgress<Void>> pullProject(@NonNull ProjectRelatable projectRelatable) {
+        final WorkingCopy workingCopy = this.require(projectRelatable);
+        final Flux<ProjectOperationProgress<PullResult>> pull = this.gitService.pull(workingCopy);
+
+        return pull.doOnNext(p -> {
+            if (p.getState() == OperationProgress.State.DONE) {
+                PullResult result = p.getResult();
+                this.save(
+                        workingCopy.getFQPN(),
+                        workingCopy.getURI(),
+                        workingCopy.getDirectory(),
+                        workingCopy.getCurrentBranch(),
+                        result.getLatestCommit().orElse(null),
+                        workingCopy.getCredentialsProvider()
+                );
+            }
+        }).map(this::toProgressWithoutResult);
     }
 
-    public void wipeProject(@NonNull final FQPN fqpn,
-            @NonNull final ProjectOperationProgressListener listener) {
-        final Project project = this.projectService.requireProject(fqpn);
-        project.withWriteLock(() -> {
+    private ProjectOperationProgress<Void> toProgressWithoutResult(ProjectOperationProgress<?> p) {
+        return ProjectOperationProgress.<Void>builder()
+                .fqpn(p.getFQPN())
+                .state(p.getState())
+                .progressCurrent(p.getProgressCurrent())
+                .progressTotal(p.getProgressTotal())
+                .message(p.getMessage())
+                .build();
+    }
+
+    public Mono<ProjectOperationProgress<Void>> wipeProject(@NonNull final ProjectRelatable projectRelatable) {
+        final Project project = this.projectService.requireProject(projectRelatable);
+        return Mono.create(sink -> project.withWriteLock(() -> {
             try {
-                this.remove(fqpn);
-                listener.succeeded(project);
+                this.remove(projectRelatable.getFQPN());
+                sink.success(ProjectOperationProgress.<Void>builder()
+                        .fqpn(project.getFQPN())
+                        .message("Working copy removed")
+                        .state(OperationProgress.State.DONE)
+                        .progressCurrent(1)
+                        .progressTotal(1)
+                        .result(null)
+                        .build());
             } catch (Exception e) {
-                listener.failed(project, e);
+                sink.error(e);
             }
             return null;
-        });
+        }));
     }
 
 

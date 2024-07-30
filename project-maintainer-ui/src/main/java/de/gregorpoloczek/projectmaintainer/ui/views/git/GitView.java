@@ -2,7 +2,6 @@ package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
@@ -26,15 +25,13 @@ import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.git.service.Commit;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.OperationExecutionService;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgress;
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationState;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
@@ -51,13 +48,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.time4j.PrettyTime;
 import org.apache.commons.lang3.StringUtils;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 @RouteAlias(value = "/", layout = MainLayout.class)
 @Route(value = "/git", layout = MainLayout.class)
 public class GitView extends VerticalLayout {
 
     private final transient ProjectService projectService;
-    private final transient OperationExecutionService operationExecutionService;
     private final transient ImageResolverService imageResolverService;
     private final Grid<ProjectItem> grid;
     private final WorkingCopyService workingCopyService;
@@ -92,9 +90,9 @@ public class GitView extends VerticalLayout {
         progressBar.setVisible(item.getOperationState() != null);
         progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
                 ProgressBarVariant.LUMO_CONTRAST);
-        if (item.getOperationState() == ProjectOperationState.SUCCEEDED) {
+        if (item.getOperationState() == ProjectOperationProgress.State.DONE) {
             progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
-        } else if (item.getOperationState() == ProjectOperationState.FAILED) {
+        } else if (item.getOperationState() == ProjectOperationProgress.State.FAILED) {
             progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
         } else {
             progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
@@ -146,11 +144,9 @@ public class GitView extends VerticalLayout {
     public GitView(
             ProjectService projectService,
             ImageResolverService imageResolverService,
-            OperationExecutionService operationExecutionService,
             WorkingCopyService workingCopyService) {
         this.projectService = projectService;
         this.imageResolverService = imageResolverService;
-        this.operationExecutionService = operationExecutionService;
         this.workingCopyService = workingCopyService;
 
         this.grid = createGrid();
@@ -223,42 +219,35 @@ public class GitView extends VerticalLayout {
 
     private void onWipeClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
-        for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-            if (item.getWorkingCopy().isEmpty()) {
-                continue;
-            }
-            operationExecutionService.executeAsyncOperation2(
-                    item.getProject(),
-                    "git::wipe",
-                    this.workingCopyService::wipeProject).subscribe(e ->
-                    onUpdateEvent(e, ui));
-        }
+
+        Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+                .filter(p -> p.getWorkingCopy().isPresent())
+                .flatMap(projectRelatable ->
+                        this.workingCopyService.wipeProject(projectRelatable)
+                                .subscribeOn(Schedulers.parallel()))
+                .subscribeOn(Schedulers.parallel())
+                .subscribe(p -> onUpdateEvent(p, ui));
     }
 
     private void onCloneClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
-        for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-            if (item.getWorkingCopy().isEmpty()) {
-                operationExecutionService.executeAsyncOperation2(
-                        item.getProject(),
-                        "git::clone",
-                        this.workingCopyService::cloneProject).subscribe(e ->
-                        onUpdateEvent(e, ui));
-            }
-        }
+        Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+                .flatMap(projectRelatable ->
+                        this.workingCopyService.cloneProject(projectRelatable)
+                                .subscribeOn(Schedulers.parallel()))
+                .subscribe(p -> onUpdateEvent(p, ui));
     }
 
     private void onPullClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
-        for (ProjectItem item : grid.getSelectionModel().getSelectedItems()) {
-            if (item.getWorkingCopy().isPresent()) {
-                operationExecutionService.executeAsyncOperation2(
-                        item.getProject(),
-                        "git::pull",
-                        this.workingCopyService::pullProject).subscribe(e ->
-                        onUpdateEvent(e, ui));
-            }
-        }
+
+        Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+                .filter(p -> p.getWorkingCopy().isPresent())
+                .flatMap(projectRelatable ->
+                        this.workingCopyService.pullProject(projectRelatable)
+                                .subscribeOn(Schedulers.parallel()))
+                .subscribeOn(Schedulers.parallel())
+                .subscribe(p -> onUpdateEvent(p, ui));
     }
 
     @Override
@@ -275,28 +264,32 @@ public class GitView extends VerticalLayout {
         this.grid.setItems(items);
     }
 
-    private void onUpdateEvent(ProjectOperationProgress e, UI current) {
+    private void onUpdateEvent(ProjectOperationProgress<?> e, UI current) {
         if (!current.isAttached()) {
             // browser has been reloaded or closed in the mean time
             return;
         }
-        ProjectItem item = itemByFQPN.get(e.getFqpn());
+        ProjectItem item = itemByFQPN.get(e.getFQPN());
         current.access(() -> {
             String text = switch (e.getState()) {
-                case ProjectOperationState.SCHEDULED -> e.getOperation() + " ...";
-                case ProjectOperationState.RUNNING -> e.getMessage();
-                case ProjectOperationState.SUCCEEDED -> "";
+                case OperationProgress.State.SCHEDULED -> "...";
+                case OperationProgress.State.RUNNING -> e.getMessage();
+                case OperationProgress.State.DONE -> "";
                 default -> e.getState().name();
             };
 
+            double progress = (double) e.getProgressCurrent() / (double) e.getProgressTotal();
+            if (Double.isNaN(progress) || Double.isInfinite(progress)) {
+                progress = 0.0d;
+            }
             item.setOperationInProgress(!e.getState().isTerminated());
-            item.setOperationProgressValue(e.getProgress() == -1 ? null : e.getProgress());
+            item.setOperationProgressValue(progress);
             item.setOperationState(e.getState());
-            if (e.getState() == ProjectOperationState.SUCCEEDED) {
-                ProjectItem newItem = toProjectItem(this.projectService.requireProject(e.getFqpn()));
+            if (e.getState() == ProjectOperationProgress.State.DONE) {
+                ProjectItem newItem = toProjectItem(this.projectService.requireProject(e));
                 item.setText(newItem.getText());
                 item.setProject(newItem.getProject());
-                item.setWorkingCopy(this.workingCopyService.find(e.getFqpn()));
+                item.setWorkingCopy(this.workingCopyService.find(e));
                 item.setIcon(this.imageResolverService.getProjectImage(newItem.getProject()));
             }
             item.setText(text);

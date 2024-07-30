@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -8,12 +9,14 @@ import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.lib.ProgressMonitor;
+import reactor.core.publisher.FluxSink;
 
 @Slf4j
-public class GitOperationProgressMonitor implements ProgressMonitor {
+public class GitOperationProgressMonitor<T> implements ProgressMonitor {
 
-    private final ProjectOperationProgressListener listener;
     private final CloneProgressImpl progress;
+    private final FluxSink<ProjectOperationProgress<T>> sink;
+    private FQPN fqpn;
 
 
     @Getter
@@ -33,9 +36,10 @@ public class GitOperationProgressMonitor implements ProgressMonitor {
     }
 
 
-    public GitOperationProgressMonitor(final ProjectOperationProgressListener listener) {
-        this.listener = listener;
+    public GitOperationProgressMonitor(final FluxSink<ProjectOperationProgress<T>> sink, final FQPN fqpn) {
+        this.sink = sink;
         this.progress = new CloneProgressImpl();
+        this.fqpn = fqpn;
     }
 
 
@@ -69,7 +73,7 @@ public class GitOperationProgressMonitor implements ProgressMonitor {
                 || (tenPercent > 0 && progress.currentTaskTotalWorkDone % tenPercent == 0);
 
         notify |= lastNotification != null
-                && Duration.between(lastNotification, now).get(ChronoUnit.SECONDS) >= 1;
+                && Duration.between(lastNotification, now).get(ChronoUnit.NANOS) >= 250 * 1000 * 1000;
 
         if (notify) {
             this.notifyListener();
@@ -79,19 +83,21 @@ public class GitOperationProgressMonitor implements ProgressMonitor {
     @Override
     public void endTask() {
         progress.currentTaskTitle = null;
-        progress.currentTaskTotalWork = -1;
-        progress.currentTaskTotalWorkDone = -1;
+        progress.currentTaskTotalWork = 1;
+        progress.currentTaskTotalWorkDone = 0;
         progress.totalTasksDone++;
         notifyListener();
     }
 
     private void notifyListener() {
-        double progress = -1d;
-        if (this.progress.currentTaskTotalWork > 0) {
-            progress = (double) this.progress.currentTaskTotalWorkDone
-                    / (double) this.progress.currentTaskTotalWork;
-        }
-        GitOperationProgressMonitor.this.listener.update(this.progress.currentTaskTitle, progress);
+        // TODO encode task title into progress
+        this.sink.next(ProjectOperationProgress.<T>builder()
+                .fqpn(this.fqpn)
+                .state(ProjectOperationProgress.State.RUNNING)
+                .message(this.progress.currentTaskTitle)
+                .progressCurrent(this.progress.currentTaskTotalWorkDone)
+                .progressTotal(this.progress.currentTaskTotalWork)
+                .build());
         this.lastNotification = Instant.now();
     }
 

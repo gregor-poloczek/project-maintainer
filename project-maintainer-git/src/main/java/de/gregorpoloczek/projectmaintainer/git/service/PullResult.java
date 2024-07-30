@@ -1,8 +1,14 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
-public interface PullResult {
+@RequiredArgsConstructor
+public class PullResult {
 
-    Optional<Commit> getLatestCommit();
+    private final Commit latestCommit;
+
+    public Optional<Commit> getLatestCommit() {
+        return Optional.of(latestCommit);
+    }
 }

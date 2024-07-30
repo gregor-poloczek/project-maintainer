@@ -1,10 +1,18 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import java.util.Optional;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-public interface CloneResult {
 
-    Optional<Commit> getLatestCommit();
+@Getter
+@RequiredArgsConstructor
+public class CloneResult {
 
-    String getCurrentBranch();
+    private final Commit latestCommit;
+    private final String currentBranch;
+
+    Optional<Commit> getLatestCommit() {
+        return Optional.ofNullable(latestCommit);
+    }
 }

@@ -7,12 +7,12 @@ import de.gregorpoloczek.projectmaintainer.analysis.Label;
 import de.gregorpoloczek.projectmaintainer.analysis.LabelService;
 import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService;
 import de.gregorpoloczek.projectmaintainer.analysis.fulltext.ProjectFullTextSearchService;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.GenericOperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress;
-import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportGenerationProgress.State;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
@@ -113,7 +113,7 @@ public class ReportGeneratorService {
                 .toList();
     }
 
-    public Flux<ProjectReportGenerationProgress> generateProjectReport(String reportId) {
+    public Flux<GenericOperationProgress<ProjectReport>> generateProjectReport(String reportId) {
         ReportConfig reportConfig = this.reportConfigs.get(reportId);
 
         if (reportConfig == null) {
@@ -132,9 +132,9 @@ public class ReportGeneratorService {
         ProjectReport report = this.buildReport((ProjectReportConfig) reportConfig);
 
         return Flux.create(sink -> {
-            sink.next(ProjectReportGenerationProgress.builder()
-                    .projectReport(report)
-                    .state(State.SCHEDULED).build());
+            sink.next(GenericOperationProgress.<ProjectReport>builder()
+                    .result(report)
+                    .state(OperationProgress.State.SCHEDULED).build());
 
             AtomicInteger analyzed = new AtomicInteger(0);
             Disposable subscription = Flux.fromIterable(projects)
@@ -145,17 +145,17 @@ public class ReportGeneratorService {
                             .thenReturn(p))
                     .doOnNext(project -> {
                         addToReport(report, (ProjectReportConfig) reportConfig, project);
-                        sink.next(ProjectReportGenerationProgress.builder()
-                                .projectReport(report)
-                                .state(State.RUNNING)
+                        sink.next(GenericOperationProgress.<ProjectReport>builder()
+                                .result(report)
+                                .state(OperationProgress.State.RUNNING)
                                 .progressTotal(projects.size())
                                 .progressCurrent(analyzed.incrementAndGet())
                                 .build());
                     })
                     .doOnComplete(() -> {
-                        sink.next(ProjectReportGenerationProgress.builder()
-                                .projectReport(report)
-                                .state(State.DONE)
+                        sink.next(GenericOperationProgress.<ProjectReport>builder()
+                                .result(report)
+                                .state(OperationProgress.State.DONE)
                                 .progressCurrent(1)
                                 .progressTotal(1)
                                 .build());

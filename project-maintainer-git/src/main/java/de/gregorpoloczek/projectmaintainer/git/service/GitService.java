@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
-import de.gregorpoloczek.projectmaintainer.git.provider.github.GithubProjectDiscovery;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,20 +15,15 @@ import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 @Service
 @Slf4j
 public class GitService {
 
-    private final GithubProjectDiscovery githubProjectDiscovery;
+    public Flux<ProjectOperationProgress<PullResult>> pull(@NonNull WorkingCopy workingCopy) {
 
-    public GitService(GithubProjectDiscovery githubProjectDiscovery) {
-        this.githubProjectDiscovery = githubProjectDiscovery;
-    }
-
-    public PullResult pull(@NonNull WorkingCopy workingCopy,
-            @NonNull ProjectOperationProgressListener listener) {
-        return workingCopy.withWriteLock(() -> {
+        return Flux.create(sink -> workingCopy.withWriteLock(() -> {
             final File directory = workingCopy.getDirectory();
             try (Git git = Git.open(directory)) {
                 log.info("Pulling \"{}\".", directory);
@@ -37,20 +32,22 @@ public class GitService {
 
                 var p = git.pull()
                         .setCredentialsProvider(cP)
-                        .setProgressMonitor(new GitOperationProgressMonitor(listener))
+                        .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
                         .call();
 
                 log.info("Pulling \"{}\" successfully.", directory);
-                return new PullResult() {
-                    @Override
-                    public Optional<Commit> getLatestCommit() {
-                        return Optional.of(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead()));
-                    }
-                };
+                sink.next(ProjectOperationProgress.<PullResult>builder()
+                        .fqpn(workingCopy.getFQPN())
+                        .state(OperationProgress.State.DONE)
+                        .progressCurrent(1)
+                        .progressTotal(1)
+                        .result(new PullResult(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead())))
+                        .build());
+                return null;
             } catch (IOException | GitAPIException e) {
                 throw new ProjectPullFailedException(e);
             }
-        });
+        }));
     }
 
     private Optional<Commit> getLatestCommitHash(@NonNull final WorkingCopy workingCopy) {
@@ -68,14 +65,12 @@ public class GitService {
         } catch (NoHeadException e) {
             return Optional.empty();
         } catch (GitAPIException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
-    public CloneResult clone(@NonNull final WorkingCopy workingCopy,
-            ProjectOperationProgressListener listener) {
-
-        return workingCopy.withWriteLock(() -> {
+    public Flux<ProjectOperationProgress<CloneResult>> clone(@NonNull final WorkingCopy workingCopy) {
+        return Flux.create(sink -> workingCopy.withWriteLock(() -> {
             final File directory = workingCopy.getDirectory();
             final URI uri = workingCopy.getURI();
             if (directory.exists()) {
@@ -90,7 +85,7 @@ public class GitService {
                 Git.cloneRepository().setURI(uri.toString())
                         .setDirectory(directory)
                         .setCredentialsProvider(credentialProvider)
-                        .setProgressMonitor(new GitOperationProgressMonitor(listener))
+                        .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
                         .call().close();
 
                 final Optional<Commit> commit =
@@ -100,21 +95,19 @@ public class GitService {
                         this.getCurrentBranch(workingCopy);
 
                 log.info("Cloned \"{}\" successfully.", workingCopy.getFQPN());
-                return new CloneResult() {
-                    @Override
-                    public Optional<Commit> getLatestCommit() {
-                        return commit;
-                    }
-
-                    @Override
-                    public String getCurrentBranch() {
-                        return currentBranch;
-                    }
-                };
+                CloneResult cloneResult = new CloneResult(commit.orElse(null), currentBranch);
+                sink.next(ProjectOperationProgress.<CloneResult>builder()
+                        .fqpn(workingCopy.getFQPN())
+                        .state(OperationProgress.State.DONE)
+                        .progressCurrent(1)
+                        .progressTotal(1)
+                        .result(cloneResult)
+                        .build());
+                return null;
             } catch (GitAPIException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
-        });
+        }));
     }
 
     private String getCurrentBranch(WorkingCopy workingCopy) {

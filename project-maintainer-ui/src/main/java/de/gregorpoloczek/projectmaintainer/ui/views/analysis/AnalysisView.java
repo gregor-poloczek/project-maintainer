@@ -11,8 +11,8 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
 import de.gregorpoloczek.projectmaintainer.analysis.LabelService;
-import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisProgress;
 import de.gregorpoloczek.projectmaintainer.analysis.ProjectAnalysisService;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
@@ -117,7 +117,7 @@ public class AnalysisView extends VerticalLayout {
         });
     }
 
-    private void onUpdateEvent(ProjectAnalysisProgress e, UI current) {
+    private void onUpdateEvent(ProjectOperationProgress<Void> e, UI current) {
         if (!current.isAttached()) {
             // browser has been reloaded or closed in the mean time
             return;
