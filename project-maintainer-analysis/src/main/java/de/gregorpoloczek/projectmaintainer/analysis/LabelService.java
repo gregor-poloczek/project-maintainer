@@ -1,10 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectImpl;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRepository;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectNotFoundException;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,29 +9,23 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LabelService {
 
-    private final ProjectRepository projectRepository;
-    private SortedMap<FQPN, SortedSet<Label>> allLabels = Collections.synchronizedSortedMap(new TreeMap<>());
-
-    public LabelService(final ProjectRepository projectRepository) {
-        this.projectRepository = projectRepository;
-    }
+    private final LabelRepository labelRepository;
 
     public void save(ProjectRelatable projectRelatable, Collection<Label> labels) {
         FQPN fqpn = projectRelatable.getFQPN();
-        final ProjectImpl project = this.require(fqpn);
 
         final Set<Label> finalLabels = new HashSet<>(labels);
         final List<Label> removedLabels = labels.stream()
@@ -53,21 +44,14 @@ public class LabelService {
         if (!removedLabels.isEmpty()) {
             log.debug(
                     "Replaced labels \"{}\" from analysis of \"{}\" because versioned alternatives were provided.",
-                    removedLabels, project.getMetaData().getFQPN());
+                    removedLabels, fqpn);
         }
 
-        this.allLabels.put(fqpn, Collections.unmodifiableSortedSet(new TreeSet<>(finalLabels)));
+        this.labelRepository.save(fqpn, Collections.unmodifiableSortedSet(new TreeSet<>(finalLabels)));
     }
 
     public SortedSet<Label> find(ProjectRelatable projectRelatable) {
-        return this.allLabels.computeIfAbsent(
-                this.require(projectRelatable.getFQPN()).getMetaData().getFQPN(),
-                k -> Collections.emptySortedSet());
-    }
-
-    private ProjectImpl require(final FQPN fqpn) {
-        return this.projectRepository.find(fqpn)
-                .orElseThrow(() -> new ProjectNotFoundException(fqpn));
+        return this.labelRepository.find(projectRelatable).orElseGet(Collections::emptySortedSet);
     }
 
     public SortedSet<Label> findLabelsByBase(ProjectRelatable projectRelatable, Label label) {
