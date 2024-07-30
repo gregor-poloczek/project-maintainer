@@ -1,6 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
+import de.gregorpoloczek.projectmaintainer.core.common.repository.GenericProjectRelatableRepository;
+import de.gregorpoloczek.projectmaintainer.core.common.repository.ProjectRelatableRepository;
 import de.gregorpoloczek.projectmaintainer.core.domain.communication.service.ProjectOperationProgressListener;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
@@ -18,10 +20,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -39,16 +39,18 @@ public class WorkingCopyService {
     private final File projectsDirectory;
     private final GitService gitService;
     private final ProjectService projectService;
-    private final Map<FQPN, WorkingCopyImpl> workingCopies = new TreeMap<>();
+    private final WorkingCopyRepository workingCopyRepository;
 
     public WorkingCopyService(
             final ApplicationProperties applicationProperties,
             final GitService gitService,
-            final ProjectService projectService
+            final ProjectService projectService,
+            WorkingCopyRepository workingCopyRepository
     ) {
         this.projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
         this.gitService = gitService;
         this.projectService = projectService;
+        this.workingCopyRepository = workingCopyRepository;
     }
 
     public void cloneProject(@NonNull FQPN fqpn, @NonNull ProjectOperationProgressListener listener) {
@@ -107,7 +109,7 @@ public class WorkingCopyService {
                         .latestCommit(latestCommit)
                         .credentialsProvider(credentialsProvider)
                         .build();
-        this.workingCopies.put(fqpn, result);
+        this.workingCopyRepository.save(fqpn, result);
         return result;
     }
 
@@ -125,21 +127,20 @@ public class WorkingCopyService {
             throw new UncheckedIOException(e);
         }
 
-        this.workingCopies.remove(fqpn);
+        this.workingCopyRepository.delete(fqpn);
         log.info("Removed working copy of \"{}\".", fqpn);
     }
 
     public Optional<WorkingCopy> find(@NonNull ProjectRelatable identifiesProject) {
-        return Optional.ofNullable(this.workingCopies.get(identifiesProject.getFQPN()));
+        return workingCopyRepository.find(identifiesProject);
     }
 
     public WorkingCopy require(@NonNull ProjectRelatable identifiesProject) {
-        return Optional.ofNullable(this.workingCopies.get(identifiesProject.getFQPN()))
-                .orElseThrow(IllegalStateException::new);
+        return workingCopyRepository.require(identifiesProject);
     }
 
     public List<WorkingCopy> findAll() {
-        return new ArrayList<>(this.workingCopies.values());
+        return workingCopyRepository.findAll();
     }
 
     @PostConstruct
@@ -170,7 +171,7 @@ public class WorkingCopyService {
                         .currentBranch(currentBranch)
                         .latestCommit(revCommits.stream().findFirst().map(CommitImpl::of).orElse(null))
                         .build();
-                this.workingCopies.put(fqpn, workingCopy);
+                this.workingCopyRepository.save(fqpn, workingCopy);
             } catch (GitAPIException e) {
                 throw new IllegalStateException(e);
             } catch (IOException e) {
