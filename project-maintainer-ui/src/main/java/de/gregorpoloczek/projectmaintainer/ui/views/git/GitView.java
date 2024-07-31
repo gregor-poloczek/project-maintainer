@@ -59,6 +59,7 @@ public class GitView extends VerticalLayout {
     private final transient ImageResolverService imageResolverService;
     private final Grid<ProjectItem> grid;
     private final WorkingCopyService workingCopyService;
+    private final MenuBar menuBar;
     private transient Map<FQPN, ProjectItem> itemByFQPN;
     private final TextField search;
 
@@ -151,11 +152,11 @@ public class GitView extends VerticalLayout {
 
         this.grid = createGrid();
 
-        MenuBar menuBar = createMenuBar();
+        this.menuBar = createMenuBar();
 
         this.search = new TextField();
-        search.setPlaceholder("Search");
-        search.setValueChangeMode(ValueChangeMode.EAGER);
+        this.search.setPlaceholder("Search");
+        this.search.setValueChangeMode(ValueChangeMode.EAGER);
         this.search.addValueChangeListener(e -> {
             ListDataProvider<ProjectItem> dataProvider = (ListDataProvider<ProjectItem>) this.grid.getDataProvider();
             String query = e.getValue().toLowerCase();
@@ -225,7 +226,8 @@ public class GitView extends VerticalLayout {
                 .flatMap(projectRelatable ->
                         this.workingCopyService.wipeProject(projectRelatable)
                                 .subscribeOn(Schedulers.parallel()))
-                .subscribeOn(Schedulers.parallel())
+                .doOnSubscribe(s -> this.lockOperations(ui))
+                .doOnTerminate(() -> unlockOperations(ui))
                 .subscribe(p -> onUpdateEvent(p, ui));
     }
 
@@ -235,6 +237,8 @@ public class GitView extends VerticalLayout {
                 .flatMap(projectRelatable ->
                         this.workingCopyService.cloneProject(projectRelatable)
                                 .subscribeOn(Schedulers.parallel()))
+                .doOnSubscribe(s -> this.lockOperations(ui))
+                .doOnTerminate(() -> this.unlockOperations(ui))
                 .subscribe(p -> onUpdateEvent(p, ui));
     }
 
@@ -246,8 +250,18 @@ public class GitView extends VerticalLayout {
                 .flatMap(projectRelatable ->
                         this.workingCopyService.pullProject(projectRelatable)
                                 .subscribeOn(Schedulers.parallel()))
-                .subscribeOn(Schedulers.parallel())
+                .doOnSubscribe(s -> this.lockOperations(ui))
+                .doOnTerminate(() -> unlockOperations(ui))
                 .subscribe(p -> onUpdateEvent(p, ui));
+    }
+
+
+    private void unlockOperations(UI ui) {
+        ui.access(() -> this.menuBar.setEnabled(true));
+    }
+
+    private void lockOperations(UI ui) {
+        ui.access(() -> this.menuBar.setEnabled(false));
     }
 
     @Override

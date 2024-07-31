@@ -43,6 +43,7 @@ public class GitService {
                         .progressTotal(1)
                         .result(new PullResult(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead())))
                         .build());
+                sink.complete();
                 return null;
             } catch (IOException | GitAPIException e) {
                 throw new ProjectPullFailedException(e);
@@ -103,6 +104,7 @@ public class GitService {
                         .progressTotal(1)
                         .result(cloneResult)
                         .build());
+                sink.complete();
                 return null;
             } catch (GitAPIException e) {
                 throw new IllegalStateException(e);

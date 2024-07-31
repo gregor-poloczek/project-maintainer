@@ -103,7 +103,7 @@ public class GitOperationProgressMonitor<T> implements ProgressMonitor {
 
     @Override
     public boolean isCancelled() {
-        return false;
+        return sink.isCancelled();
     }
 
     @Override
