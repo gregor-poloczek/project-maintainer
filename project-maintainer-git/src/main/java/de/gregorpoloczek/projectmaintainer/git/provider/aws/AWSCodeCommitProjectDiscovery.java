@@ -1,13 +1,12 @@
 package de.gregorpoloczek.projectmaintainer.git.provider.aws;
 
+import de.gregorpoloczek.projectmaintainer.git.AWSCodeCommitLocation;
 import de.gregorpoloczek.projectmaintainer.git.ProjectsDiscoveryAWSCodeCommitProperties;
-import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitLocation;
 import de.gregorpoloczek.projectmaintainer.git.provider.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.net.URI;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Service;

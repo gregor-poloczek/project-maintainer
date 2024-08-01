@@ -8,6 +8,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasIconItem;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasProjectItem;
+import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -19,12 +20,22 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProjectItem implements HasProjectItem, HasIconItem, ProjectRelatable {
+public class ProjectItem implements HasProjectItem, HasIconItem, ProjectRelatable, HasWorkingCopy {
 
     OperationProgress.State operationState = null;
     Project project;
-    Optional<WorkingCopy> workingCopy;
-    Optional<Image> icon;
+    WorkingCopy workingCopy;
+    Image icon;
+
+    // TODO diese ganzen methoden als eine art "traits" verpacken, die ohne interfaces aus kommen
+    public Optional<WorkingCopy> getWorkingCopy() {
+        return Optional.ofNullable(workingCopy);
+    }
+
+    public Optional<Image> getIcon() {
+        return Optional.ofNullable(icon);
+    }
+
     String text = "";
     String description = "";
     String website = "";
@@ -34,7 +45,7 @@ public class ProjectItem implements HasProjectItem, HasIconItem, ProjectRelatabl
 
     @Override
     public boolean isIconBlurred() {
-        return this.workingCopy.isEmpty();
+        return this.workingCopy == null;
     }
 
     public boolean matches(String query) {

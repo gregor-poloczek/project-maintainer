@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,7 +11,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 @Getter
-public class FQPN implements Comparable<FQPN>, ProjectRelatable {
+public class FQPN implements Comparable<FQPN>, ProjectRelatable, Serializable {
 
     private final String value;
     private final List<String> segments;

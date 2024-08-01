@@ -1,59 +1,40 @@
 package de.gregorpoloczek.projectmaintainer.git.service;
 
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.lib.ProgressMonitor;
 import reactor.core.publisher.FluxSink;
 
 @Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@RequiredArgsConstructor
 public class GitOperationProgressMonitor<T> implements ProgressMonitor {
 
-    private final CloneProgressImpl progress;
-    private final FluxSink<ProjectOperationProgress<T>> sink;
-    private FQPN fqpn;
+    final FluxSink<ProjectOperationProgress<T>> sink;
+    final FQPN fqpn;
 
-
-    @Getter
-    @ToString
-    private static class CloneProgressImpl {
-
-        int totalTasks;
-        int totalTasksDone;
-        String currentTaskTitle;
-        int currentTaskTotalWork;
-        int currentTaskTotalWorkDone;
-
-        private CloneProgressImpl() {
-
-        }
-
-    }
-
-
-    public GitOperationProgressMonitor(final FluxSink<ProjectOperationProgress<T>> sink, final FQPN fqpn) {
-        this.sink = sink;
-        this.progress = new CloneProgressImpl();
-        this.fqpn = fqpn;
-    }
-
+    String currentTaskTitle;
+    int currentTaskTotalWork;
+    int currentTaskTotalWorkDone;
 
     @Override
     public void start(final int totalTasks) {
-        progress.totalTasks = totalTasks;
         notifyListener();
     }
 
     @Override
     public void beginTask(final String title, final int totalWork) {
-        progress.currentTaskTitle = title;
-        progress.currentTaskTotalWork = totalWork;
-        progress.currentTaskTotalWorkDone = 0;
+        this.currentTaskTitle = title;
+        this.currentTaskTotalWork = totalWork;
+        this.currentTaskTotalWorkDone = 0;
         notifyListener();
     }
 
@@ -62,15 +43,15 @@ public class GitOperationProgressMonitor<T> implements ProgressMonitor {
     @Override
     public void update(final int completed) {
         // TODO seriously overthink this logic
-        progress.currentTaskTotalWorkDone += completed;
-        if (completed == 0 || progress.currentTaskTotalWork == 0) {
+        this.currentTaskTotalWorkDone += completed;
+        if (completed == 0 || this.currentTaskTotalWork == 0) {
             return;
         }
 
         final Instant now = Instant.now();
-        int tenPercent = (int) Math.ceil((double) progress.currentTaskTotalWork / 10.0d);
-        boolean notify = progress.currentTaskTotalWorkDone == progress.currentTaskTotalWork
-                || (tenPercent > 0 && progress.currentTaskTotalWorkDone % tenPercent == 0);
+        int tenPercent = (int) Math.ceil((double) this.currentTaskTotalWork / 10.0d);
+        boolean notify = this.currentTaskTotalWorkDone == this.currentTaskTotalWork
+                || (tenPercent > 0 && this.currentTaskTotalWorkDone % tenPercent == 0);
 
         notify |= lastNotification != null
                 && Duration.between(lastNotification, now).get(ChronoUnit.NANOS) >= 250 * 1000 * 1000;
@@ -82,10 +63,9 @@ public class GitOperationProgressMonitor<T> implements ProgressMonitor {
 
     @Override
     public void endTask() {
-        progress.currentTaskTitle = null;
-        progress.currentTaskTotalWork = 1;
-        progress.currentTaskTotalWorkDone = 0;
-        progress.totalTasksDone++;
+        this.currentTaskTitle = null;
+        this.currentTaskTotalWork = 1;
+        this.currentTaskTotalWorkDone = 0;
         notifyListener();
     }
 
@@ -93,10 +73,10 @@ public class GitOperationProgressMonitor<T> implements ProgressMonitor {
         // TODO encode task title into progress
         this.sink.next(ProjectOperationProgress.<T>builder()
                 .fqpn(this.fqpn)
-                .state(ProjectOperationProgress.State.RUNNING)
-                .message(this.progress.currentTaskTitle)
-                .progressCurrent(this.progress.currentTaskTotalWorkDone)
-                .progressTotal(this.progress.currentTaskTotalWork)
+                .state(OperationProgress.State.RUNNING)
+                .message(this.currentTaskTitle)
+                .progressCurrent(this.currentTaskTotalWorkDone)
+                .progressTotal(this.currentTaskTotalWork)
                 .build());
         this.lastNotification = Instant.now();
     }

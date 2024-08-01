@@ -10,7 +10,7 @@ import java.util.TreeMap;
 
 public class GenericProjectRelatableRepository<T> implements ProjectRelatableRepository<T> {
 
-    private Map<FQPN, T> data = Collections.synchronizedSortedMap(new TreeMap<>());
+    private final Map<FQPN, T> data = Collections.synchronizedSortedMap(new TreeMap<>());
 
     @Override
     public Optional<T> find(ProjectRelatable projectRelatable) {

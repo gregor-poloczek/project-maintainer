@@ -16,14 +16,20 @@ import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import de.gregorpoloczek.projectmaintainer.analysis.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.git.service.Commit;
+import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
+import de.gregorpoloczek.projectmaintainer.ui.views.git.ProjectItem;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
+import net.time4j.PrettyTime;
 import org.apache.commons.lang3.StringUtils;
 
 @UtilityClass
@@ -32,6 +38,11 @@ public class Renderers {
     public interface HasProjectItem {
 
         Project getProject();
+    }
+
+    public interface HasWorkingCopy {
+
+        Optional<WorkingCopy> getWorkingCopy();
     }
 
     public interface HasLabelsItem {
@@ -63,6 +74,45 @@ public class Renderers {
                 });
 
     }
+
+    public <I extends HasWorkingCopy> Renderer<I> getWorkingCopyRenderer() {
+        return new ComponentRenderer<>(item -> {
+            FlexLayout layout = new FlexLayout();
+            layout.setFlexDirection(FlexDirection.COLUMN);
+            Div message = new Div("");
+            message.getStyle().set("text-wrap", "balance");
+
+            Span branch = createBadge();
+            Span timestamp = createBadge();
+            Span hash = createBadge();
+            Span authorName = createBadge();
+
+            HorizontalLayout badges = new HorizontalLayout();
+            badges.add(branch, hash, authorName, timestamp);
+
+            layout.add(badges, message);
+
+            Optional<Commit> maybeCommit = item.getWorkingCopy().flatMap(WorkingCopy::getLatestCommit);
+            branch.setText(item.getWorkingCopy().map(WorkingCopy::getCurrentBranch).orElse(""));
+
+            maybeCommit.ifPresent(commit -> {
+                timestamp.setText(PrettyTime.of(Locale.US)
+                        .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
+                timestamp.setTitle(commit.getTimestamp().toString());
+                hash.setText(commit.getHash());
+                authorName.setText(commit.getAuthorName());
+            });
+            badges.setVisible(maybeCommit.isPresent());
+            message.setText(maybeCommit
+                    .map(Commit::getMessage)
+                    .map(s -> StringUtils.abbreviate(s, 200))
+                    .orElse(""));
+            return layout;
+        });
+    }
+
+    ;
+
 
     public <I extends HasLabelsItem> Renderer<I> getLabelsRenderer(Supplier<String> queryProvider) {
         return new ComponentRenderer<>((I item) -> {

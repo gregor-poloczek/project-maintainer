@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.git.service;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
@@ -107,24 +108,32 @@ public class WorkingCopyService {
                 .build();
     }
 
-    public Mono<ProjectOperationProgress<Void>> wipeProject(@NonNull final ProjectRelatable projectRelatable) {
+    public Flux<ProjectOperationProgress<Void>> wipeProject(@NonNull final ProjectRelatable projectRelatable) {
         final Project project = this.projectService.requireProject(projectRelatable);
-        return Mono.create(sink -> project.withWriteLock(() -> {
-            try {
-                this.remove(projectRelatable.getFQPN());
-                sink.success(ProjectOperationProgress.<Void>builder()
-                        .fqpn(project.getFQPN())
-                        .message("Working copy removed")
-                        .state(OperationProgress.State.DONE)
-                        .progressCurrent(1)
-                        .progressTotal(1)
-                        .result(null)
-                        .build());
-            } catch (Exception e) {
-                sink.error(e);
-            }
-            return null;
-        }));
+        return Flux.create(sink -> {
+            sink.next(ProjectOperationProgress.<Void>builder()
+                    .fqpn(project.getFQPN())
+                    .message("Removing working copy")
+                    .state(State.SCHEDULED)
+                    .build());
+            project.withWriteLock(() -> {
+                try {
+                    this.remove(projectRelatable.getFQPN());
+                    sink.next(ProjectOperationProgress.<Void>builder()
+                            .fqpn(project.getFQPN())
+                            .message("Working copy removed")
+                            .state(OperationProgress.State.DONE)
+                            .progressCurrent(1)
+                            .progressTotal(1)
+                            .result(null)
+                            .build());
+                    sink.complete();
+                } catch (Exception e) {
+                    sink.error(e);
+                }
+                return null;
+            });
+        });
     }
 
 

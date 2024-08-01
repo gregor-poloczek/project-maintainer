@@ -50,6 +50,7 @@ public class ProjectAnalysisService {
                         .fqpn(fqpn)
                         .state(OperationProgress.State.SCHEDULED)
                         .build());
+                // TODO possible thread starvation?
                 project.<Void>withReadLock(() -> {
                     final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
                     String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
@@ -67,7 +68,7 @@ public class ProjectAnalysisService {
                     this.saveAnalysisResult(context, latestHash);
                     sink.next(ProjectOperationProgress.<Void>builder()
                             .fqpn(fqpn)
-                            .state(ProjectOperationProgress.State.DONE)
+                            .state(OperationProgress.State.DONE)
                             .progressCurrent(1)
                             .progressTotal(1)
                             .build());
@@ -77,7 +78,7 @@ public class ProjectAnalysisService {
             } catch (RuntimeException e) {
                 log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
                 sink.next(ProjectOperationProgress.<Void>builder()
-                        .fqpn(fqpn).state(ProjectOperationProgress.State.FAILED).build());
+                        .fqpn(fqpn).state(OperationProgress.State.FAILED).build());
                 sink.error(e);
             }
         });

@@ -1,6 +1,5 @@
 package de.gregorpoloczek.projectmaintainer.git;
 
-import de.gregorpoloczek.projectmaintainer.core.common.properties.AWSCodeCommitLocation;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;

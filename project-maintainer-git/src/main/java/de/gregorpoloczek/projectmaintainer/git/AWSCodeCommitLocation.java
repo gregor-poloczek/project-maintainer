@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.core.common.properties;
+package de.gregorpoloczek.projectmaintainer.git;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

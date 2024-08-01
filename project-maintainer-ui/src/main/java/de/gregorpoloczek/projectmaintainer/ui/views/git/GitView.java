@@ -8,7 +8,6 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
@@ -27,7 +26,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
-import de.gregorpoloczek.projectmaintainer.git.service.Commit;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
@@ -40,13 +39,10 @@ import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TimeZone;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import net.time4j.PrettyTime;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -57,12 +53,11 @@ public class GitView extends VerticalLayout {
 
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
-    private final Grid<ProjectItem> grid;
-    private final WorkingCopyService workingCopyService;
+    private final transient WorkingCopyService workingCopyService;
+    private Map<FQPN, ProjectItem> itemByFQPN;
     private final MenuBar menuBar;
-    private transient Map<FQPN, ProjectItem> itemByFQPN;
     private final TextField search;
-
+    private final Grid<ProjectItem> grid;
 
     private final Renderer<ProjectItem> progressBarRenderer = new ComponentRenderer<>(item -> {
         Div progressBarLabelText = new Div();
@@ -91,9 +86,9 @@ public class GitView extends VerticalLayout {
         progressBar.setVisible(item.getOperationState() != null);
         progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
                 ProgressBarVariant.LUMO_CONTRAST);
-        if (item.getOperationState() == ProjectOperationProgress.State.DONE) {
+        if (item.getOperationState() == OperationProgress.State.DONE) {
             progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
-        } else if (item.getOperationState() == ProjectOperationProgress.State.FAILED) {
+        } else if (item.getOperationState() == OperationProgress.State.FAILED) {
             progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
         } else {
             progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
@@ -104,40 +99,6 @@ public class GitView extends VerticalLayout {
         layout.add(top, progressBar);
         layout.setPadding(false);
 
-        return layout;
-    });
-
-    private final Renderer<ProjectItem> workingCopyRenderer = new ComponentRenderer<>(item -> {
-        FlexLayout layout = new FlexLayout();
-        layout.setFlexDirection(FlexDirection.COLUMN);
-        Div message = new Div("");
-        message.getStyle().set("text-wrap", "balance");
-
-        Span branch = createBadge();
-        Span timestamp = createBadge();
-        Span hash = createBadge();
-        Span authorName = createBadge();
-
-        HorizontalLayout badges = new HorizontalLayout();
-        badges.add(branch, hash, authorName, timestamp);
-
-        layout.add(badges, message);
-
-        Optional<Commit> maybeCommit = item.getWorkingCopy().flatMap(WorkingCopy::getLatestCommit);
-        branch.setText(item.getWorkingCopy().map(WorkingCopy::getCurrentBranch).orElse(""));
-
-        maybeCommit.ifPresent(commit -> {
-            timestamp.setText(PrettyTime.of(Locale.US)
-                    .printRelative(commit.getTimestamp(), TimeZone.getDefault().toZoneId()));
-            timestamp.setTitle(commit.getTimestamp().toString());
-            hash.setText(commit.getHash());
-            authorName.setText(commit.getAuthorName());
-        });
-        badges.setVisible(maybeCommit.isPresent());
-        message.setText(maybeCommit
-                .map(Commit::getMessage)
-                .map(s -> StringUtils.abbreviate(s, 200))
-                .orElse(""));
         return layout;
     });
 
@@ -199,46 +160,45 @@ public class GitView extends VerticalLayout {
                                     i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
                                             .encodeToString(i.getBytes())).orElse("");
                         })).setHeader("Description");
-        result.addColumn(this.workingCopyRenderer).setHeader("Working copy");
+        result.addColumn(Renderers.getWorkingCopyRenderer()).setHeader("Working copy");
         result.addColumn(this.progressBarRenderer);
         return result;
     }
 
-    private Span createBadge() {
-        Span badge = new Span("");
-        badge.getElement().getThemeList().add("badge");
-        return badge;
-    }
-
     private MenuBar createMenuBar() {
-        MenuBar menuBar = new MenuBar();
-        menuBar.addItem("Attach", this::onCloneClick);
-        menuBar.addItem("Pull", this::onPullClick);
-        menuBar.addItem("Detach", this::onWipeClick);
-        return menuBar;
+        MenuBar result = new MenuBar();
+        result.addItem("Attach", this::onAttachClick);
+        result.addItem("Pull", this::onPullClick);
+        result.addItem("Detach", this::onDetachClick);
+        return result;
     }
 
-    private void onWipeClick(ClickEvent<MenuItem> event) {
+    private void onDetachClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
 
         Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .filter(p -> p.getWorkingCopy().isPresent())
-                .flatMap(projectRelatable ->
-                        this.workingCopyService.wipeProject(projectRelatable)
+                .filter(item -> item.getWorkingCopy().isPresent())
+                .flatMap(item ->
+                        this.workingCopyService.wipeProject(item)
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnTerminate(() -> unlockOperations(ui))
+                // TODO cancelation handling
+                // TODO error handling
                 .subscribe(p -> onUpdateEvent(p, ui));
     }
 
-    private void onCloneClick(ClickEvent<MenuItem> event) {
+    private void onAttachClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
         Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .flatMap(projectRelatable ->
-                        this.workingCopyService.cloneProject(projectRelatable)
+                .filter(item -> item.getWorkingCopy().isEmpty())
+                .flatMap(item ->
+                        this.workingCopyService.cloneProject(item)
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnTerminate(() -> this.unlockOperations(ui))
+                // TODO cancelation handling
+                // TODO error handling
                 .subscribe(p -> onUpdateEvent(p, ui));
     }
 
@@ -246,12 +206,14 @@ public class GitView extends VerticalLayout {
         UI ui = UI.getCurrent();
 
         Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .filter(p -> p.getWorkingCopy().isPresent())
-                .flatMap(projectRelatable ->
-                        this.workingCopyService.pullProject(projectRelatable)
+                .filter(item -> item.getWorkingCopy().isPresent())
+                .flatMap(item ->
+                        this.workingCopyService.pullProject(item)
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnTerminate(() -> unlockOperations(ui))
+                // TODO cancelation handling
+                // TODO error handling
                 .subscribe(p -> onUpdateEvent(p, ui));
     }
 
@@ -286,11 +248,13 @@ public class GitView extends VerticalLayout {
         ProjectItem item = itemByFQPN.get(e.getFQPN());
         current.access(() -> {
             String text = switch (e.getState()) {
-                case OperationProgress.State.SCHEDULED -> "...";
+                case OperationProgress.State.SCHEDULED ->
+                        Optional.ofNullable(e.getMessage()).filter(StringUtils::isNotBlank).orElse("...");
                 case OperationProgress.State.RUNNING -> e.getMessage();
                 case OperationProgress.State.DONE -> "";
                 default -> e.getState().name();
             };
+            // TODO error handling
 
             double progress = (double) e.getProgressCurrent() / (double) e.getProgressTotal();
             if (Double.isNaN(progress) || Double.isInfinite(progress)) {
@@ -299,12 +263,12 @@ public class GitView extends VerticalLayout {
             item.setOperationInProgress(!e.getState().isTerminated());
             item.setOperationProgressValue(progress);
             item.setOperationState(e.getState());
-            if (e.getState() == ProjectOperationProgress.State.DONE) {
+            if (e.getState() == OperationProgress.State.DONE) {
                 ProjectItem newItem = toProjectItem(this.projectService.requireProject(e));
                 item.setText(newItem.getText());
                 item.setProject(newItem.getProject());
-                item.setWorkingCopy(this.workingCopyService.find(e));
-                item.setIcon(this.imageResolverService.getProjectImage(newItem.getProject()));
+                item.setWorkingCopy(this.workingCopyService.find(e).orElse(null));
+                item.setIcon(this.imageResolverService.getProjectImage(newItem.getProject()).orElse(null));
             }
             item.setText(text);
 
@@ -313,16 +277,17 @@ public class GitView extends VerticalLayout {
     }
 
     private ProjectItem toProjectItem(Project p) {
-        Optional<WorkingCopy> workingCopy = this.workingCopyService.find(p.getMetaData().getFQPN());
+        ProjectMetaData metaData = p.getMetaData();
+        Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         String text = workingCopy.isPresent() ? "" : "Not attached";
         return ProjectItem.builder()
                 .project(p)
                 .text(text)
-                .description(p.getMetaData().getDescription().orElse(""))
-                .website(p.getMetaData().getWebsiteLink().orElse(""))
-                .workingCopy(workingCopy)
-                .owner(p.getMetaData().getOwner())
-                .icon(GitView.this.imageResolverService.getProjectImage(p)).build();
+                .description(metaData.getDescription().orElse(""))
+                .website(metaData.getWebsiteLink().orElse(""))
+                .workingCopy(workingCopy.orElse(null))
+                .owner(metaData.getOwner())
+                .icon(this.imageResolverService.getProjectImage(p).orElse(null)).build();
     }
 
 }
