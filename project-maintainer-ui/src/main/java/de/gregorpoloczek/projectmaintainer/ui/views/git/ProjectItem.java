@@ -12,6 +12,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
@@ -20,6 +21,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProjectItem implements HasProjectItem, HasIconItem, ProjectRelatable, HasWorkingCopy {
 
     OperationProgress.State operationState = null;
@@ -52,6 +54,7 @@ public class ProjectItem implements HasProjectItem, HasIconItem, ProjectRelatabl
         return project.getFQPN().toString().toLowerCase().contains(query.toLowerCase());
     }
 
+    @EqualsAndHashCode.Include
     @Override
     public FQPN getFQPN() {
         return this.project.getFQPN();

@@ -6,6 +6,8 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRe
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 @Getter
 public class ProjectOperationProgress<T> extends AbstractOperationProgress<T> implements ProjectRelatable {
@@ -15,6 +17,15 @@ public class ProjectOperationProgress<T> extends AbstractOperationProgress<T> im
 
     public @NonNull FQPN getFQPN() {
         return fqpn;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(ToStringStyle.SIMPLE_STYLE)
+                .append("fpqn", fqpn)
+                .append("state", getState())
+                .append("progress", getProgressCurrent() + "/" + getProgressTotal())
+                .append("message", getMessage()).build();
     }
 
     @Builder

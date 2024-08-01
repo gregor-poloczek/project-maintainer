@@ -182,10 +182,20 @@ public class GitView extends VerticalLayout {
                         this.workingCopyService.wipeProject(item)
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnTerminate(() -> unlockOperations(ui))
+                .doOnTerminate(() -> this.unlockOperations(ui))
                 // TODO cancelation handling
                 // TODO error handling
                 .subscribe(p -> onUpdateEvent(p, ui));
+
+    }
+
+    private void reloadItem(UI ui, ProjectItem item) {
+        ui.access(() -> {
+            Project project = projectService.requireProject(item);
+            ProjectItem projectItem = toProjectItem(project);
+            this.itemByFQPN.put(item.getFQPN(), projectItem);
+            (this.grid.getDataProvider()).refreshItem(projectItem);
+        });
     }
 
     private void onAttachClick(ClickEvent<MenuItem> event) {
@@ -252,6 +262,7 @@ public class GitView extends VerticalLayout {
                         Optional.ofNullable(e.getMessage()).filter(StringUtils::isNotBlank).orElse("...");
                 case OperationProgress.State.RUNNING -> e.getMessage();
                 case OperationProgress.State.DONE -> "";
+                case OperationProgress.State.FAILED -> "Operation failed";
                 default -> e.getState().name();
             };
             // TODO error handling

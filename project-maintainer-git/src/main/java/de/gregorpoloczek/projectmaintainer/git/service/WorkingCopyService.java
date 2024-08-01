@@ -32,7 +32,6 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -129,6 +128,10 @@ public class WorkingCopyService {
                             .build());
                     sink.complete();
                 } catch (Exception e) {
+                    sink.next(ProjectOperationProgress.<Void>builder()
+                            .fqpn(project.getFQPN())
+                            .state(OperationProgress.State.FAILED)
+                            .build());
                     sink.error(e);
                 }
                 return null;

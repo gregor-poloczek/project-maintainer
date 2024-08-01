@@ -25,12 +25,12 @@ public class GitService {
     public Flux<ProjectOperationProgress<PullResult>> pull(@NonNull WorkingCopy workingCopy) {
 
         return Flux.create(sink -> {
+            sink.next(ProjectOperationProgress.<PullResult>builder()
+                    .fqpn(workingCopy.getFQPN())
+                    .state(State.SCHEDULED)
+                    .message("Pulling ...")
+                    .build());
             workingCopy.withWriteLock(() -> {
-                sink.next(ProjectOperationProgress.<PullResult>builder()
-                        .fqpn(workingCopy.getFQPN())
-                        .state(State.SCHEDULED)
-                        .message("Pulling ...")
-                        .build());
 
                 final File directory = workingCopy.getDirectory();
                 try (Git git = Git.open(directory)) {
@@ -53,31 +53,17 @@ public class GitService {
                             .build());
                     sink.complete();
                     return null;
-                } catch (IOException | GitAPIException e) {
+                } catch (Exception e) {
+                    sink.next(ProjectOperationProgress.<PullResult>builder()
+                            .fqpn(workingCopy.getFQPN())
+                            .state(State.FAILED)
+                            .build());
                     throw new ProjectPullFailedException(e);
                 }
             });
         });
     }
 
-    private Optional<Commit> getLatestCommitHash(@NonNull final WorkingCopy workingCopy) {
-        try (Git git = Git.open(workingCopy.getDirectory())) {
-            RevCommit latestCommit = git.
-                    log().
-                    setMaxCount(1).
-                    call().
-                    iterator().
-                    next();
-
-            return Optional.of(CommitImpl.of(latestCommit));
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        } catch (NoHeadException e) {
-            return Optional.empty();
-        } catch (GitAPIException e) {
-            throw new IllegalStateException(e);
-        }
-    }
 
     public Flux<ProjectOperationProgress<CloneResult>> clone(@NonNull final WorkingCopy workingCopy) {
         return Flux.create(sink -> {
@@ -122,10 +108,33 @@ public class GitService {
                     sink.complete();
                     return null;
                 } catch (GitAPIException e) {
+                    sink.next(ProjectOperationProgress.<CloneResult>builder()
+                            .fqpn(workingCopy.getFQPN())
+                            .state(OperationProgress.State.FAILED)
+                            .build());
                     throw new IllegalStateException(e);
                 }
             });
         });
+    }
+
+    private Optional<Commit> getLatestCommitHash(@NonNull final WorkingCopy workingCopy) {
+        try (Git git = Git.open(workingCopy.getDirectory())) {
+            RevCommit latestCommit = git.
+                    log().
+                    setMaxCount(1).
+                    call().
+                    iterator().
+                    next();
+
+            return Optional.of(CommitImpl.of(latestCommit));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (NoHeadException e) {
+            return Optional.empty();
+        } catch (GitAPIException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private String getCurrentBranch(WorkingCopy workingCopy) {
