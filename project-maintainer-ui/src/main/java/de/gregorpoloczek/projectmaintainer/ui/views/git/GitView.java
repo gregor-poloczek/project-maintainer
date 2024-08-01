@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
@@ -44,6 +45,8 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import reactor.core.Disposable;
+import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
@@ -58,6 +61,9 @@ public class GitView extends VerticalLayout {
     private final MenuBar menuBar;
     private final TextField search;
     private final Grid<ProjectItem> grid;
+
+    private final transient Disposable.Swap currentOperation = Disposables.swap();
+
 
     private final Renderer<ProjectItem> progressBarRenderer = new ComponentRenderer<>(item -> {
         Div progressBarLabelText = new Div();
@@ -176,7 +182,7 @@ public class GitView extends VerticalLayout {
     private void onDetachClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
 
-        Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .filter(item -> item.getWorkingCopy().isPresent())
                 .flatMap(item ->
                         this.workingCopyService.wipeProject(item)
@@ -184,23 +190,13 @@ public class GitView extends VerticalLayout {
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnTerminate(() -> this.unlockOperations(ui))
                 // TODO cancelation handling
-                // TODO error handling
                 .subscribe(p -> onUpdateEvent(p, ui));
-
-    }
-
-    private void reloadItem(UI ui, ProjectItem item) {
-        ui.access(() -> {
-            Project project = projectService.requireProject(item);
-            ProjectItem projectItem = toProjectItem(project);
-            this.itemByFQPN.put(item.getFQPN(), projectItem);
-            (this.grid.getDataProvider()).refreshItem(projectItem);
-        });
+        currentOperation.update(subscription);
     }
 
     private void onAttachClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
-        Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .filter(item -> item.getWorkingCopy().isEmpty())
                 .flatMap(item ->
                         this.workingCopyService.cloneProject(item)
@@ -208,14 +204,15 @@ public class GitView extends VerticalLayout {
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnTerminate(() -> this.unlockOperations(ui))
                 // TODO cancelation handling
-                // TODO error handling
                 .subscribe(p -> onUpdateEvent(p, ui));
+
+        currentOperation.update(subscription);
     }
 
     private void onPullClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
 
-        Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .filter(item -> item.getWorkingCopy().isPresent())
                 .flatMap(item ->
                         this.workingCopyService.pullProject(item)
@@ -223,8 +220,9 @@ public class GitView extends VerticalLayout {
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnTerminate(() -> unlockOperations(ui))
                 // TODO cancelation handling
-                // TODO error handling
                 .subscribe(p -> onUpdateEvent(p, ui));
+
+        currentOperation.update(subscription);
     }
 
 
@@ -234,6 +232,11 @@ public class GitView extends VerticalLayout {
 
     private void lockOperations(UI ui) {
         ui.access(() -> this.menuBar.setEnabled(false));
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        this.currentOperation.dispose();
     }
 
     @Override

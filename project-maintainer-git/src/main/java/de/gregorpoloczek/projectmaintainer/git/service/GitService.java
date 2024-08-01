@@ -54,6 +54,7 @@ public class GitService {
                     sink.complete();
                     return null;
                 } catch (Exception e) {
+                    log.error("Pulling failed.", e);
                     sink.next(ProjectOperationProgress.<PullResult>builder()
                             .fqpn(workingCopy.getFQPN())
                             .state(State.FAILED)
@@ -108,6 +109,7 @@ public class GitService {
                     sink.complete();
                     return null;
                 } catch (GitAPIException e) {
+                    log.error("Cloning failed.", e);
                     sink.next(ProjectOperationProgress.<CloneResult>builder()
                             .fqpn(workingCopy.getFQPN())
                             .state(OperationProgress.State.FAILED)
