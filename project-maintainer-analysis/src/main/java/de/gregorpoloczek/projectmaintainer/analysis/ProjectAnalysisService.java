@@ -18,8 +18,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import lombok.AccessLevel;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -28,15 +30,17 @@ import reactor.core.publisher.FluxSink;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectAnalysisService {
 
-    private final ProjectService projectService;
-    private final LabelService labelService;
-    private final WorkingCopyService workingCopyService;
-    private final List<ProjectAnalyzer> projectAnalyzers;
-    private final DependencyService dependencyService;
-    private final Map<FQPN, String> lastAnalyzedCommitHash = Collections.synchronizedMap(new HashMap<>());
-    private final ProjectFullTextSearchService projectFullTextSearchService;
+    ProjectService projectService;
+    LabelService labelService;
+    WorkingCopyService workingCopyService;
+    List<ProjectAnalyzer> projectAnalyzers;
+    DependencyService dependencyService;
+    ProjectFullTextSearchService projectFullTextSearchService;
+
+    Map<FQPN, String> lastAnalyzedCommitHash = Collections.synchronizedMap(new HashMap<>());
 
     public Flux<ProjectOperationProgress<Void>> analyze(@NonNull ProjectRelatable projectRelatable) {
         return Flux.create(sink -> {
