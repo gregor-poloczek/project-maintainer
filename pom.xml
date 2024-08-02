@@ -14,7 +14,7 @@
     <module>project-maintainer-ui</module>
     <module>project-maintainer-analysis</module>
     <module>project-maintainer-bootstrap</module>
-    <module>project-maintainer-git</module>
+    <module>project-maintainer-scm</module>
     <module>project-maintainer-reporting</module>
   </modules>
 
@@ -41,7 +41,7 @@
       </dependency>
       <dependency>
         <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-git</artifactId>
+        <artifactId>project-maintainer-scm</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

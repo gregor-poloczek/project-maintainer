@@ -16,8 +16,8 @@ import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectO
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;

@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.analysis.fulltext;
 
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

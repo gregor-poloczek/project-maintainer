@@ -7,8 +7,8 @@ import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.Project
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.SortedSet;

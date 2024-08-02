@@ -18,7 +18,7 @@
     </dependency>
     <dependency>
       <groupId>de.gregorpoloczek.project-maintainer</groupId>
-      <artifactId>project-maintainer-git</artifactId>
+      <artifactId>project-maintainer-scm</artifactId>
     </dependency>
 
     <dependency>

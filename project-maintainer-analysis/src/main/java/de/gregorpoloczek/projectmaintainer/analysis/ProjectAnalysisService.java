@@ -10,9 +10,9 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import de.gregorpoloczek.projectmaintainer.git.service.git.Commit;
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;

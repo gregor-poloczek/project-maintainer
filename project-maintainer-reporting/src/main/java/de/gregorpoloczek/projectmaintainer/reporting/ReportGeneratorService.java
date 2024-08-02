@@ -12,7 +12,7 @@ import de.gregorpoloczek.projectmaintainer.core.common.service.progress.Operatio
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
-import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ColumnTextAlignment;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport;
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportCell;
