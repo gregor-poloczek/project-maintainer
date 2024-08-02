@@ -23,7 +23,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import lombok.AccessLevel;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
@@ -35,27 +38,17 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WorkingCopyService {
 
-    private final File projectsDirectory;
-    private final GitService gitService;
-    private final ProjectService projectService;
-    private final WorkingCopyRepository workingCopyRepository;
-
-    public WorkingCopyService(
-            final ApplicationProperties applicationProperties,
-            final GitService gitService,
-            final ProjectService projectService,
-            WorkingCopyRepository workingCopyRepository
-    ) {
-        this.projectsDirectory = applicationProperties.getProjects().getCloneDirectory();
-        this.gitService = gitService;
-        this.projectService = projectService;
-        this.workingCopyRepository = workingCopyRepository;
-    }
+    ApplicationProperties applicationProperties;
+    GitService gitService;
+    ProjectService projectService;
+    WorkingCopyRepository workingCopyRepository;
 
     public Flux<ProjectOperationProgress<Void>> cloneProject(@NonNull ProjectRelatable projectRelatable) {
-        final Project project = this.projectService.requireProject(projectRelatable);
+        final Project project = this.projectService.require(projectRelatable);
         final WorkingCopy workingCopy =
                 this.createNew(project.getMetaData().getFQPN(), project.getURI(),
                         project.getCredentialsProvider());
@@ -108,7 +101,7 @@ public class WorkingCopyService {
     }
 
     public Flux<ProjectOperationProgress<Void>> wipeProject(@NonNull final ProjectRelatable projectRelatable) {
-        final Project project = this.projectService.requireProject(projectRelatable);
+        final Project project = this.projectService.require(projectRelatable);
         return Flux.create(sink -> {
             sink.next(ProjectOperationProgress.<Void>builder()
                     .fqpn(project.getFQPN())
@@ -187,6 +180,7 @@ public class WorkingCopyService {
 
     @PostConstruct
     public void init() {
+        File projectsDirectory = getProjectsDirectory();
         if (!projectsDirectory.exists()) {
             try {
                 Files.createDirectories(projectsDirectory.toPath());
@@ -226,6 +220,7 @@ public class WorkingCopyService {
         SortedSet<File> existingWorkingCopies = new TreeSet<>();
 
         try {
+            File projectsDirectory = getProjectsDirectory();
             Files.walkFileTree(projectsDirectory.toPath(), new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
@@ -249,7 +244,7 @@ public class WorkingCopyService {
 
 
     public WorkingCopy createNew(final FQPN fqpn, final URI uri, CredentialsProvider credentialsProvider) {
-        File directory = this.projectsDirectory.toPath().resolve(
+        File directory = getProjectsDirectory().toPath().resolve(
                 Path.of(fqpn.getValue().replaceAll("::", "/"))
         ).toFile();
 
@@ -260,5 +255,9 @@ public class WorkingCopyService {
                 .credentialsProvider(credentialsProvider)
                 .build();
 
+    }
+
+    private File getProjectsDirectory() {
+        return applicationProperties.getProjects().getCloneDirectory();
     }
 }

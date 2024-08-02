@@ -125,7 +125,7 @@ public class ReportGeneratorService {
                     "Report definition is not of type project-report"));
         }
 
-        List<Project> projects = projectService.getProjects()
+        List<Project> projects = projectService.findALl()
                 .stream()
                 .filter(p -> workingCopyService.find(p).isPresent()).toList();
 

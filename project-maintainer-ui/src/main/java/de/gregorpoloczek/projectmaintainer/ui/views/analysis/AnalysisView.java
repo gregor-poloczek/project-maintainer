@@ -89,7 +89,7 @@ public class AnalysisView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
-        List<Project> projects = this.projectService.getProjects();
+        List<Project> projects = this.projectService.findALl();
         UI ui = UI.getCurrent();
         List<ProjectAnalysisItem> items = new ArrayList<>();
         for (Project project : projects) {
@@ -106,7 +106,7 @@ public class AnalysisView extends VerticalLayout {
         this.itemByFQPN = items.stream()
                 .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
 
-        Flux.merge(projectService.getProjects()
+        Flux.merge(projectService.findALl()
                 .stream()
                 .filter(p -> workingCopyService.find(p.getMetaData().getFQPN()).isPresent())
                 .map(p -> projectAnalysisService.analyze(p.getMetaData().getFQPN())

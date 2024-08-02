@@ -40,7 +40,7 @@ public class ProjectAnalysisService {
 
     public Flux<ProjectOperationProgress<Void>> analyze(@NonNull ProjectRelatable projectRelatable) {
         return Flux.create(sink -> {
-            Project project = projectService.requireProject(projectRelatable);
+            Project project = projectService.require(projectRelatable);
             WorkingCopy workingCopy = workingCopyService.require(projectRelatable);
             FQPN fqpn = projectRelatable.getFQPN();
 

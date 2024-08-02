@@ -243,7 +243,7 @@ public class GitView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
-        List<ProjectItem> items = projectService.getProjects().stream()
+        List<ProjectItem> items = projectService.findALl().stream()
                 .map(this::toProjectItem)
                 .toList();
 
@@ -278,7 +278,7 @@ public class GitView extends VerticalLayout {
             item.setOperationProgressValue(progress);
             item.setOperationState(e.getState());
             if (e.getState() == OperationProgress.State.DONE) {
-                ProjectItem newItem = toProjectItem(this.projectService.requireProject(e));
+                ProjectItem newItem = toProjectItem(this.projectService.require(e));
                 item.setText(newItem.getText());
                 item.setProject(newItem.getProject());
                 item.setWorkingCopy(this.workingCopyService.find(e).orElse(null));

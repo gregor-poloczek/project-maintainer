@@ -12,7 +12,7 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
 
-    public List<Project> getProjects() {
+    public List<Project> findALl() {
         return List.copyOf(this.projectRepository.findAll());
     }
 
@@ -21,11 +21,11 @@ public class ProjectService {
     }
 
 
-    public Optional<Project> getProject(@NonNull final ProjectRelatable projectRelatable) {
-        return this.projectRepository.find(projectRelatable.getFQPN()).map(Project.class::cast);
+    public Optional<Project> find(@NonNull final ProjectRelatable projectRelatable) {
+        return this.projectRepository.find(projectRelatable).map(Project.class::cast);
     }
 
-    public Project requireProject(final ProjectRelatable projectRelatable) {
+    public Project require(final ProjectRelatable projectRelatable) {
         return this.projectRepository.require(projectRelatable);
     }
 }
