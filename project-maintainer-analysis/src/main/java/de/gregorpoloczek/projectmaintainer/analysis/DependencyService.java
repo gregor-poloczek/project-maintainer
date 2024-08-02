@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
+@Deprecated
 public class DependencyService {
 
     public void save(ProjectRelatable projectRelatable, List<Dependency> dependencies) {

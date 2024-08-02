@@ -51,7 +51,7 @@ public class ProjectAnalysisService {
                         .state(OperationProgress.State.SCHEDULED)
                         .build());
                 // TODO possible thread starvation?
-                project.<Void>withReadLock(() -> {
+                workingCopy.<Void>withReadLock(() -> {
                     final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
                     String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
                     if (Objects.equals(latestHash,
