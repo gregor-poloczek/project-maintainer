@@ -23,7 +23,11 @@ public interface WorkingCopy extends ProjectRelatable {
 
     <T> T withReadLock(Supplier<T> operation);
 
+    void withReadLock(Runnable operation);
+
     <T> T withWriteLock(Supplier<T> operation);
+
+    void withWriteLock(Runnable operation);
 
     CredentialsProvider getCredentialsProvider();
 }

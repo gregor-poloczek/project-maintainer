@@ -62,4 +62,19 @@ public class WorkingCopyImpl implements WorkingCopy {
         }
     }
 
+    @Override
+    public void withReadLock(final Runnable operation) {
+        this.withReadLock(((Supplier<Void>) (() -> {
+            operation.run();
+            return null;
+        })));
+    }
+
+    @Override
+    public void withWriteLock(final Runnable operation) {
+        this.withWriteLock(((Supplier<Void>) (() -> {
+            operation.run();
+            return null;
+        })));
+    }
 }

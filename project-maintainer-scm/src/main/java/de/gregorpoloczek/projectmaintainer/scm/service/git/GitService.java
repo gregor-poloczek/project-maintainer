@@ -31,7 +31,7 @@ public class GitService {
                     .state(State.SCHEDULED)
                     .message("Pulling ...")
                     .build());
-            workingCopy.withWriteLock(() -> {
+            PullResult pullResult = workingCopy.withWriteLock(() -> {
 
                 final File directory = workingCopy.getDirectory();
                 try (Git git = Git.open(directory)) {
@@ -45,15 +45,7 @@ public class GitService {
                             .call();
 
                     log.info("Pulling \"{}\" successfully.", directory);
-                    sink.next(ProjectOperationProgress.<PullResult>builder()
-                            .fqpn(workingCopy.getFQPN())
-                            .state(State.DONE)
-                            .progressCurrent(1)
-                            .progressTotal(1)
-                            .result(new PullResult(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead())))
-                            .build());
-                    sink.complete();
-                    return null;
+                    return new PullResult(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead()));
                 } catch (Exception e) {
                     log.error("Pulling failed.", e);
                     sink.next(ProjectOperationProgress.<PullResult>builder()
@@ -63,6 +55,16 @@ public class GitService {
                     throw new IllegalStateException(e);
                 }
             });
+
+            sink.next(ProjectOperationProgress.<PullResult>builder()
+                    .fqpn(workingCopy.getFQPN())
+                    .state(State.DONE)
+                    .progressCurrent(1)
+                    .progressTotal(1)
+                    .result(pullResult)
+                    .build());
+            sink.complete();
+
         });
     }
 
@@ -74,7 +76,7 @@ public class GitService {
                     .state(State.SCHEDULED)
                     .message("Cloning ...")
                     .build());
-            workingCopy.withWriteLock(() -> {
+            CloneResult cloneResult = workingCopy.withWriteLock(() -> {
                 final File directory = workingCopy.getDirectory();
                 final URI uri = workingCopy.getURI();
                 if (directory.exists()) {
@@ -99,25 +101,24 @@ public class GitService {
                             this.getCurrentBranch(workingCopy);
 
                     log.info("Cloned \"{}\" successfully.", workingCopy.getFQPN());
-                    CloneResult cloneResult = new CloneResult(commit.orElse(null), currentBranch);
-                    sink.next(ProjectOperationProgress.<CloneResult>builder()
-                            .fqpn(workingCopy.getFQPN())
-                            .state(OperationProgress.State.DONE)
-                            .progressCurrent(1)
-                            .progressTotal(1)
-                            .result(cloneResult)
-                            .build());
-                    sink.complete();
-                    return null;
+                    return new CloneResult(commit.orElse(null), currentBranch);
                 } catch (GitAPIException e) {
                     log.error("Cloning failed.", e);
                     sink.next(ProjectOperationProgress.<CloneResult>builder()
                             .fqpn(workingCopy.getFQPN())
-                            .state(OperationProgress.State.FAILED)
+                            .state(State.FAILED)
                             .build());
                     throw new IllegalStateException(e);
                 }
             });
+            sink.next(ProjectOperationProgress.<CloneResult>builder()
+                    .fqpn(workingCopy.getFQPN())
+                    .state(OperationProgress.State.DONE)
+                    .progressCurrent(1)
+                    .progressTotal(1)
+                    .result(cloneResult)
+                    .build());
+            sink.complete();
         });
     }
 
