@@ -10,7 +10,6 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.CloneResult;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
-import de.gregorpoloczek.projectmaintainer.scm.service.git.CommitImpl;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.PullResult;
 import jakarta.annotation.PostConstruct;
@@ -210,7 +209,7 @@ public class WorkingCopyService {
                         .uri(URI.create(url))
                         .directory(file)
                         .currentBranch(currentBranch)
-                        .latestCommit(revCommits.stream().findFirst().map(CommitImpl::of).orElse(null))
+                        .latestCommit(revCommits.stream().findFirst().map(Commit::of).orElse(null))
                         .build();
                 this.workingCopyRepository.save(fqpn, workingCopy);
             } catch (GitAPIException e) {

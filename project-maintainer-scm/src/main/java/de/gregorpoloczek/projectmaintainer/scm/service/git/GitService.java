@@ -45,7 +45,7 @@ public class GitService {
                             .call();
 
                     log.info("Pulling \"{}\" successfully.", directory);
-                    return new PullResult(CommitImpl.of((RevCommit) p.getMergeResult().getNewHead()));
+                    return new PullResult(Commit.of((RevCommit) p.getMergeResult().getNewHead()));
                 } catch (Exception e) {
                     log.error("Pulling failed.", e);
                     sink.next(ProjectOperationProgress.<PullResult>builder()
@@ -131,7 +131,7 @@ public class GitService {
                     iterator().
                     next();
 
-            return Optional.of(CommitImpl.of(latestCommit));
+            return Optional.of(Commit.of(latestCommit));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (NoHeadException e) {
