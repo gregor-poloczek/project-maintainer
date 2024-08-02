@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.git.service;
+package de.gregorpoloczek.projectmaintainer.git.service.workingcopy;
 
 import de.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
@@ -8,6 +8,11 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.git.service.git.CloneResult;
+import de.gregorpoloczek.projectmaintainer.git.service.git.Commit;
+import de.gregorpoloczek.projectmaintainer.git.service.git.CommitImpl;
+import de.gregorpoloczek.projectmaintainer.git.service.git.GitService;
+import de.gregorpoloczek.projectmaintainer.git.service.git.PullResult;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;

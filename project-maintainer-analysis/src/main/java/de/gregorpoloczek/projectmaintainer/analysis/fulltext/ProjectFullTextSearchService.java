@@ -2,8 +2,8 @@ package de.gregorpoloczek.projectmaintainer.analysis.fulltext;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopyService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collection;

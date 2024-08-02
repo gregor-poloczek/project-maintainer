@@ -1,8 +1,9 @@
-package de.gregorpoloczek.projectmaintainer.git.service;
+package de.gregorpoloczek.projectmaintainer.git.service.git;
 
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -59,7 +60,7 @@ public class GitService {
                             .fqpn(workingCopy.getFQPN())
                             .state(State.FAILED)
                             .build());
-                    throw new ProjectPullFailedException(e);
+                    throw new IllegalStateException(e);
                 }
             });
         });
@@ -78,7 +79,7 @@ public class GitService {
                 final URI uri = workingCopy.getURI();
                 if (directory.exists()) {
                     log.error("Project \"{}\" has already been cloned", workingCopy.getFQPN());
-                    throw new ProjectAlreadyClonedException(workingCopy.getFQPN());
+                    throw new IllegalStateException("Project already cloned");
                 }
 
                 final CredentialsProvider credentialProvider = workingCopy.getCredentialsProvider();

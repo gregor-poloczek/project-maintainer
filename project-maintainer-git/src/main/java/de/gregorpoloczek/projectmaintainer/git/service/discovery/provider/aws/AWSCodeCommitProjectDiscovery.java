@@ -1,8 +1,8 @@
-package de.gregorpoloczek.projectmaintainer.git.provider.aws;
+package de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.aws;
 
 import de.gregorpoloczek.projectmaintainer.git.AWSCodeCommitLocation;
 import de.gregorpoloczek.projectmaintainer.git.ProjectsDiscoveryAWSCodeCommitProperties;
-import de.gregorpoloczek.projectmaintainer.git.provider.common.PasswordResolverService;
+import de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;

@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.git.service;
+package de.gregorpoloczek.projectmaintainer.git.service.git;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

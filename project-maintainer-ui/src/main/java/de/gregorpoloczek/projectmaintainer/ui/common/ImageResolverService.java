@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopyService;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;

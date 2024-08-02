@@ -1,11 +1,11 @@
-package de.gregorpoloczek.projectmaintainer.git.provider.bitbucket;
+package de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.bitbucket;
 
 import de.gregorpoloczek.projectmaintainer.git.ProjectsDiscoveryBitbucketProperties;
-import de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api.RepositoryListResource;
-import de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api.RepositoryResource;
-import de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api.WorkspaceMembershipListResource;
-import de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api.WorkspaceMembershipListResource.WorkspaceMembershipResource;
-import de.gregorpoloczek.projectmaintainer.git.provider.common.PasswordResolverService;
+import de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.bitbucket.api.RepositoryListResource;
+import de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.bitbucket.api.RepositoryResource;
+import de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.bitbucket.api.WorkspaceMembershipListResource;
+import de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.bitbucket.api.WorkspaceMembershipListResource.WorkspaceMembershipResource;
+import de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;

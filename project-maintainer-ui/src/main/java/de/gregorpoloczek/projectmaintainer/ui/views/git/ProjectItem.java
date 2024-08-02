@@ -3,7 +3,7 @@ package de.gregorpoloczek.projectmaintainer.ui.views.git;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasIconItem;

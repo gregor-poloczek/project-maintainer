@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.git.service;
+package de.gregorpoloczek.projectmaintainer.git.service.workingcopy;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;

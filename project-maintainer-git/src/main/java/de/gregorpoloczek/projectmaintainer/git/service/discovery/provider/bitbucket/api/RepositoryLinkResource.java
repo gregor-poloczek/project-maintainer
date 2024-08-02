@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.git.provider.bitbucket.api;
+package de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.bitbucket.api;
 
 import lombok.AccessLevel;
 import lombok.Data;

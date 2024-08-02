@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.git.service;
+package de.gregorpoloczek.projectmaintainer.git.service.git;
 
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;

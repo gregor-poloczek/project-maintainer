@@ -1,7 +1,7 @@
-package de.gregorpoloczek.projectmaintainer.git.provider.github;
+package de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.github;
 
 import de.gregorpoloczek.projectmaintainer.git.ProjectsDiscoveryGithubProperties;
-import de.gregorpoloczek.projectmaintainer.git.provider.common.PasswordResolverService;
+import de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
-import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.kohsuke.github.GHRepository;

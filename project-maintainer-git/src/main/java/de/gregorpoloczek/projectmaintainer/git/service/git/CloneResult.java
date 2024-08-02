@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.git.service;
+package de.gregorpoloczek.projectmaintainer.git.service.git;
 
 import java.util.Optional;
 import lombok.Getter;
@@ -12,7 +12,7 @@ public class CloneResult {
     private final Commit latestCommit;
     private final String currentBranch;
 
-    Optional<Commit> getLatestCommit() {
+    public Optional<Commit> getLatestCommit() {
         return Optional.ofNullable(latestCommit);
     }
 }

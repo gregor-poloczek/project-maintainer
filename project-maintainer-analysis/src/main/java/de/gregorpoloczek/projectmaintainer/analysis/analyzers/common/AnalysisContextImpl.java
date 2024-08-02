@@ -6,7 +6,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;

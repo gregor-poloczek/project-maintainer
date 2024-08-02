@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.git.provider.common;
+package de.gregorpoloczek.projectmaintainer.git.service.discovery.provider.common;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

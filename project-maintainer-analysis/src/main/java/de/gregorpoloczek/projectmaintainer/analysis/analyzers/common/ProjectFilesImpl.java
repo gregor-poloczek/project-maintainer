@@ -1,8 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.analysis.analyzers.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
-import de.gregorpoloczek.projectmaintainer.git.service.ProjectFileLocationImpl;
-import de.gregorpoloczek.projectmaintainer.git.service.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.ProjectFileLocationImpl;
+import de.gregorpoloczek.projectmaintainer.git.service.workingcopy.WorkingCopy;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
