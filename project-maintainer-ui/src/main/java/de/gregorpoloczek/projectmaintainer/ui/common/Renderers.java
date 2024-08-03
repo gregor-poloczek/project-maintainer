@@ -29,6 +29,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasWorkingCopy;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.Collection;
@@ -38,20 +39,18 @@ import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import net.time4j.PrettyTime;
 import org.apache.commons.lang3.StringUtils;
 
 @UtilityClass
+@Slf4j
 public class Renderers {
 
-    public static <I extends Composable<I>> Renderer<I> getProgressBarRenderer() {
-        return new ComponentRenderer<>(item -> {
-            Optional<OperationProgress<?>> maybeProgress = item.requireComponent(HasOperationProgress.class)
+    public static <C extends Composable<C>> Renderer<C> getProgressBarRenderer() {
+        return new ComponentRenderer<>(composable -> {
+            Optional<OperationProgress<?>> maybeProgress = composable.requireComponent(HasOperationProgress.class)
                     .getOperationProgress();
 
             VerticalLayout layout = new VerticalLayout();
@@ -64,9 +63,15 @@ public class Renderers {
             progressBarLabelText.setText(progress.getMessage());
 
             Div progressBarLabelValue = new Div();
+            double progressRelative = progress.getProgressRelative();
+            if (Double.isNaN(progressRelative) || Double.isInfinite(progressRelative)) {
+                log.warn("Operation progress has an invalid relative progress {}. Coercing back to 0.",
+                        progressRelative);
+                progressRelative = 0.0d;
+            }
             progressBarLabelValue.setText(
                     MessageFormat.format("{0,number,#.#}%",
-                            progress.getProgressRelative() * 100));
+                            progressRelative * 100));
             FlexLayout top = new FlexLayout();
             top.setWidth("100%");
             top.setJustifyContentMode(JustifyContentMode.BETWEEN);
@@ -74,7 +79,7 @@ public class Renderers {
             top.add(progressBarLabelText, progressBarLabelValue);
 
             ProgressBar progressBar = new ProgressBar();
-            progressBar.setValue(progress.getProgressRelative());
+            progressBar.setValue(progressRelative);
             progressBar.setIndeterminate(false);
 
             progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
@@ -95,27 +100,15 @@ public class Renderers {
         });
     }
 
-    public static <I extends Composable<I>> Renderer<I> getProjectDescriptionRenderer() {
-        return LitRenderer.<I>of(
+    public static <C extends Composable<C>> Renderer<C> getProjectDescriptionRenderer() {
+        return LitRenderer.<C>of(
                         "<div style=\"text-wrap: balance;\">${item.text}</div>")
                 .withProperty("text",
-                        i -> i.requireComponent(HasProject.class)
+                        composable -> composable.requireComponent(HasProject.class)
                                 .getProject()
                                 .getMetaData()
                                 .getDescription()
                                 .orElse(""));
-    }
-
-    @Builder
-    @RequiredArgsConstructor
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-    public class HasWorkingCopy {
-
-        WorkingCopy workingCopy;
-
-        public Optional<WorkingCopy> getWorkingCopy() {
-            return Optional.ofNullable(workingCopy);
-        }
     }
 
     public interface HasLabelsItem {
@@ -129,21 +122,21 @@ public class Renderers {
         return badge;
     }
 
-    public <I extends Composable<I>> Renderer<I> getIconRenderer() {
-        return LitRenderer.<I>of(
+    public <C extends Composable<C>> Renderer<C> getIconRenderer() {
+        return LitRenderer.<C>of(
                         "<img src=${item.image} style=\"height:48px; filter: grayscale(${item.grayscale});\" />")
                 .withProperty("grayscale",
-                        item -> !item.requireComponent(HasIcon.class).isBlurred() ? "0.0" : "1.0")
-                .withProperty("image", item -> {
-                    Optional<Image> image = item.requireComponent(HasIcon.class).getIcon();
+                        composable -> !composable.requireComponent(HasIcon.class).isBlurred() ? "0.0" : "1.0")
+                .withProperty("image", composable -> {
+                    Optional<Image> image = composable.requireComponent(HasIcon.class).getIcon();
                     return image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
                             .encodeToString(i.getBytes())).orElse("");
                 });
 
     }
 
-    public <I extends Composable<I>> Renderer<I> getWorkingCopyRenderer() {
-        return new ComponentRenderer<>(item -> {
+    public <C extends Composable<C>> Renderer<C> getWorkingCopyRenderer() {
+        return new ComponentRenderer<>(composable -> {
             FlexLayout layout = new FlexLayout();
             layout.setFlexDirection(FlexDirection.COLUMN);
             Div message = new Div("");
@@ -159,7 +152,7 @@ public class Renderers {
 
             layout.add(badges, message);
 
-            Optional<WorkingCopy> maybeWorkingCopy = item.requireComponent(HasWorkingCopy.class).getWorkingCopy();
+            Optional<WorkingCopy> maybeWorkingCopy = composable.requireComponent(HasWorkingCopy.class).getWorkingCopy();
 
             Optional<Commit> maybeCommit = maybeWorkingCopy.flatMap(WorkingCopy::getLatestCommit);
             branch.setText(maybeWorkingCopy.map(WorkingCopy::getCurrentBranch).orElse(""));
@@ -181,15 +174,15 @@ public class Renderers {
     }
 
 
-    public <I extends HasLabelsItem> Renderer<I> getLabelsRenderer(Supplier<String> queryProvider) {
-        return new ComponentRenderer<>((I item) -> {
+    public <C extends HasLabelsItem> Renderer<C> getLabelsRenderer(Supplier<String> queryProvider) {
+        return new ComponentRenderer<>((C composable) -> {
             FlexLayout layout = new FlexLayout();
             layout.setFlexDirection(FlexDirection.ROW);
             layout.setFlexWrap(FlexWrap.WRAP);
 
             String query = queryProvider.get();
 
-            List<Component> list = item.getLabels().stream()
+            List<Component> list = composable.getLabels().stream()
                     .filter(l -> StringUtils.isBlank(query) || l.getValue().toLowerCase().contains(query))
                     .map(l -> {
                         HorizontalLayout wrapper = new HorizontalLayout();
@@ -215,14 +208,14 @@ public class Renderers {
         });
     }
 
-    public <I extends Composable<I>> Renderer<I> getProjectNameRenderer() {
-        return new ComponentRenderer<>((I item) -> {
+    public <C extends Composable<C>> Renderer<C> getProjectNameRenderer() {
+        return new ComponentRenderer<>(composable -> {
             FlexLayout layout = new FlexLayout();
             HorizontalLayout badges = new HorizontalLayout();
             layout.setFlexDirection(FlexDirection.COLUMN);
 
             Component name;
-            Project project = item.requireComponent(HasProject.class).getProject();
+            Project project = composable.requireComponent(HasProject.class).getProject();
             if (project.getMetaData().getBrowserLink().isPresent()) {
                 Anchor anchor = new Anchor();
                 anchor.setHref(project.getMetaData().getBrowserLink().get());

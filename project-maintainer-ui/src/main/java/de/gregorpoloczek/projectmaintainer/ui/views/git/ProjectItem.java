@@ -2,11 +2,8 @@ package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
-import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -26,8 +23,6 @@ public class ProjectItem
     private de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project getProject() {
         return this.requireComponent(HasProject.class).getProject();
     }
-
-    String description = "";
 
     public boolean matches(String query) {
         return getProject().getFQPN().toString().toLowerCase().contains(query.toLowerCase());

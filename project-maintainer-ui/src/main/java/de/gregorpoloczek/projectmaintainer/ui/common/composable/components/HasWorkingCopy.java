@@ -1,29 +1,20 @@
 package de.gregorpoloczek.projectmaintainer.ui.common.composable.components;
 
-import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
+import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Builder(toBuilder = true)
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class HasIcon {
+public class HasWorkingCopy {
 
-    public boolean isBlurred() {
-        return blurred;
-    }
+    WorkingCopy workingCopy;
 
-    Image icon;
-
-    @NonNull
-    @Builder.Default
-    Boolean blurred = false;
-
-    public Optional<Image> getIcon() {
-        return Optional.ofNullable(icon);
+    public Optional<WorkingCopy> getWorkingCopy() {
+        return Optional.ofNullable(workingCopy);
     }
 }

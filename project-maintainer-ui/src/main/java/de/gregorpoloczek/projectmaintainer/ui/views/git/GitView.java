@@ -23,9 +23,10 @@ import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasWorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
@@ -191,27 +192,23 @@ public class GitView extends VerticalLayout {
         }
         ProjectItem item = itemByFQPN.get(e.getFQPN());
         current.access(() -> {
-            String text = switch (e.getState()) {
-                case OperationProgress.State.SCHEDULED ->
-                        Optional.ofNullable(e.getMessage()).filter(StringUtils::isNotBlank).orElse("...");
-                case OperationProgress.State.RUNNING -> e.getMessage();
-                case OperationProgress.State.DONE -> "";
-                case OperationProgress.State.FAILED -> "Operation failed";
-                default -> e.getState().name();
-            };
             // TODO error handling
 
             if (e.getState() == OperationProgress.State.DONE) {
                 Project project = item.requireComponent(HasProject.class).getProject();
                 WorkingCopy workingCopy = this.workingCopyService.find(e).orElse(null);
+                Image icon = this.imageResolverService.getProjectImage(project).orElse(null);
                 item
-                        .addComponent(HasWorkingCopy.class, HasWorkingCopy.builder().workingCopy(workingCopy).build())
-                        .addComponent(HasProject.class, () -> project)
-                        .addComponent(HasIcon.class, HasIcon.builder()
-                                .icon(this.imageResolverService.getProjectImage(project).orElse(null))
-                                .build());
+                        .replaceComponent(HasWorkingCopy.class, c -> c.toBuilder().workingCopy(workingCopy).build())
+                        .replaceComponent(HasIcon.class, c -> c.toBuilder()
+                                .icon(icon)
+                                // TODO glaube das funktioniert hier nicht?
+                                .blurred(workingCopy == null)
+                                .build())
+                        .replaceComponent(HasOperationProgress.class, c -> HasOperationProgress.empty());
+            } else {
+                item.replaceComponent(HasOperationProgress.class, c -> c.toBuilder().operationProgress(e).build());
             }
-            item.addComponent(HasOperationProgress.class, HasOperationProgress.builder().operationProgress(e).build());
 
             this.grid.getDataProvider().refreshItem(item);
         });
@@ -221,7 +218,6 @@ public class GitView extends VerticalLayout {
         ProjectMetaData metaData = p.getMetaData();
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         return ProjectItem.builder()
-                .description(metaData.getDescription().orElse(""))
                 .build()
                 .addComponent(HasProject.class, () -> p)
                 .addComponent(HasIcon.class, HasIcon.builder()
