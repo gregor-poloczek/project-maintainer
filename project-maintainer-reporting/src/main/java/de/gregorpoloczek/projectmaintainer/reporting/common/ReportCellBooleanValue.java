@@ -4,6 +4,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFi
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
@@ -13,7 +14,9 @@ import lombok.experimental.FieldDefaults;
 public class ReportCellBooleanValue implements ReportCellValue {
 
     ProjectFileLocation location;
-    boolean booleanValue;
+
+    @NonNull
+    Boolean booleanValue;
 
 
     @Override
@@ -21,6 +24,7 @@ public class ReportCellBooleanValue implements ReportCellValue {
         return Boolean.toString(booleanValue);
     }
 
+    @Override
     public Optional<ProjectFileLocation> getLocation() {
         return Optional.ofNullable(location);
     }

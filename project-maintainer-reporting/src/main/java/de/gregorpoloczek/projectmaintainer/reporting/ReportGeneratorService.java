@@ -244,7 +244,7 @@ public class ReportGeneratorService {
             boolean hasLabel = this.labelService.hasLabel(project, Label.fromString(column.getLabelPresence()));
             value = ReportCellBooleanValue.builder().booleanValue(hasLabel).build();
         } else {
-            value = ReportCellErrorValue.builder().stringValue("??column-type??").build();
+            value = ReportCellErrorValue.builder().message("??column-type??").build();
         }
         return value;
     }

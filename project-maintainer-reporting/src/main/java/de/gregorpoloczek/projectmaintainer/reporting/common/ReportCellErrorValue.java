@@ -5,6 +5,7 @@ import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
@@ -14,7 +15,13 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class ReportCellErrorValue implements ReportCellValue {
 
-    String stringValue;
+    @NonNull
+    String message;
+
+    @Override
+    public String getStringValue() {
+        return this.message;
+    }
 
     @Override
     public Optional<ProjectFileLocation> getLocation() {
