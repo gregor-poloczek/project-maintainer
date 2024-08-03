@@ -83,7 +83,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         this.grid.removeAllColumns();
         this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(Renderers.getNameRenderer()).setHeader("Project").setFlexGrow(2).setWidth("350px");
+        this.grid.addColumn(Renderers.getProjectNameRenderer()).setHeader("Project").setFlexGrow(2).setWidth("350px");
 
         UI ui = UI.getCurrent();
 

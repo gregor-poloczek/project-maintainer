@@ -38,6 +38,10 @@ import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.experimental.UtilityClass;
 import net.time4j.PrettyTime;
 import org.apache.commons.lang3.StringUtils;
@@ -91,9 +95,27 @@ public class Renderers {
         });
     }
 
-    public interface HasWorkingCopy {
+    public static <I extends Composable<I>> Renderer<I> getProjectDescriptionRenderer() {
+        return LitRenderer.<I>of(
+                        "<div style=\"text-wrap: balance;\">${item.text}</div>")
+                .withProperty("text",
+                        i -> i.requireComponent(HasProject.class)
+                                .getProject()
+                                .getMetaData()
+                                .getDescription()
+                                .orElse(""));
+    }
 
-        Optional<WorkingCopy> getWorkingCopy();
+    @Builder
+    @RequiredArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+    public class HasWorkingCopy {
+
+        WorkingCopy workingCopy;
+
+        public Optional<WorkingCopy> getWorkingCopy() {
+            return Optional.ofNullable(workingCopy);
+        }
     }
 
     public interface HasLabelsItem {
@@ -120,7 +142,7 @@ public class Renderers {
 
     }
 
-    public <I extends HasWorkingCopy> Renderer<I> getWorkingCopyRenderer() {
+    public <I extends Composable<I>> Renderer<I> getWorkingCopyRenderer() {
         return new ComponentRenderer<>(item -> {
             FlexLayout layout = new FlexLayout();
             layout.setFlexDirection(FlexDirection.COLUMN);
@@ -137,8 +159,10 @@ public class Renderers {
 
             layout.add(badges, message);
 
-            Optional<Commit> maybeCommit = item.getWorkingCopy().flatMap(WorkingCopy::getLatestCommit);
-            branch.setText(item.getWorkingCopy().map(WorkingCopy::getCurrentBranch).orElse(""));
+            Optional<WorkingCopy> maybeWorkingCopy = item.requireComponent(HasWorkingCopy.class).getWorkingCopy();
+
+            Optional<Commit> maybeCommit = maybeWorkingCopy.flatMap(WorkingCopy::getLatestCommit);
+            branch.setText(maybeWorkingCopy.map(WorkingCopy::getCurrentBranch).orElse(""));
 
             maybeCommit.ifPresent(commit -> {
                 timestamp.setText(PrettyTime.of(Locale.US)
@@ -155,8 +179,6 @@ public class Renderers {
             return layout;
         });
     }
-
-    ;
 
 
     public <I extends HasLabelsItem> Renderer<I> getLabelsRenderer(Supplier<String> queryProvider) {
@@ -193,7 +215,7 @@ public class Renderers {
         });
     }
 
-    public <I extends Composable<I>> Renderer<I> getNameRenderer() {
+    public <I extends Composable<I>> Renderer<I> getProjectNameRenderer() {
         return new ComponentRenderer<>((I item) -> {
             FlexLayout layout = new FlexLayout();
             HorizontalLayout badges = new HorizontalLayout();

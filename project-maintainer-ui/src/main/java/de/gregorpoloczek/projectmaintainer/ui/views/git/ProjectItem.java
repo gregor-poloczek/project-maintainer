@@ -21,22 +21,13 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class ProjectItem
         extends AbstractComposable<ProjectItem>
-        implements ProjectRelatable, HasWorkingCopy {
-
-    WorkingCopy workingCopy;
+        implements ProjectRelatable {
 
     private de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project getProject() {
         return this.requireComponent(HasProject.class).getProject();
     }
 
-    // TODO diese ganzen methoden als eine art "traits" verpacken, die ohne interfaces aus kommen
-    public Optional<WorkingCopy> getWorkingCopy() {
-        return Optional.ofNullable(workingCopy);
-    }
-
     String description = "";
-    String website = "";
-    String owner;
 
     public boolean matches(String query) {
         return getProject().getFQPN().toString().toLowerCase().contains(query.toLowerCase());

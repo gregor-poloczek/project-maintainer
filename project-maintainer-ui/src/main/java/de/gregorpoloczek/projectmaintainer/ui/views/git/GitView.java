@@ -11,7 +11,6 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
-import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
@@ -26,6 +25,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
+import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
@@ -89,17 +89,14 @@ public class GitView extends VerticalLayout {
         result = new Grid<>(ProjectItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        result.addColumn(Renderers.getNameRenderer()).setHeader("Name");
+        result.addColumn(Renderers.getProjectNameRenderer()).setHeader("Name");
         result.addColumn(Renderers.getProjectWebsiteLinkRenderer()).setFlexGrow(0).setWidth("64px");
-        result.addColumn(
-                LitRenderer.<ProjectItem>of(
-                                "<div style=\"text-wrap: balance;\">${item.text}</div>")
-                        .withProperty("text", ProjectItem::getDescription)
-        ).setHeader("Description");
+        result.addColumn(Renderers.getProjectDescriptionRenderer()).setHeader("Description");
         result.addColumn(Renderers.getWorkingCopyRenderer()).setHeader("Working copy");
         result.addColumn(Renderers.getProgressBarRenderer());
         return result;
     }
+
 
     private MenuBar createMenuBar() {
         MenuBar result = new MenuBar();
@@ -113,7 +110,7 @@ public class GitView extends VerticalLayout {
         UI ui = UI.getCurrent();
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .filter(item -> item.getWorkingCopy().isPresent())
+                .filter(item -> item.requireComponent(HasWorkingCopy.class).getWorkingCopy().isPresent())
                 .flatMap(item ->
                         this.workingCopyService.wipeProject(item)
                                 .subscribeOn(Schedulers.parallel()))
@@ -127,7 +124,7 @@ public class GitView extends VerticalLayout {
     private void onAttachClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .filter(item -> item.getWorkingCopy().isEmpty())
+                .filter(item -> item.requireComponent(HasWorkingCopy.class).getWorkingCopy().isEmpty())
                 .flatMap(item ->
                         this.workingCopyService.cloneProject(item)
                                 .subscribeOn(Schedulers.parallel()))
@@ -143,7 +140,9 @@ public class GitView extends VerticalLayout {
         UI ui = UI.getCurrent();
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .filter(item -> item.getWorkingCopy().isPresent())
+                .filter(item -> item.requireComponent(HasWorkingCopy.class)
+                        .getWorkingCopy()
+                        .isPresent())
                 .flatMap(item ->
                         this.workingCopyService.pullProject(item)
                                 .subscribeOn(Schedulers.parallel()))
@@ -204,8 +203,10 @@ public class GitView extends VerticalLayout {
 
             if (e.getState() == OperationProgress.State.DONE) {
                 Project project = item.requireComponent(HasProject.class).getProject();
-                item.setWorkingCopy(this.workingCopyService.find(e).orElse(null));
-                item.addComponent(HasProject.class, () -> project)
+                WorkingCopy workingCopy = this.workingCopyService.find(e).orElse(null);
+                item
+                        .addComponent(HasWorkingCopy.class, HasWorkingCopy.builder().workingCopy(workingCopy).build())
+                        .addComponent(HasProject.class, () -> project)
                         .addComponent(HasIcon.class, HasIcon.builder()
                                 .icon(this.imageResolverService.getProjectImage(project).orElse(null))
                                 .build());
@@ -221,14 +222,14 @@ public class GitView extends VerticalLayout {
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         return ProjectItem.builder()
                 .description(metaData.getDescription().orElse(""))
-                .website(metaData.getWebsiteLink().orElse(""))
-                .workingCopy(workingCopy.orElse(null))
-                .owner(metaData.getOwner()).build()
+                .build()
                 .addComponent(HasProject.class, () -> p)
                 .addComponent(HasIcon.class, HasIcon.builder()
                         .icon(this.imageResolverService.getProjectImage(p).orElse(null))
                         .blurred(workingCopy.isEmpty())
                         .build())
+                .addComponent(HasWorkingCopy.class,
+                        HasWorkingCopy.builder().workingCopy(workingCopy.orElse(null)).build())
                 .addComponent(HasOperationProgress.class, HasOperationProgress.empty());
     }
 
