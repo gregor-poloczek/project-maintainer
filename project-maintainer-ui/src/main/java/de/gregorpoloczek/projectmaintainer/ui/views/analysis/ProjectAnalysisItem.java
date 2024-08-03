@@ -1,6 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 
-import de.gregorpoloczek.projectmaintainer.analysis.Label;
+import de.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasIconItem;

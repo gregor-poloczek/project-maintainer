@@ -14,7 +14,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
-import de.gregorpoloczek.projectmaintainer.analysis.Label;
+import de.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
