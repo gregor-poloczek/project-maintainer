@@ -1,10 +1,9 @@
-package de.gregorpoloczek.projectmaintainer.ui.common.composable;
+package de.gregorpoloczek.projectmaintainer.ui.common.composable.components;
 
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

@@ -7,14 +7,10 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
-import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
@@ -26,15 +22,13 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMe
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
-import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasOperationProgress;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
-import java.util.Base64;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasOperationProgress;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -96,29 +90,12 @@ public class GitView extends VerticalLayout {
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(Renderers.getNameRenderer()).setHeader("Name");
-        result.addColumn(new ComponentRenderer<>(i -> {
-            HorizontalLayout r = new HorizontalLayout();
-            if (StringUtils.isNotBlank(i.getWebsite())) {
-                Anchor anchor = new Anchor();
-                anchor.add(VaadinIcon.GLOBE_WIRE.create());
-                anchor.setTarget("_blank");
-                anchor.setHref(i.getWebsite());
-                r.add(anchor);
-            }
-            return r;
-        })).setFlexGrow(0).setWidth("64px");
+        result.addColumn(Renderers.getProjectWebsiteLinkRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(
                 LitRenderer.<ProjectItem>of(
                                 "<div style=\"text-wrap: balance;\">${item.text}</div>")
                         .withProperty("text", ProjectItem::getDescription)
-                        .withProperty("grayscale",
-                                item -> !item.requireComponent(HasIcon.class).isBlurred() ? "0.0" : "1.0")
-                        .withProperty("image", item -> {
-                            Optional<Image> image = item.requireComponent(HasIcon.class).getIcon();
-                            return image.map(
-                                    i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
-                                            .encodeToString(i.getBytes())).orElse("");
-                        })).setHeader("Description");
+        ).setHeader("Description");
         result.addColumn(Renderers.getWorkingCopyRenderer()).setHeader("Working copy");
         result.addColumn(Renderers.getProgressBarRenderer());
         return result;

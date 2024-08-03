@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.ui.common.composable;
+package de.gregorpoloczek.projectmaintainer.ui.common.composable.components;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 

@@ -1,12 +1,10 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
-import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
-import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
 import java.util.Optional;
 import lombok.AccessLevel;

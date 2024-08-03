@@ -7,6 +7,7 @@ import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
@@ -25,10 +26,9 @@ import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasOperationProgress;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
-import de.gregorpoloczek.projectmaintainer.ui.views.git.ProjectItem;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasOperationProgress;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.Collection;
@@ -218,6 +218,25 @@ public class Renderers {
             spacer.getStyle().set("height", "4px");
             layout.add(badges, spacer, name);
             return layout;
+        });
+    }
+
+    public <C extends Composable<C>> Renderer<C> getProjectWebsiteLinkRenderer() {
+        return new ComponentRenderer<>((C composable) -> {
+            Optional<String> maybeWebsiteLink = composable.requireComponent(HasProject.class)
+                    .getProject()
+                    .getMetaData()
+                    .getWebsiteLink()
+                    .filter(StringUtils::isNotBlank);
+            HorizontalLayout r = new HorizontalLayout();
+            maybeWebsiteLink.ifPresent(websiteLink -> {
+                Anchor anchor = new Anchor();
+                anchor.add(VaadinIcon.GLOBE_WIRE.create());
+                anchor.setTarget("_blank");
+                anchor.setHref(websiteLink);
+                r.add(anchor);
+            });
+            return r;
         });
     }
 

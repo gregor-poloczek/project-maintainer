@@ -4,7 +4,7 @@ import de.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasLabelsItem;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import lombok.AccessLevel;
