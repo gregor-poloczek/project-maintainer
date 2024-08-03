@@ -5,6 +5,7 @@ import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.ProjectFileLo
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,15 +15,16 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectFilesImpl implements ProjectFiles {
 
-    private final WorkingCopy workingCopy;
-
-    public ProjectFilesImpl(final WorkingCopy workingCopy) {
-        this.workingCopy = workingCopy;
-    }
+    WorkingCopy workingCopy;
 
     @Override
     public boolean hasAny(final String regex) {
@@ -48,7 +50,7 @@ public class ProjectFilesImpl implements ProjectFiles {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
         return result.booleanValue();
     }
@@ -72,7 +74,7 @@ public class ProjectFilesImpl implements ProjectFiles {
                 }
             });
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
         return result;
     }

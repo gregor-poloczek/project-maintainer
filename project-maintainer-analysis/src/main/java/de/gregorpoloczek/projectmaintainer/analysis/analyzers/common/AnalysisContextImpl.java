@@ -11,25 +11,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableSet;
 import java.util.TreeSet;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AnalysisContextImpl implements AnalysisContext, ProjectRelatable {
 
     private final Project project;
-
     @Getter
     private final NavigableSet<Label> labels = new TreeSet<>();
     @Getter
     private final WorkingCopy workingCopy;
     @Getter
     private final List<Dependency> dependencies = new ArrayList<>();
-
-    public AnalysisContextImpl(@NonNull final Project project,
-            @NonNull final WorkingCopy workingCopy) {
-        this.project = project;
-        this.workingCopy = workingCopy;
-    }
 
     @Override
     public Project getProject() {

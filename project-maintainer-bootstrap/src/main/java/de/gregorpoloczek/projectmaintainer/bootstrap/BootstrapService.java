@@ -13,28 +13,24 @@ import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
 
 
-@Slf4j
 @Service
+@Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequiredArgsConstructor
 public class BootstrapService {
 
-    private final ProjectDiscoveryService projectDiscoveryService;
-    private final ProjectRepository projectRepository;
-    private final WorkingCopyService workingCopyService;
+    ProjectDiscoveryService projectDiscoveryService;
+    ProjectRepository projectRepository;
+    WorkingCopyService workingCopyService;
 
-    public BootstrapService(
-            final ProjectDiscoveryService projectDiscoveryService,
-            final ProjectRepository projectRepository,
-            final WorkingCopyService workingCopyService) {
-        this.projectDiscoveryService = projectDiscoveryService;
-        this.projectRepository = projectRepository;
-        this.workingCopyService = workingCopyService;
-
-    }
 
     @PostConstruct
     void init() {

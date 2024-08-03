@@ -15,9 +15,9 @@ public class ProjectDiscoveryService {
 
     public ProjectDiscoveryResult discoverProjects() {
         final ProjectDiscoveryContextImpl projectDiscoveryContext = new ProjectDiscoveryContextImpl();
-        for (ProjectDiscovery d : this.projectDiscoveries) {
-            d.discoverProjects(projectDiscoveryContext);
+        for (ProjectDiscovery projectDiscovery : this.projectDiscoveries) {
+            projectDiscovery.discoverProjects(projectDiscoveryContext);
         }
-        return new ProjectDiscoveryResult(projectDiscoveryContext.getDiscoveredProjects());
+        return new ProjectDiscoveryResult(List.copyOf(projectDiscoveryContext.getDiscoveredProjects()));
     }
 }
