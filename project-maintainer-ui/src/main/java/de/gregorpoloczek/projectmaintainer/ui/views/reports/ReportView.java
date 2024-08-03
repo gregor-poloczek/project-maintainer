@@ -30,7 +30,8 @@ import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +44,7 @@ import reactor.core.scheduler.Schedulers;
 @Slf4j
 public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
-    private final Grid<ReportRowItem> grid;
+    private final Grid<ReportRow> grid;
     private final ReportHeader header;
     private final transient ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
@@ -126,10 +127,10 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         }
     }
 
-    private static ComponentRenderer<HorizontalLayout, ReportRowItem> createCellRenderer(
+    private static ComponentRenderer<HorizontalLayout, ReportRow> createCellRenderer(
             int columnIndex) {
         return new ComponentRenderer<>(
-                (ReportRowItem item) -> {
+                (ReportRow item) -> {
                     // TODO durch horizontal layout ist die text ausrichtung nun total broken
                     HorizontalLayout result = new HorizontalLayout();
                     Optional<ReportCellValue> maybeValue = item.getValue(columnIndex);
@@ -175,14 +176,15 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void applyReport(ProjectReport report) {
-        List<ReportRowItem> items = new ArrayList<>();
+        List<ReportRow> items = new ArrayList<>();
         for (ProjectReportRow row : report.getRows()) {
             Project project = row.getProject();
 
             Optional<Image> image = imageResolverService.getProjectImage(row.getProject());
 
-            ReportRowItem item = new ReportRowItem(this.reportConfig.getColumns().size(), image)
-                    .addComponent(HasProject.class, () -> project);
+            ReportRow item = new ReportRow(this.reportConfig.getColumns().size())
+                    .addComponent(HasProject.class, () -> project)
+                    .addComponent(HasIcon.class, HasIcon.builder().icon(image.orElse(null)).build());
 
             int i = 0;
             for (ProjectReportCell cell : row.getCells()) {

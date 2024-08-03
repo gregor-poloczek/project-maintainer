@@ -20,6 +20,8 @@ import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
@@ -45,25 +47,19 @@ public class Renderers {
         Collection<Label> getLabels();
     }
 
-    public interface HasIconItem {
-
-        boolean isIconBlurred();
-
-        Optional<Image> getIcon();
-    }
-
     private static Span createBadge() {
         Span badge = new Span("");
         badge.getElement().getThemeList().add("badge");
         return badge;
     }
 
-    public <I extends HasIconItem> Renderer<I> getIconRenderer() {
+    public <I extends Composable<I>> Renderer<I> getIconRenderer() {
         return LitRenderer.<I>of(
                         "<img src=${item.image} style=\"height:48px; filter: grayscale(${item.grayscale});\" />")
-                .withProperty("grayscale", item -> !item.isIconBlurred() ? "0.0" : "1.0")
+                .withProperty("grayscale",
+                        item -> !item.requireComponent(HasIcon.class).isBlurred() ? "0.0" : "1.0")
                 .withProperty("image", item -> {
-                    Optional<Image> image = item.getIcon();
+                    Optional<Image> image = item.requireComponent(HasIcon.class).getIcon();
                     return image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
                             .encodeToString(i.getBytes())).orElse("");
                 });

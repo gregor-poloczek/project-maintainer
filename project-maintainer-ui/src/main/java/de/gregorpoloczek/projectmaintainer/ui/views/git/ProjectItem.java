@@ -6,9 +6,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRe
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasIconItem;
-import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -25,13 +23,13 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class ProjectItem
         extends AbstractComposable<ProjectItem>
-        implements HasIconItem, ProjectRelatable, HasWorkingCopy {
+        implements ProjectRelatable, HasWorkingCopy {
 
     OperationProgress.State operationState = null;
     WorkingCopy workingCopy;
     Image icon;
 
-    private Project getProject() {
+    private de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project getProject() {
         return this.requireComponent(HasProject.class).getProject();
     }
 
@@ -50,11 +48,6 @@ public class ProjectItem
     String owner;
     boolean operationInProgress;
     Double operationProgressValue;
-
-    @Override
-    public boolean isIconBlurred() {
-        return this.workingCopy == null;
-    }
 
     public boolean matches(String query) {
         return getProject().getFQPN().toString().toLowerCase().contains(query.toLowerCase());

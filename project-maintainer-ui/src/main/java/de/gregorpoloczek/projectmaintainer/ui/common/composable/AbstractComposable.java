@@ -14,7 +14,9 @@ public class AbstractComposable<S extends AbstractComposable<S>> implements Comp
     }
 
     public <C> C requireComponent(Class<C> componentClass) {
-        return this.getComponent(componentClass).orElseThrow(IllegalStateException::new);
+        return this.getComponent(componentClass)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Composable does not have component of type \"%s\".".formatted(componentClass.getName())));
     }
 
     public <C, I extends C> S addComponent(Class<C> componentClass, I component) {

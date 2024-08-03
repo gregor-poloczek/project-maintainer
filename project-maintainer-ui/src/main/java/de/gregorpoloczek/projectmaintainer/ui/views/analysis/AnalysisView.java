@@ -21,9 +21,11 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
+import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,8 +46,8 @@ public class AnalysisView extends VerticalLayout {
     private final LabelService labelService;
     private final Text text;
     private final TextField search;
-    private final Grid<ProjectAnalysisItem> grid;
-    private Map<FQPN, ProjectAnalysisItem> itemByFQPN = new HashMap<>();
+    private final Grid<ProjectAnalysis> grid;
+    private Map<FQPN, ProjectAnalysis> itemByFQPN = new HashMap<>();
     private ImageResolverService imageResolverService;
 
     public AnalysisView(
@@ -73,7 +75,7 @@ public class AnalysisView extends VerticalLayout {
         search.setPlaceholder("Search");
         search.setValueChangeMode(ValueChangeMode.EAGER);
         search.addValueChangeListener(e -> {
-            ListDataProvider<ProjectAnalysisItem> dataProvider = (ListDataProvider<ProjectAnalysisItem>) this.grid.getDataProvider();
+            ListDataProvider<ProjectAnalysis> dataProvider = (ListDataProvider<ProjectAnalysis>) this.grid.getDataProvider();
             String query = e.getValue().toLowerCase();
             dataProvider.setFilter(
                     i -> StringUtils.isBlank(query) || i.matches(query));
@@ -93,14 +95,17 @@ public class AnalysisView extends VerticalLayout {
 
         List<Project> projects = this.projectService.findALl();
         UI ui = UI.getCurrent();
-        List<ProjectAnalysisItem> items = new ArrayList<>();
+        List<ProjectAnalysis> items = new ArrayList<>();
         for (Project project : projects) {
             Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project);
 
             if (workingCopy.isPresent()) {
-                items.add(ProjectAnalysisItem.builder()
-                        .icon(AnalysisView.this.imageResolverService.getProjectImage(project))
-                        .build().addComponent(HasProject.class, () -> project));
+                Optional<Image> icon = AnalysisView.this.imageResolverService.getProjectImage(project);
+                items.add(ProjectAnalysis.builder()
+                        .build()
+                        .addComponent(HasProject.class, () -> project)
+                        .addComponent(HasIcon.class, HasIcon.builder().icon(icon.orElse(null)).build())
+                );
             }
         }
         this.grid.setItems(items);
@@ -128,7 +133,7 @@ public class AnalysisView extends VerticalLayout {
         current.access(() -> {
             if (e.getState().isTerminated()) {
                 SortedSet<Label> labels = this.labelService.find(e.getFQPN());
-                ProjectAnalysisItem item = this.itemByFQPN.get(e.getFQPN());
+                ProjectAnalysis item = this.itemByFQPN.get(e.getFQPN());
                 item.setLabels(labels);
                 this.grid.getDataProvider().refreshItem(item);
             }

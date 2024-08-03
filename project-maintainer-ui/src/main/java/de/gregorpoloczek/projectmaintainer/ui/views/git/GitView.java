@@ -34,10 +34,10 @@ import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.List;
@@ -160,7 +160,8 @@ public class GitView extends VerticalLayout {
                 LitRenderer.<ProjectItem>of(
                                 "<div style=\"text-wrap: balance;\">${item.text}</div>")
                         .withProperty("text", ProjectItem::getDescription)
-                        .withProperty("grayscale", item -> !item.isIconBlurred() ? "0.0" : "1.0")
+                        .withProperty("grayscale",
+                                item -> !item.requireComponent(HasIcon.class).isBlurred() ? "0.0" : "1.0")
                         .withProperty("image", item -> {
                             Optional<Image> image = item.getIcon();
                             return image.map(
@@ -282,7 +283,8 @@ public class GitView extends VerticalLayout {
             item.setOperationState(e.getState());
             if (e.getState() == OperationProgress.State.DONE) {
                 ProjectItem newItem = toProjectItem(this.projectService.require(e));
-                Project project = item.requireComponent(HasProject.class).getProject();
+                de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project project = item.requireComponent(
+                        HasProject.class).getProject();
                 item.setText(newItem.getText());
                 item.addComponent(HasProject.class, () -> project);
                 item.setWorkingCopy(this.workingCopyService.find(e).orElse(null));
@@ -294,7 +296,7 @@ public class GitView extends VerticalLayout {
         });
     }
 
-    private ProjectItem toProjectItem(Project p) {
+    private ProjectItem toProjectItem(de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project p) {
         ProjectMetaData metaData = p.getMetaData();
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         String text = workingCopy.isPresent() ? "" : "Not attached";
@@ -305,7 +307,12 @@ public class GitView extends VerticalLayout {
                 .workingCopy(workingCopy.orElse(null))
                 .owner(metaData.getOwner())
                 .icon(this.imageResolverService.getProjectImage(p).orElse(null)).build();
-        return build.addComponent(HasProject.class, () -> p);
+        return build
+                .addComponent(HasProject.class, () -> p)
+                .addComponent(HasIcon.class, HasIcon.builder()
+                        .icon(this.imageResolverService.getProjectImage(p).orElse(null))
+                        .blurred(workingCopy.isEmpty())
+                        .build());
     }
 
 }
