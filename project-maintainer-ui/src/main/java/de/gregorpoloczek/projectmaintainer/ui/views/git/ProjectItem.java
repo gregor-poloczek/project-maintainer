@@ -36,7 +36,6 @@ public class ProjectItem
         return Optional.ofNullable(workingCopy);
     }
 
-    String text = "";
     String description = "";
     String website = "";
     String owner;

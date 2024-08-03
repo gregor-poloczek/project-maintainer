@@ -21,6 +21,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
@@ -225,17 +226,13 @@ public class GitView extends VerticalLayout {
             // TODO error handling
 
             if (e.getState() == OperationProgress.State.DONE) {
-                ProjectItem newItem = toProjectItem(this.projectService.require(e));
-                de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project project = item.requireComponent(
-                        HasProject.class).getProject();
-                item.setText(newItem.getText());
+                Project project = item.requireComponent(HasProject.class).getProject();
                 item.setWorkingCopy(this.workingCopyService.find(e).orElse(null));
                 item.addComponent(HasProject.class, () -> project)
                         .addComponent(HasIcon.class, HasIcon.builder()
                                 .icon(this.imageResolverService.getProjectImage(project).orElse(null))
                                 .build());
             }
-            item.setText(text);
             item.addComponent(HasOperationProgress.class, HasOperationProgress.builder().operationProgress(e).build());
 
             this.grid.getDataProvider().refreshItem(item);
@@ -245,9 +242,7 @@ public class GitView extends VerticalLayout {
     private ProjectItem toProjectItem(de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project p) {
         ProjectMetaData metaData = p.getMetaData();
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
-        String text = workingCopy.isPresent() ? "" : "Not attached";
         return ProjectItem.builder()
-                .text(text)
                 .description(metaData.getDescription().orElse(""))
                 .website(metaData.getWebsiteLink().orElse(""))
                 .workingCopy(workingCopy.orElse(null))
