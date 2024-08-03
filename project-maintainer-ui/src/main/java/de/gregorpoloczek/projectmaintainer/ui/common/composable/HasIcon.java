@@ -12,7 +12,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-
 public class HasIcon {
 
     public boolean isBlurred() {

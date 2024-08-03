@@ -8,20 +8,14 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.menubar.MenuBar;
-import com.vaadin.flow.component.orderedlayout.FlexLayout;
-import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.progressbar.ProgressBar;
-import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
-import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
@@ -37,8 +31,8 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
-import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -64,50 +58,6 @@ public class GitView extends VerticalLayout {
     private final Grid<ProjectItem> grid;
 
     private final transient Disposable.Swap currentOperation = Disposables.swap();
-
-
-    private final Renderer<ProjectItem> progressBarRenderer = new ComponentRenderer<>(item -> {
-        Div progressBarLabelText = new Div();
-        progressBarLabelText.setText(item.getText());
-
-        Div progressBarLabelValue = new Div();
-        progressBarLabelValue.setText(
-                item.getOperationProgressValue() != null ? MessageFormat.format("{0,number,#.#}%",
-                        item.getOperationProgressValue() * 100) : "");
-        FlexLayout top = new FlexLayout();
-        top.setWidth("100%");
-        top.setJustifyContentMode(JustifyContentMode.BETWEEN);
-        top.setFlexDirection(FlexDirection.ROW);
-        top.add(progressBarLabelText, progressBarLabelValue);
-
-        ProgressBar progressBar = new ProgressBar();
-        if (item.getOperationProgressValue() != null) {
-            progressBar.setValue(item.getOperationProgressValue());
-            progressBar.setIndeterminate(false);
-        } else if (item.getOperationState() != null && item.getOperationState().isTerminated()) {
-            progressBar.setIndeterminate(false);
-            progressBar.setValue(1);
-        } else {
-            progressBar.setIndeterminate(true);
-        }
-        progressBar.setVisible(item.getOperationState() != null);
-        progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
-                ProgressBarVariant.LUMO_CONTRAST);
-        if (item.getOperationState() == OperationProgress.State.DONE) {
-            progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
-        } else if (item.getOperationState() == OperationProgress.State.FAILED) {
-            progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
-        } else {
-            progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
-        }
-
-        VerticalLayout layout = new VerticalLayout();
-        layout.setSpacing(false);
-        layout.add(top, progressBar);
-        layout.setPadding(false);
-
-        return layout;
-    });
 
 
     public GitView(
@@ -163,13 +113,13 @@ public class GitView extends VerticalLayout {
                         .withProperty("grayscale",
                                 item -> !item.requireComponent(HasIcon.class).isBlurred() ? "0.0" : "1.0")
                         .withProperty("image", item -> {
-                            Optional<Image> image = item.getIcon();
+                            Optional<Image> image = item.requireComponent(HasIcon.class).getIcon();
                             return image.map(
                                     i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
                                             .encodeToString(i.getBytes())).orElse("");
                         })).setHeader("Description");
         result.addColumn(Renderers.getWorkingCopyRenderer()).setHeader("Working copy");
-        result.addColumn(this.progressBarRenderer);
+        result.addColumn(Renderers.getProgressBarRenderer());
         return result;
     }
 
@@ -274,23 +224,19 @@ public class GitView extends VerticalLayout {
             };
             // TODO error handling
 
-            double progress = (double) e.getProgressCurrent() / (double) e.getProgressTotal();
-            if (Double.isNaN(progress) || Double.isInfinite(progress)) {
-                progress = 0.0d;
-            }
-            item.setOperationInProgress(!e.getState().isTerminated());
-            item.setOperationProgressValue(progress);
-            item.setOperationState(e.getState());
             if (e.getState() == OperationProgress.State.DONE) {
                 ProjectItem newItem = toProjectItem(this.projectService.require(e));
                 de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project project = item.requireComponent(
                         HasProject.class).getProject();
                 item.setText(newItem.getText());
-                item.addComponent(HasProject.class, () -> project);
                 item.setWorkingCopy(this.workingCopyService.find(e).orElse(null));
-                item.setIcon(this.imageResolverService.getProjectImage(project).orElse(null));
+                item.addComponent(HasProject.class, () -> project)
+                        .addComponent(HasIcon.class, HasIcon.builder()
+                                .icon(this.imageResolverService.getProjectImage(project).orElse(null))
+                                .build());
             }
             item.setText(text);
+            item.addComponent(HasOperationProgress.class, HasOperationProgress.builder().operationProgress(e).build());
 
             this.grid.getDataProvider().refreshItem(item);
         });
@@ -300,19 +246,18 @@ public class GitView extends VerticalLayout {
         ProjectMetaData metaData = p.getMetaData();
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         String text = workingCopy.isPresent() ? "" : "Not attached";
-        ProjectItem build = ProjectItem.builder()
+        return ProjectItem.builder()
                 .text(text)
                 .description(metaData.getDescription().orElse(""))
                 .website(metaData.getWebsiteLink().orElse(""))
                 .workingCopy(workingCopy.orElse(null))
-                .owner(metaData.getOwner())
-                .icon(this.imageResolverService.getProjectImage(p).orElse(null)).build();
-        return build
+                .owner(metaData.getOwner()).build()
                 .addComponent(HasProject.class, () -> p)
                 .addComponent(HasIcon.class, HasIcon.builder()
                         .icon(this.imageResolverService.getProjectImage(p).orElse(null))
                         .blurred(workingCopy.isEmpty())
-                        .build());
+                        .build())
+                .addComponent(HasOperationProgress.class, HasOperationProgress.empty());
     }
 
 }

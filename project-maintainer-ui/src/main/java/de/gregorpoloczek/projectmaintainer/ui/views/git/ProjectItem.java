@@ -25,9 +25,7 @@ public class ProjectItem
         extends AbstractComposable<ProjectItem>
         implements ProjectRelatable, HasWorkingCopy {
 
-    OperationProgress.State operationState = null;
     WorkingCopy workingCopy;
-    Image icon;
 
     private de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project getProject() {
         return this.requireComponent(HasProject.class).getProject();
@@ -38,16 +36,10 @@ public class ProjectItem
         return Optional.ofNullable(workingCopy);
     }
 
-    public Optional<Image> getIcon() {
-        return Optional.ofNullable(icon);
-    }
-
     String text = "";
     String description = "";
     String website = "";
     String owner;
-    boolean operationInProgress;
-    Double operationProgressValue;
 
     public boolean matches(String query) {
         return getProject().getFQPN().toString().toLowerCase().contains(query.toLowerCase());

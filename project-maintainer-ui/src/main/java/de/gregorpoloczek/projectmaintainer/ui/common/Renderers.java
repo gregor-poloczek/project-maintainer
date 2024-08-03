@@ -7,21 +7,29 @@ import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexDirection;
 import com.vaadin.flow.component.orderedlayout.FlexLayout.FlexWrap;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.LitRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import de.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.views.git.ProjectItem;
+import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
@@ -36,6 +44,52 @@ import org.apache.commons.lang3.StringUtils;
 
 @UtilityClass
 public class Renderers {
+
+    public static <I extends Composable<I>> Renderer<I> getProgressBarRenderer() {
+        return new ComponentRenderer<>(item -> {
+            Optional<OperationProgress<?>> maybeProgress = item.requireComponent(HasOperationProgress.class)
+                    .getOperationProgress();
+
+            VerticalLayout layout = new VerticalLayout();
+            if (maybeProgress.isEmpty()) {
+                return layout;
+            }
+
+            OperationProgress<?> progress = maybeProgress.get();
+            Div progressBarLabelText = new Div();
+            progressBarLabelText.setText(progress.getMessage());
+
+            Div progressBarLabelValue = new Div();
+            progressBarLabelValue.setText(
+                    MessageFormat.format("{0,number,#.#}%",
+                            progress.getProgressRelative() * 100));
+            FlexLayout top = new FlexLayout();
+            top.setWidth("100%");
+            top.setJustifyContentMode(JustifyContentMode.BETWEEN);
+            top.setFlexDirection(FlexDirection.ROW);
+            top.add(progressBarLabelText, progressBarLabelValue);
+
+            ProgressBar progressBar = new ProgressBar();
+            progressBar.setValue(progress.getProgressRelative());
+            progressBar.setIndeterminate(false);
+
+            progressBar.removeThemeVariants(ProgressBarVariant.LUMO_SUCCESS, ProgressBarVariant.LUMO_ERROR,
+                    ProgressBarVariant.LUMO_CONTRAST);
+            if (progress.getState() == OperationProgress.State.DONE) {
+                progressBar.addThemeVariants(ProgressBarVariant.LUMO_SUCCESS);
+            } else if (progress.getState() == OperationProgress.State.FAILED) {
+                progressBar.addThemeVariants(ProgressBarVariant.LUMO_ERROR);
+            } else {
+                progressBar.addThemeVariants(ProgressBarVariant.LUMO_CONTRAST);
+            }
+
+            layout.setSpacing(false);
+            layout.add(top, progressBar);
+            layout.setPadding(false);
+
+            return layout;
+        });
+    }
 
     public interface HasWorkingCopy {
 

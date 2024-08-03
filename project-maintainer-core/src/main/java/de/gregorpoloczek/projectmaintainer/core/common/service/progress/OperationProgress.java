@@ -20,4 +20,8 @@ public interface OperationProgress<T> {
 
     int getProgressTotal();
 
+    default double getProgressRelative() {
+        return (double) getProgressCurrent() / (double) getProgressTotal();
+    }
+
 }
