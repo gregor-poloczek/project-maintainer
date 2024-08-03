@@ -1,5 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 
+import static java.util.function.Function.identity;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
@@ -21,13 +23,13 @@ import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopySe
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
+import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedSet;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.publisher.Flux;
@@ -97,14 +99,15 @@ public class AnalysisView extends VerticalLayout {
 
             if (workingCopy.isPresent()) {
                 items.add(ProjectAnalysisItem.builder()
-                        .project(project)
                         .icon(AnalysisView.this.imageResolverService.getProjectImage(project))
-                        .build());
+                        .build().addComponent(HasProject.class, () -> project));
             }
         }
         this.grid.setItems(items);
         this.itemByFQPN = items.stream()
-                .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
+                .collect(Collectors.toMap(
+                        p -> p.requireComponent(HasProject.class).getProject().getMetaData().getFQPN(),
+                        identity()));
 
         Flux.merge(projectService.findALl()
                 .stream()

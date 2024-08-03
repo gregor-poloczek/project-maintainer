@@ -30,6 +30,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
+import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -141,12 +142,12 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                                     new Span(booleanValue.getBooleanValue() ? "✅" : "❌");
                             default -> new Span(value.getStringValue());
                         };
-
-                        if (value.getLocation().isPresent() && item.getProject()
+                        Project project = item.requireComponent(HasProject.class).getProject();
+                        if (value.getLocation().isPresent() && project
                                 .getMetaData()
                                 .getBrowserLink()
                                 .isPresent()) {
-                            String href = item.getProject().getMetaData().getBrowserLink().get() + value.getLocation()
+                            String href = project.getMetaData().getBrowserLink().get() + value.getLocation()
                                     .get()
                                     .getRelativePath()
                                     .toString();
@@ -180,8 +181,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
             Optional<Image> image = imageResolverService.getProjectImage(row.getProject());
 
-            ReportRowItem item = new ReportRowItem(project,
-                    this.reportConfig.getColumns().size(), image);
+            ReportRowItem item = new ReportRowItem(this.reportConfig.getColumns().size(), image)
+                    .addComponent(HasProject.class, () -> project);
 
             int i = 0;
             for (ProjectReportCell cell : row.getCells()) {

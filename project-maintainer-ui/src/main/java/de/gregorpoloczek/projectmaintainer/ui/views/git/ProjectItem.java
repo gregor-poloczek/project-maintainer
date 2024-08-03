@@ -4,10 +4,11 @@ import de.gregorpoloczek.projectmaintainer.core.common.service.progress.Operatio
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasIconItem;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasProjectItem;
+import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasWorkingCopy;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -21,13 +22,18 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class ProjectItem implements HasProjectItem, HasIconItem, ProjectRelatable, HasWorkingCopy {
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
+public class ProjectItem
+        extends AbstractComposable<ProjectItem>
+        implements HasIconItem, ProjectRelatable, HasWorkingCopy {
 
     OperationProgress.State operationState = null;
-    Project project;
     WorkingCopy workingCopy;
     Image icon;
+
+    private Project getProject() {
+        return this.requireComponent(HasProject.class).getProject();
+    }
 
     // TODO diese ganzen methoden als eine art "traits" verpacken, die ohne interfaces aus kommen
     public Optional<WorkingCopy> getWorkingCopy() {
@@ -51,12 +57,12 @@ public class ProjectItem implements HasProjectItem, HasIconItem, ProjectRelatabl
     }
 
     public boolean matches(String query) {
-        return project.getFQPN().toString().toLowerCase().contains(query.toLowerCase());
+        return getProject().getFQPN().toString().toLowerCase().contains(query.toLowerCase());
     }
 
     @EqualsAndHashCode.Include
     @Override
     public FQPN getFQPN() {
-        return this.project.getFQPN();
+        return this.getProject().getFQPN();
     }
 }

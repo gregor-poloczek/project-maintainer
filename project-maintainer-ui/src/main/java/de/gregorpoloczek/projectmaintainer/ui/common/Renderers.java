@@ -19,6 +19,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
@@ -33,11 +34,6 @@ import org.apache.commons.lang3.StringUtils;
 
 @UtilityClass
 public class Renderers {
-
-    public interface HasProjectItem {
-
-        Project getProject();
-    }
 
     public interface HasWorkingCopy {
 
@@ -147,14 +143,14 @@ public class Renderers {
         });
     }
 
-    public <I extends HasProjectItem> Renderer<I> getNameRenderer() {
+    public <I extends Composable<I>> Renderer<I> getNameRenderer() {
         return new ComponentRenderer<>((I item) -> {
             FlexLayout layout = new FlexLayout();
             HorizontalLayout badges = new HorizontalLayout();
             layout.setFlexDirection(FlexDirection.COLUMN);
 
             Component name;
-            Project project = item.getProject();
+            Project project = item.requireComponent(HasProject.class).getProject();
             if (project.getMetaData().getBrowserLink().isPresent()) {
                 Anchor anchor = new Anchor();
                 anchor.setHref(project.getMetaData().getBrowserLink().get());

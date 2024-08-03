@@ -37,6 +37,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
+import de.gregorpoloczek.projectmaintainer.ui.common.HasProject;
 import java.text.MessageFormat;
 import java.util.Base64;
 import java.util.List;
@@ -248,7 +249,9 @@ public class GitView extends VerticalLayout {
                 .toList();
 
         this.itemByFQPN = items.stream()
-                .collect(Collectors.toMap(p -> p.getProject().getMetaData().getFQPN(), Function.identity()));
+                .collect(Collectors.toMap(
+                        p -> p.requireComponent(HasProject.class).getProject().getMetaData().getFQPN(),
+                        Function.identity()));
 
         this.grid.setItems(items);
     }
@@ -279,10 +282,11 @@ public class GitView extends VerticalLayout {
             item.setOperationState(e.getState());
             if (e.getState() == OperationProgress.State.DONE) {
                 ProjectItem newItem = toProjectItem(this.projectService.require(e));
+                Project project = item.requireComponent(HasProject.class).getProject();
                 item.setText(newItem.getText());
-                item.setProject(newItem.getProject());
+                item.addComponent(HasProject.class, () -> project);
                 item.setWorkingCopy(this.workingCopyService.find(e).orElse(null));
-                item.setIcon(this.imageResolverService.getProjectImage(newItem.getProject()).orElse(null));
+                item.setIcon(this.imageResolverService.getProjectImage(project).orElse(null));
             }
             item.setText(text);
 
@@ -294,14 +298,14 @@ public class GitView extends VerticalLayout {
         ProjectMetaData metaData = p.getMetaData();
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         String text = workingCopy.isPresent() ? "" : "Not attached";
-        return ProjectItem.builder()
-                .project(p)
+        ProjectItem build = ProjectItem.builder()
                 .text(text)
                 .description(metaData.getDescription().orElse(""))
                 .website(metaData.getWebsiteLink().orElse(""))
                 .workingCopy(workingCopy.orElse(null))
                 .owner(metaData.getOwner())
                 .icon(this.imageResolverService.getProjectImage(p).orElse(null)).build();
+        return build.addComponent(HasProject.class, () -> p);
     }
 
 }
