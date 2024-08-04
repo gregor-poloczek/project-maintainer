@@ -1,7 +1,9 @@
 package de.gregorpoloczek.projectmaintainer.analysis.service.fulltext;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
+import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.ProjectFileLocationImpl;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
@@ -14,7 +16,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -36,7 +40,6 @@ import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -48,6 +51,11 @@ public class ProjectFullTextSearchService {
 
     public void index(ProjectRelatable projectRelatable, Collection<? extends ProjectFileLocation> locations) {
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
+        boolean isUpToDate = this.prepareIndexing(workingCopy);
+
+        if (isUpToDate) {
+            return;
+        }
 
         try (IndexWriter writer = createWriter(workingCopy)) {
             for (ProjectFileLocation location : locations) {
@@ -56,6 +64,32 @@ public class ProjectFullTextSearchService {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private boolean prepareIndexing(WorkingCopy workingCopy) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        String currentLatestCommitHash = workingCopy.getLatestCommit()
+                .map(Commit::getHash)
+                .orElse("NOT_AVAILABLE");
+
+        boolean isUpToDate = false;
+        try {
+            Path stateJsonFile = getProjectPath(workingCopy).resolve("state.json");
+            if (stateJsonFile.toFile().exists()) {
+                Map<String, Object> parsed = objectMapper.readValue(stateJsonFile.toFile(), Map.class);
+                String lastLatestCommitHash = (String) parsed.get("latestCommitHash");
+                File indexDirectory = getProjectPath(workingCopy).resolve("index").toFile();
+
+                isUpToDate = lastLatestCommitHash.equals(currentLatestCommitHash);
+                if (!isUpToDate && indexDirectory.exists()) {
+                    FileUtils.deleteDirectory(indexDirectory);
+                }
+            }
+            objectMapper.writeValue(stateJsonFile.toFile(), Map.of("latestCommitHash", currentLatestCommitHash));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return isUpToDate;
     }
 
 
@@ -132,14 +166,14 @@ public class ProjectFullTextSearchService {
 
     private FSDirectory getIndexDirectory(WorkingCopy workingCopy) {
         try {
-            Path path = getPath(workingCopy).resolve("index");
+            Path path = getProjectPath(workingCopy).resolve("index");
             return FSDirectory.open(path);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private static Path getPath(WorkingCopy workingCopy) {
+    private static Path getProjectPath(WorkingCopy workingCopy) {
         return Paths.get("./.lucene/" + workingCopy.getFQPN().toString().replaceAll("::", "/"));
     }
 
