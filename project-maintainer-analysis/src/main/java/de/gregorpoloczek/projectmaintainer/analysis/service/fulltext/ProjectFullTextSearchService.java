@@ -51,7 +51,7 @@ public class ProjectFullTextSearchService {
 
     public void index(ProjectRelatable projectRelatable, Collection<? extends ProjectFileLocation> locations) {
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
-        boolean isUpToDate = this.prepareIndexing(workingCopy);
+        boolean isUpToDate = this.prepareIndexing(workingCopy, locations);
 
         if (isUpToDate) {
             return;
@@ -66,7 +66,11 @@ public class ProjectFullTextSearchService {
         }
     }
 
-    private boolean prepareIndexing(WorkingCopy workingCopy) {
+    private boolean prepareIndexing(WorkingCopy workingCopy, Collection<? extends ProjectFileLocation> locations) {
+        // TODO wenn locations sich unterscheiden, stimmt auch irgendetwas nicht. Der Index könnte
+        //  dann bleiben, aber müsste aktualisiert werden
+
+        // TODO state json datei mit echter klasse abbilden
         ObjectMapper objectMapper = new ObjectMapper();
         String currentLatestCommitHash = workingCopy.getLatestCommit()
                 .map(Commit::getHash)
@@ -80,10 +84,11 @@ public class ProjectFullTextSearchService {
                 String lastLatestCommitHash = (String) parsed.get("latestCommitHash");
                 File indexDirectory = getProjectPath(workingCopy).resolve("index").toFile();
 
-                isUpToDate = lastLatestCommitHash.equals(currentLatestCommitHash);
-                if (!isUpToDate && indexDirectory.exists()) {
+                boolean hashMissMatch = !lastLatestCommitHash.equals(currentLatestCommitHash);
+                if (hashMissMatch && indexDirectory.exists()) {
                     FileUtils.deleteDirectory(indexDirectory);
                 }
+                isUpToDate = hashMissMatch;
             }
             objectMapper.writeValue(stateJsonFile.toFile(), Map.of("latestCommitHash", currentLatestCommitHash));
         } catch (IOException e) {
