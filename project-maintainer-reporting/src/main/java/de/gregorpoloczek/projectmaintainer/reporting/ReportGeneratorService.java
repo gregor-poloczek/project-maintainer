@@ -8,7 +8,8 @@ import de.gregorpoloczek.projectmaintainer.analysis.service.label.LabelService;
 import de.gregorpoloczek.projectmaintainer.analysis.service.ProjectAnalysisService;
 import de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.ProjectFullTextSearchService;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.GenericOperationProgress;
-import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.GenericOperationProgress.GenericOperationProgressBuilder;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
@@ -132,33 +133,27 @@ public class ReportGeneratorService {
         ProjectReport report = this.buildReport((ProjectReportConfig) reportConfig);
 
         return Flux.create(sink -> {
-            sink.next(GenericOperationProgress.<ProjectReport>builder()
-                    .result(report)
-                    .state(OperationProgress.State.SCHEDULED).build());
+            GenericOperationProgressBuilder<ProjectReport> progress =
+                    GenericOperationProgress.<ProjectReport>builder().result(report);
 
             AtomicInteger analyzed = new AtomicInteger(0);
+            sink.next(progress.state(State.SCHEDULED)
+                    .progressCurrent(analyzed.get())
+                    .progressTotal(projects.size())
+                    .build());
+
             Disposable subscription = Flux.fromIterable(projects)
-                    .flatMap(p -> projectAnalysisService
-                            .analyze(p)
+                    .flatMap(project -> projectAnalysisService
+                            .analyze(project)
                             .subscribeOn(Schedulers.parallel())
                             .last()
-                            .thenReturn(p))
+                            .thenReturn(project))
                     .doOnNext(project -> {
                         addToReport(report, (ProjectReportConfig) reportConfig, project);
-                        sink.next(GenericOperationProgress.<ProjectReport>builder()
-                                .result(report)
-                                .state(OperationProgress.State.RUNNING)
-                                .progressTotal(projects.size())
-                                .progressCurrent(analyzed.incrementAndGet())
-                                .build());
+                        sink.next(progress.state(State.RUNNING).progressCurrent(analyzed.incrementAndGet()).build());
                     })
                     .doOnComplete(() -> {
-                        sink.next(GenericOperationProgress.<ProjectReport>builder()
-                                .result(report)
-                                .state(OperationProgress.State.DONE)
-                                .progressCurrent(1)
-                                .progressTotal(1)
-                                .build());
+                        sink.next(progress.state(State.DONE).progressCurrent(analyzed.get()).build());
                         sink.complete();
                     })
                     .doOnError(sink::error)
