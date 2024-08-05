@@ -6,7 +6,9 @@ import de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.c
 import de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.common.ProjectAnalyzer;
 import de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.ProjectFullTextSearchService;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress.ProjectOperationProgressBuilder;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
@@ -59,25 +61,9 @@ public class ProjectAnalysisService {
                 // TODO possible thread starvation?
                 workingCopy.withReadLock(() -> {
                     final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
-                    String latestHash = workingCopy.getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
-                    if (Objects.equals(latestHash,
-                            this.lastAnalyzedCommitHash.get(context.getProject().getMetaData().getFQPN()))) {
-                        sink.next(ProjectOperationProgress.<Void>builder()
-                                .fqpn(fqpn)
-                                .state(OperationProgress.State.DONE)
-                                .build());
-                        sink.complete();
-                    }
-
                     this.performAnalysis(context, sink);
-                    this.saveAnalysisResult(context, latestHash);
+                    this.saveAnalysisResult(context);
                 });
-                sink.next(ProjectOperationProgress.<Void>builder()
-                        .fqpn(fqpn)
-                        .state(OperationProgress.State.DONE)
-                        .progressCurrent(1)
-                        .progressTotal(1)
-                        .build());
                 sink.complete();
             } catch (RuntimeException e) {
                 log.error("Unexpected error during project analysis of \"%s\".".formatted(fqpn), e);
@@ -90,7 +76,7 @@ public class ProjectAnalysisService {
     }
 
 
-    private void performAnalysis(
+    private boolean performAnalysis(
             final AnalysisContextImpl context,
             FluxSink<ProjectOperationProgress<Void>> sink) {
         final Project project = context.getProject();
@@ -98,22 +84,26 @@ public class ProjectAnalysisService {
         int total = this.projectAnalyzers.size() + 1;
         int current = 0;
 
-        sink.next(ProjectOperationProgress.<Void>builder()
-                .fqpn(context.getProject().getFQPN())
-                .state(OperationProgress.State.RUNNING)
-                .progressCurrent(current)
-                .progressTotal(total)
-                .build());
+        ProjectOperationProgressBuilder<Void> progress =
+                ProjectOperationProgress.<Void>builder()
+                        .fqpn(context.getFQPN())
+                        .progressTotal(total)
+                        .progressCurrent(0);
+
+        sink.next(progress.state(State.STARTED).progressCurrent(total).build());
+
+        String latestHash = context.getWorkingCopy().getLatestCommit().map(Commit::getHash).orElse("NO-HASH");
+        if (Objects.equals(latestHash,
+                this.lastAnalyzedCommitHash.get(context.getProject().getMetaData().getFQPN()))) {
+            sink.next(progress.state(State.DONE).progressCurrent(total).build());
+            return false;
+        }
+
+        sink.next(progress.state(State.RUNNING).progressCurrent(current).build());
 
         List<ProjectFileLocation> locations = context.files().findLocations("\\.(java|json|js|ts|groovy|html)$");
         this.projectFullTextSearchService.index(context, locations);
-
-        sink.next(ProjectOperationProgress.<Void>builder()
-                .fqpn(context.getProject().getFQPN())
-                .state(OperationProgress.State.RUNNING)
-                .progressCurrent(current++)
-                .progressTotal(total)
-                .build());
+        sink.next(progress.state(State.RUNNING).progressCurrent(current++).build());
 
         for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
             try {
@@ -125,19 +115,16 @@ public class ProjectAnalysisService {
                         analyzer.getClass().getSimpleName(), project.getMetaData().getFQPN()), e);
             }
 
-            current++;
-            sink.next(ProjectOperationProgress.<Void>builder()
-                    .fqpn(context.getProject().getFQPN())
-                    .state(OperationProgress.State.RUNNING)
-                    .progressCurrent(current++)
-                    .progressTotal(total)
-                    .build());
+            sink.next(progress.state(State.RUNNING).progressCurrent(current++).build());
         }
+
+        this.lastAnalyzedCommitHash.put(context.getFQPN(), latestHash);
+        sink.next(progress.state(State.DONE).progressCurrent(current).build());
+        return true;
     }
 
-    private void saveAnalysisResult(final AnalysisContextImpl context, String latestHash) {
+    private void saveAnalysisResult(final AnalysisContextImpl context) {
         this.labelService.save(context, context.getLabels());
         this.dependencyService.save(context, context.getDependencies());
-        this.lastAnalyzedCommitHash.put(context.getFQPN(), latestHash);
     }
 }
