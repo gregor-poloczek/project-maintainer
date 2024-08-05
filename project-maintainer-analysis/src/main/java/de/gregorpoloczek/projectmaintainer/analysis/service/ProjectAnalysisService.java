@@ -95,17 +95,26 @@ public class ProjectAnalysisService {
             FluxSink<ProjectOperationProgress<Void>> sink) {
         final Project project = context.getProject();
 
+        int total = this.projectAnalyzers.size() + 1;
+        int current = 0;
+
         sink.next(ProjectOperationProgress.<Void>builder()
                 .fqpn(context.getProject().getFQPN())
                 .state(OperationProgress.State.RUNNING)
-                .progressCurrent(0)
-                .progressTotal(this.projectAnalyzers.size())
+                .progressCurrent(current)
+                .progressTotal(total)
                 .build());
 
         List<ProjectFileLocation> locations = context.files().findLocations("\\.(java|json|js|ts|groovy|html)$");
         this.projectFullTextSearchService.index(context, locations);
 
-        int i = 0;
+        sink.next(ProjectOperationProgress.<Void>builder()
+                .fqpn(context.getProject().getFQPN())
+                .state(OperationProgress.State.RUNNING)
+                .progressCurrent(current++)
+                .progressTotal(total)
+                .build());
+
         for (ProjectAnalyzer analyzer : this.projectAnalyzers) {
             try {
                 log.trace("Analyzing {} with {}", project.getFQPN(), analyzer.getClass().getSimpleName());
@@ -116,13 +125,12 @@ public class ProjectAnalysisService {
                         analyzer.getClass().getSimpleName(), project.getMetaData().getFQPN()), e);
             }
 
-            i++;
-            final int current = i;
+            current++;
             sink.next(ProjectOperationProgress.<Void>builder()
                     .fqpn(context.getProject().getFQPN())
                     .state(OperationProgress.State.RUNNING)
-                    .progressCurrent(current)
-                    .progressTotal(this.projectAnalyzers.size())
+                    .progressCurrent(current++)
+                    .progressTotal(total)
                     .build());
         }
     }
