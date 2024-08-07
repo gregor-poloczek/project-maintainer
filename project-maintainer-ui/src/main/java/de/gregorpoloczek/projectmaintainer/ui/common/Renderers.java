@@ -64,7 +64,7 @@ public class Renderers {
 
             Div progressBarLabelValue = new Div();
             double progressRelative = progress.getProgressRelative();
-            if (Double.isNaN(progressRelative) || Double.isInfinite(progressRelative)) {
+            if (Double.isNaN(progressRelative) || Double.isInfinite(progressRelative) || progressRelative > 1.0d) {
                 log.warn("Operation progress has an invalid relative progress {}. Coercing back to 0.",
                         progressRelative);
                 progressRelative = 0.0d;

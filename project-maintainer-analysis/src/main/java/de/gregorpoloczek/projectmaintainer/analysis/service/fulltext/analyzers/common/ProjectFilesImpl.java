@@ -26,6 +26,8 @@ public class ProjectFilesImpl implements ProjectFiles {
 
     WorkingCopy workingCopy;
 
+    // TODO bestimmte Verzeichnisse black listen, z.B: ".git"
+
     @Override
     public boolean hasAny(final String regex) {
         MutableBoolean result = new MutableBoolean(false);

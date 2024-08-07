@@ -1,9 +1,11 @@
 package de.gregorpoloczek.projectmaintainer.scm.service.workingcopy;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import java.io.File;
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -11,10 +13,12 @@ import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
 @Builder
+@Slf4j
 public class WorkingCopyImpl implements WorkingCopy {
 
     private final String currentBranch;
@@ -76,5 +80,23 @@ public class WorkingCopyImpl implements WorkingCopy {
             operation.run();
             return null;
         })));
+    }
+
+    @Override
+    public ProjectFileLocation createLocation(Path path) {
+        return ProjectFileLocationImpl.of(this,
+                this.getDirectory().toPath().resolve(path).toFile());
+    }
+
+    @Override
+    public void writeLock() {
+        log.info("Write locking working copy of {}", this.getFQPN());
+        //this.lock.writeLock().lock();
+    }
+
+    @Override
+    public void writeUnlock() {
+        log.info("Write unlocking working copy of {}", this.getFQPN());
+        //this.lock.writeLock().unlock();
     }
 }

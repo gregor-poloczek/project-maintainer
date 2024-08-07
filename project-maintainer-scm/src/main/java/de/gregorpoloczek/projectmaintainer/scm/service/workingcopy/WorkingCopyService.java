@@ -39,6 +39,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -263,5 +264,11 @@ public class WorkingCopyService {
 
     private File getProjectsDirectory() {
         return applicationProperties.getProjects().getCloneDirectory();
+    }
+
+    public Mono<Void> reset(WorkingCopy workingCopy) {
+        // TODO implement reset
+        return Mono.fromRunnable(() -> {
+        });
     }
 }

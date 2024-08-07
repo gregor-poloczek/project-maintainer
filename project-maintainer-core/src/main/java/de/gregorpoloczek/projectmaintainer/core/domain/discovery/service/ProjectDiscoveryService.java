@@ -20,4 +20,5 @@ public class ProjectDiscoveryService {
         }
         return new ProjectDiscoveryResult(List.copyOf(projectDiscoveryContext.getDiscoveredProjects()));
     }
+
 }

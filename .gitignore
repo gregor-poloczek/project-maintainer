@@ -55,3 +55,6 @@ project-maintainer-ui/frontend/
 /project-maintainer-ui/vite.generated.ts
 /bitbucket-example.json
 /.lucene/
+/project-maintainer-custom/src/main/java/de/gregorpoloczek/projectmaintainer/custom/patches/
+/bitbucket-pullrequests-example.json
+/project-maintainer-custom/src/main/java/de/gregorpoloczek/projectmaintainer/custom/analysis/

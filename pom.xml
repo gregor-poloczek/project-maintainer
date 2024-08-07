@@ -16,6 +16,8 @@
     <module>project-maintainer-bootstrap</module>
     <module>project-maintainer-scm</module>
     <module>project-maintainer-reporting</module>
+    <module>project-maintainer-patching</module>
+    <module>project-maintainer-custom</module>
   </modules>
 
   <properties>
@@ -46,12 +48,22 @@
       </dependency>
       <dependency>
         <groupId>de.gregorpoloczek.project-maintainer</groupId>
+        <artifactId>project-maintainer-patching</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gregorpoloczek.project-maintainer</groupId>
         <artifactId>project-maintainer-reporting</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>de.gregorpoloczek.project-maintainer</groupId>
         <artifactId>project-maintainer-analysis</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gregorpoloczek.project-maintainer</groupId>
+        <artifactId>project-maintainer-custom</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

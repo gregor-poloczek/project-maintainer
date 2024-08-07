@@ -18,7 +18,7 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class ProjectItem
         extends AbstractComposable<ProjectItem>
-        implements ProjectRelatable {
+        implements ProjectRelatable, Comparable<ProjectItem> {
 
     private de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project getProject() {
         return this.requireComponent(HasProject.class).getProject();
@@ -32,5 +32,10 @@ public class ProjectItem
     @Override
     public FQPN getFQPN() {
         return this.getProject().getFQPN();
+    }
+
+    @Override
+    public int compareTo(ProjectItem that) {
+        return this.getFQPN().compareTo(that.getFQPN());
     }
 }

@@ -13,19 +13,21 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 @Getter
 public class FQPN implements Comparable<FQPN>, ProjectRelatable, Serializable {
 
+    public static final String SEPARATOR = "::";
     private final String value;
     private final List<String> segments;
 
     private FQPN(final List<String> segments) {
-        this.value = segments.stream().collect(Collectors.joining("::"));
+        this.value = segments.stream().collect(Collectors.joining(SEPARATOR));
         this.segments = segments;
     }
 
     public static FQPN of(String segment, String... segments) {
-        final List<String> s = new ArrayList<>();
-        s.add(segment);
-        s.addAll(Arrays.asList(segments));
-        return new FQPN(s);
+        final List<String> allSegments = new ArrayList<>();
+        allSegments.addAll(Arrays.asList(segment.split(SEPARATOR)));
+        allSegments.addAll(
+                Arrays.stream(segments).map(s -> Arrays.asList(s.split(SEPARATOR))).flatMap(List::stream).toList());
+        return new FQPN(allSegments);
     }
 
     @Override

@@ -111,6 +111,7 @@ public class GitView extends VerticalLayout {
         UI ui = UI.getCurrent();
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+                .sort()
                 .filter(item -> item.requireComponent(HasWorkingCopy.class).getWorkingCopy().isPresent())
                 .flatMap(item ->
                         this.workingCopyService.wipeProject(item)
@@ -125,6 +126,7 @@ public class GitView extends VerticalLayout {
     private void onAttachClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+                .sort()
                 .filter(item -> item.requireComponent(HasWorkingCopy.class).getWorkingCopy().isEmpty())
                 .flatMap(item ->
                         this.workingCopyService.cloneProject(item)
@@ -141,6 +143,7 @@ public class GitView extends VerticalLayout {
         UI ui = UI.getCurrent();
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
+                .sort()
                 .filter(item -> item.requireComponent(HasWorkingCopy.class)
                         .getWorkingCopy()
                         .isPresent())

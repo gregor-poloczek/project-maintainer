@@ -89,6 +89,8 @@ public class ProjectFullTextSearchService {
                     FileUtils.deleteDirectory(indexDirectory);
                 }
                 isUpToDate = !hashMissMatch;
+            } else {
+                stateJsonFile.getParent().toFile().mkdirs();
             }
             objectMapper.writeValue(stateJsonFile.toFile(), Map.of("latestCommitHash", currentLatestCommitHash));
         } catch (IOException e) {

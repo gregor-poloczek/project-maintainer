@@ -28,7 +28,15 @@
     </dependency>
     <dependency>
       <groupId>de.gregorpoloczek.project-maintainer</groupId>
+      <artifactId>project-maintainer-patching</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gregorpoloczek.project-maintainer</groupId>
       <artifactId>project-maintainer-reporting</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gregorpoloczek.project-maintainer</groupId>
+      <artifactId>project-maintainer-custom</artifactId>
     </dependency>
 
     <dependency>
