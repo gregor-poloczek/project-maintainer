@@ -135,6 +135,7 @@ public class PatchService {
                                 .href(getPatchRemoteBranchHref(stopContext))
                                 .build();
                 gitService.execute(stopContext.getWorkingCopy(), git -> {
+                    // TODO where is the delete operation?
                     // delete origin branch
                     git.push()
                             .setRemote("origin")

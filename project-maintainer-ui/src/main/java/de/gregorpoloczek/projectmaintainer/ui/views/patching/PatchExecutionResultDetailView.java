@@ -3,14 +3,13 @@ package de.gregorpoloczek.projectmaintainer.ui.views.patching;
 import com.vaadin.flow.component.html.Div;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.PullRequest;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
-import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
 
 public class PatchExecutionResultDetailView extends PatchOperationDetailView {
 
     public PatchExecutionResultDetailView(PatchExecutionResult patchExecutionResult) {
         this.add(new Div(patchExecutionResult.getDetail().getDescription()));
         switch (patchExecutionResult.getDetail()) {
-            case PatchStopResult.NoopResultDetail _ -> {
+            case PatchExecutionResult.NoopResultDetail _ -> {
             }
             case PatchExecutionResult.PreviewGeneratedResultDetail detail ->
                     this.add(new DiffComponent(detail.getUnifiedDiff()));
