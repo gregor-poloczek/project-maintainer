@@ -15,12 +15,18 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ListBranchCommand.ListMode;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
@@ -217,4 +223,33 @@ public class GitService {
             return null;
         });
     }
+
+    public BranchState getBranchState(WorkingCopy workingCopy) {
+        return this.execute(workingCopy, git -> {
+            return getBranchState(workingCopy, git);
+        });
+    }
+
+    public BranchState getBranchState(WorkingCopy workingCopy, Git git) throws GitAPIException {
+        git.fetch().setRemoveDeletedRefs(true).setCredentialsProvider(workingCopy.getCredentialsProvider()).call();
+
+        List<String> allBranches =
+                git.branchList().setListMode(ListMode.ALL).call().stream().map(Ref::getName).toList();
+
+        SortedSet<String> remoteBranches = allBranches.stream()
+                .filter(name1 -> name1.matches("^refs/heads/.+$"))
+                .map(name1 -> name1.replaceAll("^refs/heads/", ""))
+                .collect(Collectors.toCollection(TreeSet::new));
+        SortedSet<String> localBranches = allBranches.stream()
+                .filter(name -> name.matches("^refs/remotes/origin/.+$"))
+                .map(name -> name.replaceAll("^refs/remotes/origin/", ""))
+                .collect(Collectors.toCollection(TreeSet::new));
+        return new BranchState(
+                localBranches,
+                remoteBranches,
+                remoteBranches.stream()
+                        .filter(b -> Set.of("master", "main").contains(b)).findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException("Cannot find default branch")));
+    }
+
 }

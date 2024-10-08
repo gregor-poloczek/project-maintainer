@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.patching.service.patch.execution;
+package de.gregorpoloczek.projectmaintainer.scm.service.git;
 
 import java.util.SortedSet;
 import lombok.AccessLevel;

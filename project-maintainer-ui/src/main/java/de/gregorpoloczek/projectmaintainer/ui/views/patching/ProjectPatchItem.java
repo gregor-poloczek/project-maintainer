@@ -26,24 +26,22 @@ public class ProjectPatchItem
         extends AbstractComposable<ProjectPatchItem>
         implements ProjectRelatable, Comparable<ProjectPatchItem> {
 
-    PatchExecutionResult patchExecutionResult;
-    PatchStopResult patchStopResult;
+    PatchOperationResult patchOperationResult;
+    Throwable throwable;
 
     public String getState() {
+        if (throwable != null) {
+            return "Failed: " + throwable.getMessage();
+        }
+
         return
-                getPatchExecutionResult()
-                        .map(PatchOperationResult.class::cast)
-                        .or(this::getPatchStopResult)
+                getPatchOperationResult()
                         .map(PatchOperationResult::getDetail)
                         .map(PatchOperationResultDetail::getName).orElse("");
     }
 
-    public Optional<PatchExecutionResult> getPatchExecutionResult() {
-        return Optional.ofNullable(patchExecutionResult);
-    }
-
-    public Optional<PatchStopResult> getPatchStopResult() {
-        return Optional.ofNullable(patchStopResult);
+    public Optional<PatchOperationResult> getPatchOperationResult() {
+        return Optional.ofNullable(patchOperationResult);
     }
 
     public Project getProject() {
@@ -57,8 +55,8 @@ public class ProjectPatchItem
     }
 
     public void clearResult() {
-        this.patchExecutionResult = null;
-        this.patchStopResult = null;
+        this.patchOperationResult = null;
+        this.throwable = null;
     }
 
     @Override

@@ -3,7 +3,9 @@ package de.gregorpoloczek.projectmaintainer.core.common.service.progress;
 public interface OperationProgress<T> {
 
     enum State {
-        SCHEDULED, STARTED, RUNNING, DONE, FAILED;
+        SCHEDULED, STARTED, RUNNING, DONE,
+        // TODO do i need this?
+        FAILED;
 
         public boolean isTerminated() {
             return this == State.DONE || this == State.FAILED;

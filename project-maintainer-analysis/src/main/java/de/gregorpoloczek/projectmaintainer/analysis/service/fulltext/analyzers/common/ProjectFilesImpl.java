@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
@@ -87,6 +88,14 @@ public class ProjectFilesImpl implements ProjectFiles {
                 .map(f -> ProjectFileLocationImpl.of(workingCopy, f))
                 .map(ProjectFileLocation.class::cast)
                 .toList();
+    }
+
+    @Override
+    public Optional<ProjectFileLocation> findLocation(String regex) {
+        return this.find(regex).stream()
+                .map(f -> ProjectFileLocationImpl.of(workingCopy, f))
+                .map(ProjectFileLocation.class::cast)
+                .findFirst();
     }
 
 }

@@ -26,7 +26,7 @@ class PatchExecutionContext implements ProjectRelatable, PatchOperationContext {
     @NonNull
     String patchBranch;
     @NonNull
-    String targetBranch;
+    String baseBranch;
     @NonNull
     ProgressSink<PatchExecutionResult> progressSink;
 

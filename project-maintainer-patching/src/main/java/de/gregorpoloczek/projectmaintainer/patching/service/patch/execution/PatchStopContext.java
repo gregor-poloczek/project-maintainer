@@ -26,7 +26,7 @@ class PatchStopContext implements PatchOperationContext, ProjectRelatable {
     @NonNull
     String patchBranch;
     @NonNull
-    String targetBranch;
+    String baseBranch;
     @NonNull
     ProgressSink<PatchStopResult> progressSink;
 

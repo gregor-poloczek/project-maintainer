@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 import java.util.SortedSet;
 
 public interface ProjectFiles {
@@ -13,4 +14,6 @@ public interface ProjectFiles {
     SortedSet<File> find(String regex);
 
     List<ProjectFileLocation> findLocations(String regex);
+
+    Optional<ProjectFileLocation> findLocation(String regex);
 }

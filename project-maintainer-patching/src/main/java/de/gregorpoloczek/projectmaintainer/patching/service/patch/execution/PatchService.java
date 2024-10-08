@@ -15,11 +15,13 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Patch;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchMetaData;
+import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileCreation;
+import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileDeletion;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperationType;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileUpdate;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult.PreviewGeneratedResultDetail;
-import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult.PatchStopResultBuilder;
+import de.gregorpoloczek.projectmaintainer.scm.service.git.BranchState;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
@@ -27,14 +29,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -42,11 +41,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
-import org.eclipse.jgit.api.AddCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ListBranchCommand.ListMode;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.transport.RefSpec;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
@@ -96,12 +91,12 @@ public class PatchService {
             progress.state(State.RUNNING);
 
             WorkingCopy workingCopy = workingCopyService.require(projectRelatable);
-            String defaultBranch = getBranchState(workingCopy).getDefaultBranch();
+            String defaultBranch = this.gitService.getBranchState(workingCopy).getDefaultBranch();
             PatchStopContext stopContext = PatchStopContext.builder()
                     .patch(patch)
                     .workingCopy(workingCopy)
                     .patchBranch(getPatchBranch(patch))
-                    .targetBranch(defaultBranch)
+                    .baseBranch(defaultBranch)
                     .progressSink(progressSink)
                     .defaultBranch(defaultBranch)
                     .build();
@@ -126,7 +121,8 @@ public class PatchService {
     private Mono<? extends PatchOperationResultDetail> deleteRemoteBranch(PatchStopContext stopContext,
             Optional<PullRequest> pullRequest) {
         return Mono.fromSupplier(() -> {
-            SortedSet<String> remoteBranches = getBranchState(stopContext.getWorkingCopy()).getRemoteBranches();
+            SortedSet<String> remoteBranches = this.gitService.getBranchState(stopContext.getWorkingCopy())
+                    .getRemoteBranches();
             if (remoteBranches.contains(stopContext.getPatchBranch())) {
                 log.info("Deleting branch \"{}\" from \"{}\".", stopContext.getPatchBranch(), stopContext.getFQPN());
                 RemoteBranch branch =
@@ -142,6 +138,7 @@ public class PatchService {
                             .setRefSpecs(new RefSpec(":refs/heads/" + stopContext.getPatchBranch()))
                             .setCredentialsProvider(stopContext.getWorkingCopy().getCredentialsProvider())
                             .call();
+
                     // delete local branch by pruning
                     git.fetch()
                             .setRemoveDeletedRefs(true)
@@ -194,20 +191,22 @@ public class PatchService {
             progressSink.total(previewOnly ? 4 : 6);
             progress.state(State.RUNNING);
 
-            String defaultBranch = getBranchState(workingCopy).getDefaultBranch();
+            String defaultBranch = this.gitService.getBranchState(workingCopy).getDefaultBranch();
             PatchExecutionContext executionContext = PatchExecutionContext.builder()
                     .workingCopy(workingCopy)
                     .progressSink(progressSink)
                     .patch(patch)
                     .defaultBranch(defaultBranch)
-                    .targetBranch(defaultBranch)
+                    .baseBranch(defaultBranch)
                     .patchBranch(this.getPatchBranch(patch))
                     .build();
 
             // TODO lock working copy
 
             log.info("A");
-            this.resetWorkspace(executionContext)
+            // TODO umbauen auf ohne "switchIfEmpty"
+            Mono.empty()
+                    .then(this.resetWorkspace(executionContext))
                     .then(this.checkForExistingPullRequest(executionContext))
                     .switchIfEmpty(this.checkForExistingRemoteBranch(executionContext))
                     .switchIfEmpty(this.makeSourceCodeChanges(executionContext))
@@ -235,11 +234,6 @@ public class PatchService {
         });
     }
 
-    private BranchState getBranchState(WorkingCopy workingCopy) {
-        return this.gitService.execute(workingCopy, git -> {
-            return getBranchState(workingCopy, git);
-        });
-    }
 
     private Mono<? extends PatchOperationResultDetail> createPullRequest(PatchExecutionContext executionContext,
             RemoteBranch remoteBranch) {
@@ -270,7 +264,7 @@ public class PatchService {
         return Mono.fromSupplier(() -> {
 
             gitService.execute(executionContext.getWorkingCopy(), git -> {
-                BranchState branchState = getBranchState(executionContext.getWorkingCopy(), git);
+                BranchState branchState = this.gitService.getBranchState(executionContext.getWorkingCopy(), git);
 
                 git.checkout().setName(branchState.getDefaultBranch()).call();
 
@@ -297,11 +291,15 @@ public class PatchService {
                     // apply changes in file system
                     this.applyOperationsToFileSystem(detail.getOperations());
 
-                    // add changes
-                    detail.getOperations().stream()
-                            .map(o -> o.getLocation().getRelativePath().toString())
-                            .collect(Collector.of(git::add, AddCommand::addFilepattern, (x, y) -> x))
-                            .call();
+                    // stage changes
+                    for (ProjectFileOperation o : detail.getOperations()) {
+                        String pattern = o.getLocation().getRelativePath().toString();
+                        if (o instanceof ProjectFileDeletion) {
+                            git.rm().addFilepattern(pattern).call();
+                        } else {
+                            git.add().addFilepattern(pattern).call();
+                        }
+                    }
 
                     // commit changes
                     git.commit().setMessage(getCommitMessage(executionContext.getPatch())).call();
@@ -314,6 +312,7 @@ public class PatchService {
                     git.checkout().setName(branchState.getDefaultBranch()).call();
                     git.branchDelete().setBranchNames(executionContext.getPatchBranch()).setForce(true).call();
                 } finally {
+                    git.reset().setMode(ResetType.HARD).call();
                     git.checkout().setName(branchState.getDefaultBranch()).call();
                 }
             });
@@ -342,14 +341,30 @@ public class PatchService {
                         throw new UncheckedIOException(e);
                     }
                 }
-                default -> throw new IllegalStateException("Not implemented yet" + operation.getType());
+                case ProjectFileCreation creation -> {
+                    try {
+                        IOUtils.write(creation.getAfter().get(),
+                                new FileOutputStream(creation.getLocation().getAbsolutePath().toFile()),
+                                StandardCharsets.UTF_8);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                }
+                case ProjectFileDeletion deletion -> {
+                    try {
+                        Files.delete(deletion.getLocation().getAbsolutePath());
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                }
+                default -> throw new IllegalStateException("Not implemented yet: " + operation.getType());
             }
         }
     }
 
     private Mono<? extends PatchOperationResultDetail> checkForExistingRemoteBranch(
             PatchExecutionContext executionContext) {
-        SortedSet<String> remoteBranches = getBranchState(
+        SortedSet<String> remoteBranches = this.gitService.getBranchState(
                 executionContext.getWorkingCopy()).getRemoteBranches();
         if (!remoteBranches.contains(executionContext.getPatchBranch())) {
             log.info("Detected existing remote branch \"{}\", cannot patch \"{}\".",
@@ -383,34 +398,35 @@ public class PatchService {
     private Mono<? extends PatchOperationResultDetail> makeSourceCodeChanges(PatchExecutionContext executionContext) {
 
         return Mono.fromSupplier(() -> {
-            PatchContextImpl patchContext = new PatchContextImpl(
-                    projectService.require(executionContext),
-                    workingCopyService.require(executionContext));
-            WorkingCopy workingCopy = executionContext.getWorkingCopy();
+                    PatchContextImpl patchContext = new PatchContextImpl(
+                            projectService.require(executionContext),
+                            workingCopyService.require(executionContext));
+                    WorkingCopy workingCopy = executionContext.getWorkingCopy();
 
-            // switch to target branch
-            gitService.execute(workingCopy, git -> {
-                git.checkout().setName(executionContext.getTargetBranch()).call();
-                git.pull().setCredentialsProvider(workingCopy.getCredentialsProvider())
-                        .call();
-            });
+                    // switch to target branch
+                    gitService.execute(workingCopy, git -> {
+                        git.checkout().setName(executionContext.getBaseBranch()).call();
+                        git.pull().setCredentialsProvider(workingCopy.getCredentialsProvider())
+                                .call();
+                    });
 
-            // execute patch
-            executionContext.getPatch().execute(patchContext);
+                    // execute patch
+                    executionContext.getPatch().execute(patchContext);
 
-            List<ProjectFileOperation> operations = patchContext.getOperations();
-            if (operations.isEmpty()) {
-                return PatchExecutionResult.NoopResultDetail.builder().build();
-            } else {
-                String unifiedDiff = operations
-                        .stream()
-                        .map(this::toUnifiedDiff)
-                        .collect(joining("\n"));
-                return PatchExecutionResult.PreviewGeneratedResultDetail.builder()
-                        .operations(operations)
-                        .unifiedDiff(unifiedDiff).build();
-            }
-        }).doOnSubscribe(_ -> executionContext.publish("Evaluating changes"));
+                    List<ProjectFileOperation> operations = patchContext.getOperations();
+                    if (operations.isEmpty()) {
+                        return PatchExecutionResult.NoopResultDetail.builder().build();
+                    } else {
+                        String unifiedDiff = operations
+                                .stream()
+                                .map(this::toUnifiedDiff)
+                                .collect(joining("\n"));
+                        return PatchExecutionResult.PreviewGeneratedResultDetail.builder()
+                                .operations(operations)
+                                .unifiedDiff(unifiedDiff).build();
+                    }
+                })
+                .doOnSubscribe(_ -> executionContext.publish("Evaluating changes"));
     }
 
     private Mono<PatchOperationResultDetail> checkForExistingPullRequest(PatchExecutionContext context) {
@@ -441,38 +457,19 @@ public class PatchService {
                 .map(pullRequests -> {
                     // try to find matching pull request
                     return pullRequests.stream()
-                            .filter(pR -> pR.getTargetBranchName().equals(context.getTargetBranch())
+                            .filter(pR -> pR.getTargetBranchName().equals(context.getBaseBranch())
                                     && pR.getSourceBranchName().equals(context.getPatchBranch()))
                             .findAny();
                 });
     }
 
     private Mono<Void> resetWorkspace(PatchExecutionContext executionContext) {
-        return workingCopyService.reset(executionContext.getWorkingCopy())
-                .doOnSubscribe(s -> executionContext.publish("Resetting working copy"));
+        return Mono.defer(() -> {
+            executionContext.publish("Resetting working copy");
+            return workingCopyService.reset(executionContext.getWorkingCopy());
+        });
     }
 
-    private BranchState getBranchState(WorkingCopy workingCopy, Git git) throws GitAPIException {
-        git.fetch().setRemoveDeletedRefs(true).setCredentialsProvider(workingCopy.getCredentialsProvider()).call();
-
-        List<String> allBranches =
-                git.branchList().setListMode(ListMode.ALL).call().stream().map(Ref::getName).toList();
-
-        SortedSet<String> remoteBranches = allBranches.stream()
-                .filter(name1 -> name1.matches("^refs/heads/.+$"))
-                .map(name1 -> name1.replaceAll("^refs/heads/", ""))
-                .collect(Collectors.toCollection(TreeSet::new));
-        SortedSet<String> localBranches = allBranches.stream()
-                .filter(name -> name.matches("^refs/remotes/origin/.+$"))
-                .map(name -> name.replaceAll("^refs/remotes/origin/", ""))
-                .collect(Collectors.toCollection(TreeSet::new));
-        return new BranchState(
-                localBranches,
-                remoteBranches,
-                remoteBranches.stream()
-                        .filter(b -> Set.of("master", "main").contains(b)).findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("Cannot find default branch")));
-    }
 
     private String getPatchBranch(Patch patch) {
         String sanitizedPatchId = patch.getMetaData().getId().replaceAll("[^a-zA-Z0-9._/-]", "_");

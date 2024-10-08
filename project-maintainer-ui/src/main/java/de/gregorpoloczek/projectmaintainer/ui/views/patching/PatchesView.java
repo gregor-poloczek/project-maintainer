@@ -1,8 +1,10 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.patching;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -15,13 +17,13 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
-import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
+import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchMetaData;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
@@ -39,9 +41,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import reactor.core.Disposable;
+import reactor.core.Disposable.Swap;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -60,7 +61,7 @@ public class PatchesView extends VerticalLayout {
     private final ComboBox<PatchMetaData> patchesSelection;
 
 
-    private final transient Disposable.Swap currentOperation = Disposables.swap();
+    private final transient Swap currentOperation = Disposables.swap();
 
 
     public PatchesView(
@@ -77,12 +78,12 @@ public class PatchesView extends VerticalLayout {
 
         this.grid = createGrid();
         this.grid.setItemDetailsRenderer(
-                new ComponentRenderer<>(item -> item.getPatchExecutionResult()
-                        .map(PatchExecutionResultDetailView::new)
-                        .map(Component.class::cast)
-                        .or(() -> item.getPatchStopResult()
-                                .map(PatchStopResultDetailView::new))
-                        .orElseGet(Div::new)));
+                new ComponentRenderer<>(item -> switch (item.getPatchOperationResult().orElse(null)) {
+                    case PatchExecutionResult per -> new PatchExecutionResultDetailView(per);
+                    case PatchStopResult per -> new PatchStopResultDetailView(per);
+                    case null -> new Div("null");
+                    default -> new Div();
+                }));
 
         this.patchesSelection = new ComboBox<>();
         this.patchesSelection.setWidth("400px");
@@ -154,11 +155,11 @@ public class PatchesView extends VerticalLayout {
                         this.patchService.stopPatch(item, this.patchesSelection.getValue().getId())
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnTerminate(() -> this.unlockOperations(ui))
-                // TODO cancelation handling
-                .subscribe(p -> onPatchStopProgress(p, ui));
+                .doOnNext(p -> this.onPatchOperationProgress(p, ui))
+                .doFinally(s -> this.unlockOperations(ui))
+                .subscribe();
 
-        currentOperation.update(subscription);
+        this.currentOperation.update(subscription);
     }
 
     private boolean isItemHasWorkingCopy(ProjectPatchItem item) {
@@ -174,15 +175,23 @@ public class PatchesView extends VerticalLayout {
                 .sort()
                 .filter(this::isItemHasWorkingCopy)
                 .doOnNext(this::clearItem)
-                .flatMap(item ->
-                        this.patchService.previewPatch(item, this.patchesSelection.getValue().getId())
-                                .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(_ -> this.lockOperations(ui))
-                .doOnTerminate(() -> this.unlockOperations(ui))
-                // TODO cancelation handling
-                .subscribe(p -> onPatchExecutionProgress(p, ui));
+                .flatMap(item -> this.patchService.previewPatch(item, this.patchesSelection.getValue().getId())
+                        .doOnError(t -> onError(item, t, ui))
+                        .subscribeOn(Schedulers.parallel()))
+                .doOnSubscribe(s -> this.lockOperations(ui))
+                .doOnNext(p -> this.onPatchOperationProgress(p, ui))
+                .doFinally(s -> this.unlockOperations(ui))
+                .subscribe();
 
-        currentOperation.update(subscription);
+        this.currentOperation.update(subscription);
+    }
+
+    private void onError(ProjectPatchItem item, Throwable throwable, UI ui) {
+        ui.access(() -> {
+            item.setThrowable(throwable);
+            item.replaceComponent(HasOperationProgress.class, c -> HasOperationProgress.empty());
+            this.grid.getDataProvider().refreshItem(item);
+        });
     }
 
     private void onApplyClick(ClickEvent<MenuItem> event) {
@@ -194,13 +203,14 @@ public class PatchesView extends VerticalLayout {
                 .doOnNext(this::clearItem)
                 .flatMap(item ->
                         this.patchService.applyPatch(item, this.patchesSelection.getValue().getId())
+                                .doOnError(t -> onError(item, t, ui))
                                 .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(_ -> this.lockOperations(ui))
-                .doOnTerminate(() -> this.unlockOperations(ui))
-                // TODO cancelation handling
-                .subscribe(p -> onPatchExecutionProgress(p, ui));
+                .doOnSubscribe(s -> this.lockOperations(ui))
+                .doOnNext(p -> onPatchOperationProgress(p, ui))
+                .doFinally(s -> this.unlockOperations(ui))
+                .subscribe();
 
-        currentOperation.update(subscription);
+        this.currentOperation.update(subscription);
     }
 
     private void clearItem(ProjectPatchItem item) {
@@ -229,55 +239,29 @@ public class PatchesView extends VerticalLayout {
                 .toList();
 
         this.itemByFQPN = items.stream()
-                .collect(Collectors.toMap(ProjectPatchItem::getFQPN, Function.identity()));
+                .collect(toMap(ProjectPatchItem::getFQPN, identity()));
 
         this.grid.setItems(items);
     }
 
-    private void onPatchStopProgress(ProjectOperationProgress<PatchStopResult> e, UI current) {
+    private void onPatchOperationProgress(ProjectOperationProgress<? extends PatchOperationResult> progress,
+            UI current) {
         if (!current.isAttached()) {
             // browser has been reloaded or closed in the meantime
             return;
         }
-        ProjectPatchItem item = itemByFQPN.get(e.getFQPN());
+        ProjectPatchItem item = itemByFQPN.get(progress.getFQPN());
         current.access(() -> {
             // TODO error handling
-
-            if (e.getState() == State.SCHEDULED) {
-                item.setPatchExecutionResult(null);
-            } else if (e.getState() == OperationProgress.State.DONE) {
+            if (progress.getState() == State.SCHEDULED) {
+                item.setPatchOperationResult(null);
+            } else if (progress.getState() == State.DONE) {
                 item.replaceComponent(HasOperationProgress.class, c -> HasOperationProgress.empty());
-                item.setPatchExecutionResult(null);
-                item.setPatchStopResult(e.getResult());
+                item.setPatchOperationResult(progress.getResult());
                 this.grid.setDetailsVisible(item, true);
             } else {
                 item.replaceComponent(HasOperationProgress.class,
-                        c -> c.toBuilder().operationProgress(e).build());
-            }
-
-            this.grid.getDataProvider().refreshItem(item);
-        });
-    }
-
-    private void onPatchExecutionProgress(ProjectOperationProgress<PatchExecutionResult> e, UI current) {
-        if (!current.isAttached()) {
-            // browser has been reloaded or closed in the meantime
-            return;
-        }
-        ProjectPatchItem item = itemByFQPN.get(e.getFQPN());
-        current.access(() -> {
-            // TODO error handling
-
-            if (e.getState() == State.SCHEDULED) {
-                item.setPatchExecutionResult(null);
-            } else if (e.getState() == OperationProgress.State.DONE) {
-                item.replaceComponent(HasOperationProgress.class, c -> HasOperationProgress.empty());
-                item.setPatchExecutionResult(e.getResult());
-                item.setPatchStopResult(null);
-                this.grid.setDetailsVisible(item, true);
-            } else {
-                item.replaceComponent(HasOperationProgress.class,
-                        c -> c.toBuilder().operationProgress(e).build());
+                        c -> c.toBuilder().operationProgress(progress).build());
             }
 
             this.grid.getDataProvider().refreshItem(item);

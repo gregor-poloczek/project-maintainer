@@ -8,6 +8,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.scm.service.git.BranchState;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.CloneResult;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
@@ -34,6 +35,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
@@ -267,8 +269,12 @@ public class WorkingCopyService {
     }
 
     public Mono<Void> reset(WorkingCopy workingCopy) {
-        // TODO implement reset
         return Mono.fromRunnable(() -> {
+            this.gitService.execute(workingCopy, (git) -> {
+                git.reset().setMode(ResetType.HARD).call();
+                BranchState branchState = this.gitService.getBranchState(workingCopy, git);
+                git.checkout().setName(branchState.getDefaultBranch()).call();
+            });
         });
     }
 }

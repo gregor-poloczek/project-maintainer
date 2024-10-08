@@ -4,7 +4,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRe
 
 public interface PatchOperationContext extends ProjectRelatable {
 
-    String getTargetBranch();
+    String getBaseBranch();
 
     String getPatchBranch();
 }
