@@ -11,6 +11,7 @@ import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Pro
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileUpdate;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +48,11 @@ public class PatchContextImpl implements PatchContext {
 
     @Override
     public void create(ProjectFileLocation location, String content) {
+        try {
+            IOUtils.write(content, new FileOutputStream(location.getAbsolutePath().toFile()), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         this.operations.add(new ProjectFileCreation(location, content));
     }
 
@@ -66,6 +72,7 @@ public class PatchContextImpl implements PatchContext {
             String before = IOUtils.toString(location.getAbsolutePath().toUri(), StandardCharsets.UTF_8);
             String after = transform.apply(before);
             if (!before.equals(after)) {
+                IOUtils.write(after, new FileOutputStream(location.getAbsolutePath().toFile()), StandardCharsets.UTF_8);
                 this.operations.add(new ProjectFileUpdate(location, before, after));
             }
         } catch (IOException e) {

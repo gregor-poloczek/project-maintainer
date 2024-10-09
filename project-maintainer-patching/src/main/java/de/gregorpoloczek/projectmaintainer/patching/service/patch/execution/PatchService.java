@@ -20,11 +20,13 @@ import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Pro
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperationType;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileUpdate;
+import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult.NoopResultDetail;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult.PreviewGeneratedResultDetail;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.BranchState;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -41,7 +43,13 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.builder.Diff;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.Status;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffEntry.ChangeType;
+import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.transport.RefSpec;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
@@ -394,6 +402,13 @@ public class PatchService {
                 .orElse(null);
     }
 
+    @RequiredArgsConstructor
+    public static class Change {
+
+        final DiffEntry diff;
+        String before;
+        String after;
+    }
 
     private Mono<? extends PatchOperationResultDetail> makeSourceCodeChanges(PatchExecutionContext executionContext) {
 
@@ -410,18 +425,64 @@ public class PatchService {
                                 .call();
                     });
 
-                    // execute patch
+                    // diffs patch
                     executionContext.getPatch().execute(patchContext);
 
+                    List<Change> execute = gitService.execute(workingCopy, git -> {
+                        List<Change> changes = git.diff().call().stream().map(Change::new).toList();
+                        try {
+                            for (Change change : changes) {
+                                switch (change.diff.getChangeType()) {
+                                    case ChangeType.ADD, ChangeType.MODIFY -> {
+                                        change.after = IOUtils.toString(
+                                                workingCopy.createLocation(change.diff.getNewPath()).getAbsolutePath()
+                                                        .toUri(), StandardCharsets.UTF_8);
+                                    }
+                                    default -> {
+                                        throw new NotImplementedException(change.diff.getChangeType().toString());
+                                    }
+                                }
+                            }
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        } finally {
+                            git.reset().setMode(ResetType.HARD).call();
+                            git.submoduleInit().call();
+                            git.submoduleUpdate().call();
+                        }
+                        try {
+                            for (Change change : changes) {
+                                switch (change.diff.getChangeType()) {
+                                    case ChangeType.ADD -> {
+                                    }
+                                    case ChangeType.MODIFY, ChangeType.DELETE -> {
+                                        change.before = IOUtils.toString(
+                                                workingCopy.createLocation(change.diff.getNewPath()).getAbsolutePath()
+                                                        .toUri(), StandardCharsets.UTF_8);
+                                    }
+                                    default -> {
+                                        throw new NotImplementedException(change.diff.getChangeType().toString());
+                                    }
+                                }
+                            }
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+
+                        return changes;
+                    });
+                    System.out.println(execute);
+
                     List<ProjectFileOperation> operations = patchContext.getOperations();
-                    if (operations.isEmpty()) {
-                        return PatchExecutionResult.NoopResultDetail.builder().build();
+
+                    if (execute.isEmpty()) {
+                        return NoopResultDetail.builder().build();
                     } else {
                         String unifiedDiff = operations
                                 .stream()
                                 .map(this::toUnifiedDiff)
                                 .collect(joining("\n"));
-                        return PatchExecutionResult.PreviewGeneratedResultDetail.builder()
+                        return PreviewGeneratedResultDetail.builder()
                                 .operations(operations)
                                 .unifiedDiff(unifiedDiff).build();
                     }
