@@ -274,6 +274,9 @@ public class WorkingCopyService {
                 git.reset().setMode(ResetType.HARD).call();
                 BranchState branchState = this.gitService.getBranchState(workingCopy, git);
                 git.checkout().setName(branchState.getDefaultBranch()).call();
+
+                git.submoduleInit().call();
+                git.submoduleUpdate().call();
             });
         });
     }
