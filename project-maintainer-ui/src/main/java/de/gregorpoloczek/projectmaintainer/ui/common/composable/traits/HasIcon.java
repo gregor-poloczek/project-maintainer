@@ -1,4 +1,4 @@
-package de.gregorpoloczek.projectmaintainer.ui.common.composable.components;
+package de.gregorpoloczek.projectmaintainer.ui.common.composable.traits;
 
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import java.util.Optional;

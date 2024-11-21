@@ -25,11 +25,16 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasWorkingCopy;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasOperationProgress;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.IconComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.OperationProgressComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectDescriptionComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectNameComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectWebsiteLinkComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.WorkingCopyStateComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -89,12 +94,12 @@ public class GitView extends VerticalLayout {
         final Grid<ProjectItem> result;
         result = new Grid<>(ProjectItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
-        result.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        result.addColumn(Renderers.getProjectNameRenderer()).setHeader("Name");
-        result.addColumn(Renderers.getProjectWebsiteLinkRenderer()).setFlexGrow(0).setWidth("64px");
-        result.addColumn(Renderers.getProjectDescriptionRenderer()).setHeader("Description");
-        result.addColumn(Renderers.getWorkingCopyRenderer()).setHeader("Working copy");
-        result.addColumn(Renderers.getProgressBarRenderer());
+        result.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
+        result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
+        result.addColumn(ProjectWebsiteLinkComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
+        result.addColumn(ProjectDescriptionComponent.getRenderer()).setHeader("Description");
+        result.addColumn(WorkingCopyStateComponent.getRenderer()).setHeader("Working copy");
+        result.addColumn(OperationProgressComponent.getRenderer());
         return result;
     }
 
@@ -112,7 +117,7 @@ public class GitView extends VerticalLayout {
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .sort()
-                .filter(item -> item.requireComponent(HasWorkingCopy.class).getWorkingCopy().isPresent())
+                .filter(item -> item.requireTrait(HasWorkingCopy.class).getWorkingCopy().isPresent())
                 .flatMap(item ->
                         this.workingCopyService.wipeProject(item)
                                 .subscribeOn(Schedulers.parallel()))
@@ -127,7 +132,7 @@ public class GitView extends VerticalLayout {
         UI ui = UI.getCurrent();
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .sort()
-                .filter(item -> item.requireComponent(HasWorkingCopy.class).getWorkingCopy().isEmpty())
+                .filter(item -> item.requireTrait(HasWorkingCopy.class).getWorkingCopy().isEmpty())
                 .flatMap(item ->
                         this.workingCopyService.cloneProject(item)
                                 .subscribeOn(Schedulers.parallel()))
@@ -144,7 +149,7 @@ public class GitView extends VerticalLayout {
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .sort()
-                .filter(item -> item.requireComponent(HasWorkingCopy.class)
+                .filter(item -> item.requireTrait(HasWorkingCopy.class)
                         .getWorkingCopy()
                         .isPresent())
                 .flatMap(item ->
@@ -182,7 +187,7 @@ public class GitView extends VerticalLayout {
 
         this.itemByFQPN = items.stream()
                 .collect(Collectors.toMap(
-                        p -> p.requireComponent(HasProject.class).getProject().getMetaData().getFQPN(),
+                        p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
                         Function.identity()));
 
         this.grid.setItems(items);
@@ -198,19 +203,19 @@ public class GitView extends VerticalLayout {
             // TODO error handling
 
             if (e.getState() == OperationProgress.State.DONE) {
-                Project project = item.requireComponent(HasProject.class).getProject();
+                Project project = item.requireTrait(HasProject.class).getProject();
                 WorkingCopy workingCopy = this.workingCopyService.find(e).orElse(null);
                 Image icon = this.imageResolverService.getProjectImage(project).orElse(null);
                 item
-                        .replaceComponent(HasWorkingCopy.class, c -> c.toBuilder().workingCopy(workingCopy).build())
-                        .replaceComponent(HasIcon.class, c -> c.toBuilder()
+                        .replaceTrait(HasWorkingCopy.class, c -> c.toBuilder().workingCopy(workingCopy).build())
+                        .replaceTrait(HasIcon.class, c -> c.toBuilder()
                                 .icon(icon)
                                 // TODO glaube das funktioniert hier nicht?
                                 .blurred(workingCopy == null)
                                 .build())
-                        .replaceComponent(HasOperationProgress.class, c -> HasOperationProgress.empty());
+                        .replaceTrait(HasOperationProgress.class, c -> HasOperationProgress.empty());
             } else {
-                item.replaceComponent(HasOperationProgress.class, c -> c.toBuilder().operationProgress(e).build());
+                item.replaceTrait(HasOperationProgress.class, c -> c.toBuilder().operationProgress(e).build());
             }
 
             this.grid.getDataProvider().refreshItem(item);
@@ -222,14 +227,14 @@ public class GitView extends VerticalLayout {
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         return ProjectItem.builder()
                 .build()
-                .addComponent(HasProject.class, () -> p)
-                .addComponent(HasIcon.class, HasIcon.builder()
+                .addTrait(HasProject.class, () -> p)
+                .addTrait(HasIcon.class, HasIcon.builder()
                         .icon(this.imageResolverService.getProjectImage(p).orElse(null))
                         .blurred(workingCopy.isEmpty())
                         .build())
-                .addComponent(HasWorkingCopy.class,
+                .addTrait(HasWorkingCopy.class,
                         HasWorkingCopy.builder().workingCopy(workingCopy.orElse(null)).build())
-                .addComponent(HasOperationProgress.class, HasOperationProgress.empty());
+                .addTrait(HasOperationProgress.class, HasOperationProgress.empty());
     }
 
 }

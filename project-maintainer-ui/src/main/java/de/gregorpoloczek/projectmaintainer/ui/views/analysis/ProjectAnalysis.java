@@ -3,8 +3,8 @@ package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 import de.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers.HasLabelsItem;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasLabels;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import lombok.AccessLevel;
@@ -17,17 +17,14 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProjectAnalysis extends AbstractComposable<ProjectAnalysis> implements HasLabelsItem {
-
-    @Builder.Default
-    SortedSet<Label> labels = new TreeSet<>();
+public class ProjectAnalysis extends AbstractComposable<ProjectAnalysis> {
 
     public String getName() {
         return this.getProject().getMetaData().getName();
     }
 
     private Project getProject() {
-        return this.requireComponent(HasProject.class).getProject();
+        return this.requireTrait(HasProject.class).getProject();
     }
 
 
@@ -39,6 +36,9 @@ public class ProjectAnalysis extends AbstractComposable<ProjectAnalysis> impleme
         }
         // TODO label matching with regexp
 
-        return this.getLabels().stream().anyMatch(l -> l.getValue().toLowerCase().contains(query));
+        return this.requireTrait(HasLabels.class)
+                .getLabels()
+                .stream()
+                .anyMatch(l -> l.getValue().toLowerCase().contains(query));
     }
 }

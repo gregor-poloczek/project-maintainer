@@ -32,11 +32,13 @@ import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasOperationProgress;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasWorkingCopy;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.IconComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.OperationProgressComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectNameComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,10 +108,10 @@ public class PatchesView extends VerticalLayout {
         final Grid<ProjectPatchItem> result;
         result = new Grid<>(ProjectPatchItem.class, false);
         result.setSelectionMode(SelectionMode.MULTI);
-        result.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        result.addColumn(Renderers.getProjectNameRenderer()).setHeader("Name");
+        result.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
+        result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
         result.addColumn(ProjectPatchItem::getState).setHeader("State");
-        result.addColumn(Renderers.getProgressBarRenderer());
+        result.addColumn(OperationProgressComponent.getRenderer());
         return result;
     }
 
@@ -163,7 +165,7 @@ public class PatchesView extends VerticalLayout {
     }
 
     private boolean isItemHasWorkingCopy(ProjectPatchItem item) {
-        return item.requireComponent(HasWorkingCopy.class)
+        return item.requireTrait(HasWorkingCopy.class)
                 .getWorkingCopy()
                 .isPresent();
     }
@@ -189,7 +191,7 @@ public class PatchesView extends VerticalLayout {
     private void onError(ProjectPatchItem item, Throwable throwable, UI ui) {
         ui.access(() -> {
             item.setThrowable(throwable);
-            item.replaceComponent(HasOperationProgress.class, c -> HasOperationProgress.empty());
+            item.replaceTrait(HasOperationProgress.class, c -> HasOperationProgress.empty());
             this.grid.getDataProvider().refreshItem(item);
         });
     }
@@ -256,11 +258,11 @@ public class PatchesView extends VerticalLayout {
             if (progress.getState() == State.SCHEDULED) {
                 item.setPatchOperationResult(null);
             } else if (progress.getState() == State.DONE) {
-                item.replaceComponent(HasOperationProgress.class, c -> HasOperationProgress.empty());
+                item.replaceTrait(HasOperationProgress.class, c -> HasOperationProgress.empty());
                 item.setPatchOperationResult(progress.getResult());
                 this.grid.setDetailsVisible(item, true);
             } else {
-                item.replaceComponent(HasOperationProgress.class,
+                item.replaceTrait(HasOperationProgress.class,
                         c -> c.toBuilder().operationProgress(progress).build());
             }
 
@@ -273,14 +275,14 @@ public class PatchesView extends VerticalLayout {
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         return ProjectPatchItem.builder()
                 .build()
-                .addComponent(HasProject.class, () -> p)
-                .addComponent(HasIcon.class, HasIcon.builder()
+                .addTrait(HasProject.class, () -> p)
+                .addTrait(HasIcon.class, HasIcon.builder()
                         .icon(this.imageResolverService.getProjectImage(p).orElse(null))
                         .blurred(workingCopy.isEmpty())
                         .build())
-                .addComponent(HasWorkingCopy.class,
+                .addTrait(HasWorkingCopy.class,
                         HasWorkingCopy.builder().workingCopy(workingCopy.orElse(null)).build())
-                .addComponent(HasOperationProgress.class, HasOperationProgress.empty());
+                .addTrait(HasOperationProgress.class, HasOperationProgress.empty());
     }
 
 }

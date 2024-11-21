@@ -29,9 +29,10 @@ import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellValue;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.IconComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectNameComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -82,8 +83,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         this.header.setSelectedReport(reportConfig);
 
         this.grid.removeAllColumns();
-        this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(Renderers.getProjectNameRenderer()).setHeader("Project").setFlexGrow(2).setWidth("350px");
+        this.grid.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
+        this.grid.addColumn(ProjectNameComponent.getRenderer()).setHeader("Project").setFlexGrow(2).setWidth("350px");
 
         UI ui = UI.getCurrent();
 
@@ -143,7 +144,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                                     new Span(booleanValue.getBooleanValue() ? "✅" : "❌");
                             default -> new Span(value.getStringValue());
                         };
-                        Project project = item.requireComponent(HasProject.class).getProject();
+                        Project project = item.requireTrait(HasProject.class).getProject();
                         if (value.getLocation().isPresent() && project
                                 .getMetaData()
                                 .getBrowserLink()
@@ -183,8 +184,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             Optional<Image> image = imageResolverService.getProjectImage(row.getProject());
 
             ReportRow item = new ReportRow(this.reportConfig.getColumns().size())
-                    .addComponent(HasProject.class, () -> project)
-                    .addComponent(HasIcon.class, HasIcon.builder().icon(image.orElse(null)).build());
+                    .addTrait(HasProject.class, () -> project)
+                    .addTrait(HasIcon.class, HasIcon.builder().icon(image.orElse(null)).build());
 
             int i = 0;
             for (ProjectReportCell cell : row.getCells()) {

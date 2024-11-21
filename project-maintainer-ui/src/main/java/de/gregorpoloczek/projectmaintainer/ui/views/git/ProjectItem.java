@@ -3,7 +3,7 @@ package de.gregorpoloczek.projectmaintainer.ui.views.git;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -21,7 +21,7 @@ public class ProjectItem
         implements ProjectRelatable, Comparable<ProjectItem> {
 
     private de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project getProject() {
-        return this.requireComponent(HasProject.class).getProject();
+        return this.requireTrait(HasProject.class).getProject();
     }
 
     public boolean matches(String query) {

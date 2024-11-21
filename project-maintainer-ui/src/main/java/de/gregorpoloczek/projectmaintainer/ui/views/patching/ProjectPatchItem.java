@@ -3,12 +3,10 @@ package de.gregorpoloczek.projectmaintainer.ui.views.patching;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResultDetail;
-import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -45,7 +43,7 @@ public class ProjectPatchItem
     }
 
     public Project getProject() {
-        return this.requireComponent(HasProject.class).getProject();
+        return this.requireTrait(HasProject.class).getProject();
     }
 
     @EqualsAndHashCode.Include

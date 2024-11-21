@@ -7,38 +7,38 @@ import java.util.function.Function;
 
 public class AbstractComposable<S extends AbstractComposable<S>> implements Composable<S> {
 
-    private Map<Class<?>, Object> components = new HashMap<>();
+    private Map<Class<?>, Object> traits = new HashMap<>();
 
-    public <C> Optional<C> getComponent(Class<C> componentClass) {
-        return Optional.ofNullable(this.components.get(componentClass))
-                .map(componentClass::cast);
+    public <C> Optional<C> getTrait(Class<C> traitClass) {
+        return Optional.ofNullable(this.traits.get(traitClass))
+                .map(traitClass::cast);
     }
 
-    public <C> C requireComponent(Class<C> componentClass) {
-        return this.getComponent(componentClass)
+    public <C> C requireTrait(Class<C> traitClass) {
+        return this.getTrait(traitClass)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Composable (%s) does not have component of type \"%s\".".formatted(
-                                this.getClass().getSimpleName(), componentClass.getName())));
+                                this.getClass().getSimpleName(), traitClass.getName())));
     }
 
-    public <C, I extends C> S addComponent(Class<C> componentClass, I component) {
-        this.components.put(componentClass, component);
+    public <C, I extends C> S addTrait(Class<C> traitClass, I trait) {
+        this.traits.put(traitClass, trait);
         return (S) this;
     }
 
-    public <C, I extends C> S replaceComponent(Class<C> componentClass, Function<I, I> replacer) {
-        I component = (I) componentClass.cast(this.components.get(componentClass));
+    public <C, I extends C> S replaceTrait(Class<C> traitClass, Function<I, I> replacer) {
+        I component = (I) traitClass.cast(this.traits.get(traitClass));
 
         I newComponent = replacer.apply(component);
         if (newComponent == null) {
             throw new IllegalStateException("Component replacement may not be null");
         }
 
-        this.components.put(componentClass, newComponent);
+        this.traits.put(traitClass, newComponent);
         return (S) this;
     }
 
-    public <C> void removeComponent(Class<C> componentClass) {
-        this.components.remove(componentClass);
+    public <C> void removeTrait(Class<C> traitClass) {
+        this.traits.remove(traitClass);
     }
 }

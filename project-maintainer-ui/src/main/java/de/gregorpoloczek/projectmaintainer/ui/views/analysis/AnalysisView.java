@@ -23,10 +23,14 @@ import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopySe
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
-import de.gregorpoloczek.projectmaintainer.ui.common.Renderers;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasIcon;
-import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.IconComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.LabelsComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectNameComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasLabels;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,12 +72,13 @@ public class AnalysisView extends VerticalLayout {
 
         search = new TextField();
 
-        this.grid.addColumn(Renderers.getIconRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(Renderers.getProjectNameRenderer()).setHeader("Name").setFlexGrow(0).setWidth("350px");
-        this.grid.addColumn(Renderers.getLabelsRenderer(search::getValue))
+        this.grid.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
+        this.grid.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name").setFlexGrow(0).setWidth("350px");
+        this.grid.addColumn(LabelsComponent.getRenderer(search::getValue))
                 .setHeader("Labels");
         search.setPlaceholder("Search");
-        search.setValueChangeMode(ValueChangeMode.EAGER);
+        search.setValueChangeMode(ValueChangeMode.TIMEOUT);
+        search.setValueChangeTimeout(1000);
         search.addValueChangeListener(e -> {
             ListDataProvider<ProjectAnalysis> dataProvider = (ListDataProvider<ProjectAnalysis>) this.grid.getDataProvider();
             String query = e.getValue().toLowerCase();
@@ -103,15 +108,16 @@ public class AnalysisView extends VerticalLayout {
                 Optional<Image> icon = AnalysisView.this.imageResolverService.getProjectImage(project);
                 items.add(ProjectAnalysis.builder()
                         .build()
-                        .addComponent(HasProject.class, () -> project)
-                        .addComponent(HasIcon.class, HasIcon.builder().icon(icon.orElse(null)).build())
+                        .addTrait(HasProject.class, () -> project)
+                        .addTrait(HasLabels.class, new HasLabels(Collections.emptyList()))
+                        .addTrait(HasIcon.class, HasIcon.builder().icon(icon.orElse(null)).build())
                 );
             }
         }
         this.grid.setItems(items);
         this.itemByFQPN = items.stream()
                 .collect(Collectors.toMap(
-                        p -> p.requireComponent(HasProject.class).getProject().getMetaData().getFQPN(),
+                        p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
                         identity()));
 
         Flux.merge(projectService.findALl()
@@ -134,7 +140,7 @@ public class AnalysisView extends VerticalLayout {
             if (e.getState().isTerminated()) {
                 SortedSet<Label> labels = this.labelService.find(e.getFQPN());
                 ProjectAnalysis item = this.itemByFQPN.get(e.getFQPN());
-                item.setLabels(labels);
+                item.replaceTrait(HasLabels.class, l -> new HasLabels(labels));
                 this.grid.getDataProvider().refreshItem(item);
             }
             // this.text.setText("Analysis progress: " + e.getProgress());

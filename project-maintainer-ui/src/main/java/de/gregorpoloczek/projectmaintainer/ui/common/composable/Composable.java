@@ -5,13 +5,13 @@ import java.util.function.Function;
 
 public interface Composable<S extends Composable<S>> {
 
-    <C> Optional<C> getComponent(Class<C> componentClass);
+    <C> Optional<C> getTrait(Class<C> traitClass);
 
-    <C> C requireComponent(Class<C> componentClass);
+    <C> C requireTrait(Class<C> traitClass);
 
-    <C, I extends C> S addComponent(Class<C> componentClass, I component);
+    <T, I extends T> S addTrait(Class<T> traitClass, I trait);
 
-    <C, I extends C> S replaceComponent(Class<C> componentClass, Function<I, I> replacer);
+    <T, I extends T> S replaceTrait(Class<T> componentClass, Function<I, I> replacer);
 
-    <C> void removeComponent(Class<C> componentClass);
+    <T> void removeTrait(Class<T> traitClass);
 }
