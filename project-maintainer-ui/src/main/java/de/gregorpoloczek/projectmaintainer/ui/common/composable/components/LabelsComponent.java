@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.common.composable.components;
 
 import com.vaadin.flow.component.Html;
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
@@ -15,6 +16,7 @@ import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
+@StyleSheet("styles/labels-component.css")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LabelsComponent extends FlexLayout {
 
@@ -28,6 +30,7 @@ public class LabelsComponent extends FlexLayout {
 
 
     public LabelsComponent(Composable<?> composable, Supplier<String> queryProvider) {
+        this.addClassName("labels-component");
         this.queryProvider = queryProvider;
         this.setFlexDirection(FlexDirection.ROW);
         this.setFlexWrap(FlexWrap.WRAP);
@@ -56,9 +59,11 @@ public class LabelsComponent extends FlexLayout {
                 if (label.getValue().toLowerCase().contains(query)) {
                     String adjusted =
                             label.getValue()
-                                    .replaceAll("(\\Q" + query + "\\E)", "<b style=\"color: white;\">$1</b>");
-                    html.setHtmlContent("<span style=\"color: gray;\">%s</span>".formatted(adjusted));
+                                    .replaceAll("(\\Q" + query + "\\E)", "<span>$1</span>");
+                    html.setHtmlContent("<span>%s</span>".formatted(adjusted));
+                    html.addClassName("matched");
                 } else {
+                    html.removeClassName("matched");
                     html.setVisible(false);
                 }
             }

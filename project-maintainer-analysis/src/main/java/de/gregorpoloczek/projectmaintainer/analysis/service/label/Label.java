@@ -56,4 +56,8 @@ public class Label implements Comparable<Label> {
         label.location = location;
         return label;
     }
+
+    public String getFirstSegment() {
+        return getSegments().getFirst();
+    }
 }

@@ -54,6 +54,7 @@ public class AnalysisView extends VerticalLayout {
     private Map<FQPN, ProjectAnalysis> itemByFQPN = new HashMap<>();
     private ImageResolverService imageResolverService;
 
+    @SuppressWarnings("unchecked")
     public AnalysisView(
             ProjectAnalysisService projectAnalysisService,
             ProjectService projectService,
@@ -78,14 +79,12 @@ public class AnalysisView extends VerticalLayout {
                 .setHeader("Labels");
         search.setPlaceholder("Search");
         search.setValueChangeMode(ValueChangeMode.TIMEOUT);
-        search.setValueChangeTimeout(1000);
+        search.setValueChangeTimeout(500);
         search.addValueChangeListener(e -> {
             ListDataProvider<ProjectAnalysis> dataProvider = (ListDataProvider<ProjectAnalysis>) this.grid.getDataProvider();
             String query = e.getValue().toLowerCase();
             dataProvider.setFilter(
                     i -> StringUtils.isBlank(query) || i.matches(query));
-            // TODO brauch ich das?
-            dataProvider.refreshAll();
         });
 
         this.add(search, grid);
