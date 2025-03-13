@@ -55,6 +55,13 @@
       <artifactId>spring-boot-devtools</artifactId>
       <scope>runtime</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>26.0.1</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
 

@@ -1,3 +1,10 @@
+.labels-component {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 .labels-component > span {
   background-color: var(--lumo-primary-color-10pct);
   padding: 2px 4px;
@@ -7,6 +14,10 @@
 
 .labels-component > span.matched {
   color: gray;
+}
+
+.labels-component > span.not-matched {
+  display: none;
 }
 
 .labels-component > span.matched > span {

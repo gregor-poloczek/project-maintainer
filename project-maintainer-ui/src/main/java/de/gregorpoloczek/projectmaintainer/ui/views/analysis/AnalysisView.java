@@ -6,9 +6,9 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
@@ -54,6 +54,8 @@ public class AnalysisView extends VerticalLayout {
     private Map<FQPN, ProjectAnalysis> itemByFQPN = new HashMap<>();
     private ImageResolverService imageResolverService;
 
+    GridListDataView<ProjectAnalysis> dataView;
+
     @SuppressWarnings("unchecked")
     public AnalysisView(
             ProjectAnalysisService projectAnalysisService,
@@ -78,13 +80,12 @@ public class AnalysisView extends VerticalLayout {
         this.grid.addColumn(LabelsComponent.getRenderer(search::getValue))
                 .setHeader("Labels");
         search.setPlaceholder("Search");
-        search.setValueChangeMode(ValueChangeMode.TIMEOUT);
-        search.setValueChangeTimeout(500);
+        search.setValueChangeMode(ValueChangeMode.EAGER);
+//        search.setValueChangeTimeout(500);
+
         search.addValueChangeListener(e -> {
-            ListDataProvider<ProjectAnalysis> dataProvider = (ListDataProvider<ProjectAnalysis>) this.grid.getDataProvider();
-            String query = e.getValue().toLowerCase();
-            dataProvider.setFilter(
-                    i -> StringUtils.isBlank(query) || i.matches(query));
+            this.dataView.getItems().forEach(this.dataView::refreshItem);
+            // this.dataView.refreshAll();
         });
 
         this.add(search, grid);
@@ -113,7 +114,9 @@ public class AnalysisView extends VerticalLayout {
                 );
             }
         }
-        this.grid.setItems(items);
+        this.dataView = this.grid.setItems(items);
+//        this.dataView.setFilter(
+//                i -> StringUtils.isBlank(search.getValue()) || i.matches(search.getValue()));
         this.itemByFQPN = items.stream()
                 .collect(Collectors.toMap(
                         p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
