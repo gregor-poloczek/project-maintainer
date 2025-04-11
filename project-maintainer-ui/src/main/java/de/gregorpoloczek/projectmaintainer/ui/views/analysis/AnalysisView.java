@@ -3,9 +3,11 @@ package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 import static java.util.function.Function.identity;
 
 import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
@@ -20,6 +22,8 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
@@ -48,10 +52,9 @@ public class AnalysisView extends VerticalLayout {
     private final ProjectService projectService;
     private final WorkingCopyService workingCopyService;
     private final LabelService labelService;
-    private final Text text;
-    private final TextField search;
-    private final Grid<ProjectAnalysis> grid;
-    private Map<FQPN, ProjectAnalysis> itemByFQPN = new HashMap<>();
+    private final Grid<ProjectAnalysisItem> grid;
+    private final ListDataProvider<ProjectAnalysisItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
+    private Map<FQPN, ProjectAnalysisItem> itemByFQPN = new HashMap<>();
     private ImageResolverService imageResolverService;
 
     public AnalysisView(
@@ -66,29 +69,32 @@ public class AnalysisView extends VerticalLayout {
         this.workingCopyService = workingCopyService;
         this.labelService = labelService;
         this.imageResolverService = imageResolverService;
-        text = new Text("asd");
 
+        ComposableFilterSearch<ProjectAnalysisItem> search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = new Grid<>();
+        this.grid.setDataProvider(dataProvider);
 
-        search = new TextField();
+        TextField labelsSearchFilter = new TextField();
+        labelsSearchFilter.setPlaceholder("Labels");
+        labelsSearchFilter.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        labelsSearchFilter.addValueChangeListener(_ -> search.refresh());
+        labelsSearchFilter.setValueChangeMode(ValueChangeMode.EAGER);
+        search.add(c -> StringUtils.isBlank(labelsSearchFilter.getValue()) || c.requireTrait(HasLabels.class)
+                .getLabels()
+                .stream()
+                .anyMatch(l -> l.getValue()
+                        .toLowerCase()
+                        .contains(labelsSearchFilter.getValue().toLowerCase())));
 
         this.grid.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
         this.grid.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name").setFlexGrow(0).setWidth("350px");
-        this.grid.addColumn(LabelsComponent.getRenderer(search::getValue))
+        this.grid.addColumn(LabelsComponent.getRenderer(labelsSearchFilter::getValue))
                 .setHeader("Labels");
-        search.setPlaceholder("Search");
-        search.setValueChangeMode(ValueChangeMode.TIMEOUT);
-        search.setValueChangeTimeout(1000);
-        search.addValueChangeListener(e -> {
-            ListDataProvider<ProjectAnalysis> dataProvider = (ListDataProvider<ProjectAnalysis>) this.grid.getDataProvider();
-            String query = e.getValue().toLowerCase();
-            dataProvider.setFilter(
-                    i -> StringUtils.isBlank(query) || i.matches(query));
-            // TODO brauch ich das?
-            dataProvider.refreshAll();
-        });
 
-        this.add(search, grid);
+        HorizontalLayout filters = new HorizontalLayout(new HasProjectFilterComponent<>(search),
+                labelsSearchFilter);
+
+        this.add(filters, grid);
         this.setSizeFull();
         this.grid.setSizeFull();
 
@@ -100,13 +106,13 @@ public class AnalysisView extends VerticalLayout {
 
         List<Project> projects = this.projectService.findALl();
         UI ui = UI.getCurrent();
-        List<ProjectAnalysis> items = new ArrayList<>();
+        List<ProjectAnalysisItem> items = new ArrayList<>();
         for (Project project : projects) {
             Optional<WorkingCopy> workingCopy = this.workingCopyService.find(project);
 
             if (workingCopy.isPresent()) {
                 Optional<Image> icon = AnalysisView.this.imageResolverService.getProjectImage(project);
-                items.add(ProjectAnalysis.builder()
+                items.add(ProjectAnalysisItem.builder()
                         .build()
                         .addTrait(HasProject.class, () -> project)
                         .addTrait(HasLabels.class, new HasLabels(Collections.emptyList()))
@@ -114,7 +120,9 @@ public class AnalysisView extends VerticalLayout {
                 );
             }
         }
-        this.grid.setItems(items);
+        this.dataProvider.getItems().clear();
+        this.dataProvider.getItems().addAll(items);
+        this.dataProvider.refreshAll();
         this.itemByFQPN = items.stream()
                 .collect(Collectors.toMap(
                         p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
@@ -139,11 +147,10 @@ public class AnalysisView extends VerticalLayout {
         current.access(() -> {
             if (e.getState().isTerminated()) {
                 SortedSet<Label> labels = this.labelService.find(e.getFQPN());
-                ProjectAnalysis item = this.itemByFQPN.get(e.getFQPN());
+                ProjectAnalysisItem item = this.itemByFQPN.get(e.getFQPN());
                 item.replaceTrait(HasLabels.class, l -> new HasLabels(labels));
                 this.grid.getDataProvider().refreshItem(item);
             }
-            // this.text.setText("Analysis progress: " + e.getProgress());
         });
     }
 

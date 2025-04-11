@@ -15,6 +15,7 @@ import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
@@ -30,6 +31,8 @@ import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.Patc
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.IconComponent;
@@ -39,6 +42,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +63,7 @@ public class PatchesView extends VerticalLayout {
     private final transient PatchService patchService;
     private transient Map<FQPN, ProjectPatchItem> itemByFQPN = new HashMap<>();
     private final Grid<ProjectPatchItem> grid;
+    private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final MenuBar menuBar;
     private final ComboBox<PatchMetaData> patchesSelection;
 
@@ -78,6 +83,7 @@ public class PatchesView extends VerticalLayout {
 
         this.menuBar = createMenuBar();
 
+        var search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = createGrid();
         this.grid.setItemDetailsRenderer(
                 new ComponentRenderer<>(item -> switch (item.getPatchOperationResult().orElse(null)) {
@@ -99,7 +105,7 @@ public class PatchesView extends VerticalLayout {
             });
         });
 
-        this.add(this.patchesSelection, this.menuBar, this.grid);
+        this.add(this.patchesSelection, new HasProjectFilterComponent<>(search), this.menuBar, this.grid);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
@@ -107,6 +113,7 @@ public class PatchesView extends VerticalLayout {
     private Grid<ProjectPatchItem> createGrid() {
         final Grid<ProjectPatchItem> result;
         result = new Grid<>(ProjectPatchItem.class, false);
+        result.setDataProvider(this.dataProvider);
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
@@ -243,7 +250,8 @@ public class PatchesView extends VerticalLayout {
         this.itemByFQPN = items.stream()
                 .collect(toMap(ProjectPatchItem::getFQPN, identity()));
 
-        this.grid.setItems(items);
+        this.dataProvider.getItems().addAll(items);
+        this.dataProvider.refreshAll();
     }
 
     private void onPatchOperationProgress(ProjectOperationProgress<? extends PatchOperationResult> progress,

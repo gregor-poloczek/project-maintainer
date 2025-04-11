@@ -5,9 +5,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class AbstractComposable<S extends AbstractComposable<S>> implements Composable<S> {
+public abstract class AbstractComposable<S extends AbstractComposable<S>> implements Composable<S> {
 
-    private Map<Class<?>, Object> traits = new HashMap<>();
+    private final Map<Class<?>, Object> traits = new HashMap<>();
 
     public <C> Optional<C> getTrait(Class<C> traitClass) {
         return Optional.ofNullable(this.traits.get(traitClass))

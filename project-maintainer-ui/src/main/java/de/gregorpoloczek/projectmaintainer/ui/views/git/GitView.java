@@ -9,9 +9,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
-import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
@@ -20,6 +18,8 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
@@ -35,12 +35,12 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkin
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -55,8 +55,8 @@ public class GitView extends VerticalLayout {
     private final transient WorkingCopyService workingCopyService;
     private Map<FQPN, ProjectItem> itemByFQPN;
     private final MenuBar menuBar;
-    private final TextField search;
     private final Grid<ProjectItem> grid;
+    private final ListDataProvider<ProjectItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
 
     private final transient Disposable.Swap currentOperation = Disposables.swap();
 
@@ -69,23 +69,11 @@ public class GitView extends VerticalLayout {
         this.imageResolverService = imageResolverService;
         this.workingCopyService = workingCopyService;
 
+        var search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = createGrid();
 
         this.menuBar = createMenuBar();
-
-        this.search = new TextField();
-        this.search.setPlaceholder("Search");
-        this.search.setValueChangeMode(ValueChangeMode.EAGER);
-        this.search.addValueChangeListener(e -> {
-            ListDataProvider<ProjectItem> dataProvider = (ListDataProvider<ProjectItem>) this.grid.getDataProvider();
-            String query = e.getValue().toLowerCase();
-            dataProvider.setFilter(
-                    i -> StringUtils.isBlank(query) || i.matches(query));
-            // TODO brauch ich das?
-            dataProvider.refreshAll();
-        });
-
-        this.add(this.search, menuBar, grid);
+        this.add(new HasProjectFilterComponent<>(search), menuBar, grid);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
@@ -93,6 +81,7 @@ public class GitView extends VerticalLayout {
     private Grid<ProjectItem> createGrid() {
         final Grid<ProjectItem> result;
         result = new Grid<>(ProjectItem.class, false);
+        result.setDataProvider(this.dataProvider);
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
@@ -190,7 +179,8 @@ public class GitView extends VerticalLayout {
                         p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
                         Function.identity()));
 
-        this.grid.setItems(items);
+        this.dataProvider.getItems().addAll(items);
+        this.dataProvider.refreshAll();
     }
 
     private void onUpdateEvent(ProjectOperationProgress<?> e, UI current) {

@@ -24,10 +24,6 @@ public class ProjectItem
         return this.requireTrait(HasProject.class).getProject();
     }
 
-    public boolean matches(String query) {
-        return getProject().getFQPN().toString().toLowerCase().contains(query.toLowerCase());
-    }
-
     @EqualsAndHashCode.Include
     @Override
     public FQPN getFQPN() {

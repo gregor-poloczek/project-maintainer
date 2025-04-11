@@ -9,6 +9,7 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
@@ -26,6 +27,8 @@ import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellValue;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService.Image;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
@@ -51,6 +54,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient ImageResolverService imageResolverService;
     private final transient Disposable.Swap currentGeneration = Disposables.swap();
     private transient ProjectReportConfig reportConfig;
+    private final transient ListDataProvider<ReportRow> dataProvider = new ListDataProvider<>(new ArrayList<>());
 
 
     public ReportView(
@@ -60,9 +64,11 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         this.imageResolverService = imageResolverService;
         this.header = new ReportHeader(reportGeneratorService.getProjectReportConfigs());
 
+        ComposableFilterSearch<ReportRow> search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = new Grid<>();
+        this.grid.setDataProvider(dataProvider);
 
-        this.add(header, this.grid);
+        this.add(header, new HasProjectFilterComponent<>(search), this.grid);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
@@ -96,6 +102,9 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                             if (progress.getState() == OperationProgress.State.SCHEDULED) {
                                 this.applyReportDefinition(progress.getResult().getDefinition());
                                 this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
+
+                                dataProvider.getItems().clear();
+                                dataProvider.refreshAll();
                             }
                             if (progress.getState() == OperationProgress.State.RUNNING) {
                                 // TODO report can be concurrently modified
@@ -113,7 +122,9 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void applyReportDefinition(ProjectReportDefinition definition) {
-        this.grid.setItems(new ArrayList<>());
+        dataProvider.getItems().clear();
+        dataProvider.refreshAll();
+
         int index = 0;
         for (ReportColumn column : definition.getColumns()) {
             final int i = index;
@@ -194,7 +205,11 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             }
             items.add(item);
         }
-        grid.setItems(items);
+
+        dataProvider.getItems().clear();
+        dataProvider.getItems().addAll(items);
+        dataProvider.refreshAll();
+
         // TODO only add items that are missing, instead of replacing all of them
     }
 
