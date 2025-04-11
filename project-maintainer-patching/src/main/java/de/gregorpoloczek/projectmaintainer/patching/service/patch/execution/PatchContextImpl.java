@@ -16,7 +16,6 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -36,9 +35,6 @@ public class PatchContextImpl implements PatchContext {
     final WorkingCopy workingCopy;
 
     final List<ProjectFileOperation> operations = new ArrayList<>();
-
-    String pullRequestTitle;
-
 
     @Override
     public FQPN getFQPN() {
@@ -86,14 +82,5 @@ public class PatchContextImpl implements PatchContext {
     @Override
     public ProjectFiles files() {
         return new ProjectFilesImpl(this.workingCopy);
-    }
-
-    @Override
-    public void pullRequestTitle(String pullRequestTitle) {
-        this.pullRequestTitle = pullRequestTitle;
-    }
-
-    public Optional<String> getPullRequestTitle() {
-        return Optional.ofNullable(pullRequestTitle);
     }
 }

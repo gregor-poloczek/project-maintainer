@@ -19,8 +19,18 @@ public class PatchMetaData {
     @NonNull
     String description;
     String commitPrefix;
+    String commitMessage;
+    String branchName;
 
     public Optional<String> getCommitPrefix() {
         return Optional.ofNullable(commitPrefix);
+    }
+
+    public Optional<String> getCommitMessage() {
+        return Optional.ofNullable(commitMessage);
+    }
+
+    public Optional<String> getBranchName() {
+        return Optional.ofNullable(branchName);
     }
 }

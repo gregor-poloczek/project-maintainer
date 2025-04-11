@@ -31,6 +31,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
@@ -61,7 +62,10 @@ public class PatchService {
     private final ConversionService conversionService;
 
     public List<PatchMetaData> getAvailablePatches() {
-        return this.patches.stream().map(Patch::getMetaData).toList();
+        return this.patches.stream()
+                .map(Patch::getMetaData)
+                .sorted(Comparator.comparing(PatchMetaData::getId))
+                .toList();
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> applyPatch(
@@ -326,7 +330,9 @@ public class PatchService {
     private String getCommitMessage(Patch patch) {
         PatchMetaData metaData = patch.getMetaData();
         String prefix = metaData.getCommitPrefix().map(p -> p + " ").orElse("");
-        return prefix + metaData.getDescription();
+        String defaultCommitMessage = prefix + metaData.getDescription();
+
+        return metaData.getCommitMessage().orElse(defaultCommitMessage);
     }
 
     private void applyOperationsToFileSystem(List<ProjectFileOperation> operations) {
@@ -473,7 +479,8 @@ public class PatchService {
 
     private String getPatchBranch(Patch patch) {
         String sanitizedPatchId = patch.getMetaData().getId().replaceAll("[^a-zA-Z0-9._/-]", "_");
-        return "project-maintainer/" + sanitizedPatchId;
+        String defaultBranchName = "project-maintainer/" + sanitizedPatchId;
+        return patch.getMetaData().getBranchName().orElse(defaultBranchName);
     }
 
 

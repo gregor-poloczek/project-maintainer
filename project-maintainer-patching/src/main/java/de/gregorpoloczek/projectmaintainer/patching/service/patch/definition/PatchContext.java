@@ -19,6 +19,4 @@ public interface PatchContext extends ProjectRelatable {
     void delete(ProjectFileLocation location);
 
     ProjectFiles files();
-
-    void pullRequestTitle(String formatted);
 }
