@@ -18,12 +18,12 @@ import java.util.stream.Collectors;
 
 public class ProjectNameComponent extends FlexLayout {
 
-    public static <C extends Composable<C>> Renderer<C> getRenderer() {
+    public static <C extends Composable<?, C>> Renderer<C> getRenderer() {
         return new ComponentRenderer<>(ProjectNameComponent::new,
                 (component, composable) -> ((ProjectNameComponent) component).update(composable));
     }
 
-    public ProjectNameComponent(Composable<?> composable) {
+    public ProjectNameComponent(Composable<?, ?> composable) {
         HorizontalLayout badges = new HorizontalLayout();
 
         HasText name;
@@ -63,7 +63,7 @@ public class ProjectNameComponent extends FlexLayout {
                 .collect(Collectors.joining(" / "));
     }
 
-    public ProjectNameComponent update(Composable<?> composable) {
+    public ProjectNameComponent update(Composable<?, ?> composable) {
         // nothing to update
         return this;
     }

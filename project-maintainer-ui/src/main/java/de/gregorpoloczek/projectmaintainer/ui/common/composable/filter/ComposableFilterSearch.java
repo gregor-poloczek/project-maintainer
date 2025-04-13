@@ -3,12 +3,43 @@ package de.gregorpoloczek.projectmaintainer.ui.common.composable.filter;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
-public class ComposableFilterSearch<T extends Composable<T>> {
+public class ComposableFilterSearch<T extends Composable<?, T>> {
+
+    public enum FilterResult {
+        HIT {
+            @Override
+            boolean isMatch() {
+                return true;
+            }
+        },
+        MISS {
+            @Override
+            boolean isMatch() {
+                return false;
+            }
+        },
+        DIRTY {
+            @Override
+            boolean isMatch() {
+                throw new IllegalStateException();
+            }
+        };
+
+        static FilterResult of(boolean matches) {
+            return matches ? FilterResult.HIT : FilterResult.MISS;
+        }
+
+        abstract boolean isMatch();
+    }
 
     private final List<ComposableFilterCriterion<T>> criteria = new ArrayList<>();
+    private final Map<Object, FilterResult[]> resultsCache = new HashMap<>();
 
     @FunctionalInterface
     public interface Refreshable {
@@ -16,23 +47,42 @@ public class ComposableFilterSearch<T extends Composable<T>> {
         void refresh();
     }
 
-    private final Refreshable refreshale;
+    private final Refreshable refreshable;
 
     public ComposableFilterSearch(ListDataProvider<T> listDataProvider) {
-        this.refreshale = listDataProvider::refreshAll;
+        this.refreshable = listDataProvider::refreshAll;
         listDataProvider.setFilter(this::matches);
     }
 
-    public ComposableFilterSearch<T> add(ComposableFilterCriterion<T> criterion) {
+    public ComposableFilterCriterionHandle<T> add(ComposableFilterCriterion<T> criterion) {
+        int index = criteria.size();
         this.criteria.add(criterion);
-        return this;
+        this.resultsCache.clear();
+        return new ComposableFilterCriterionHandle<>(index, this);
     }
 
     public boolean matches(T composable) {
-        return this.criteria.stream().allMatch(c -> c.matches(composable));
+        // TODO use key of composable
+        FilterResult[] results = this.resultsCache.computeIfAbsent(composable.getKey(),
+                (_) -> {
+                    FilterResult[] init = new FilterResult[this.criteria.size()];
+                    Arrays.fill(init, FilterResult.DIRTY);
+                    return init;
+                });
+        boolean result = true;
+        for (int i = 0; i < results.length; i++) {
+            if (results[i] == FilterResult.DIRTY) {
+                results[i] = FilterResult.of(this.criteria.get(i).matches(composable));
+            }
+            result &= results[i].isMatch();
+        }
+        return result;
     }
 
-    public void refresh() {
-        Optional.ofNullable(refreshale).ifPresent(Refreshable::refresh);
+    public void refresh(int index) {
+        // mark all as dirty
+        this.resultsCache.values().forEach(r -> r[index] = FilterResult.DIRTY);
+
+        Optional.ofNullable(refreshable).ifPresent(Refreshable::refresh);
     }
 }

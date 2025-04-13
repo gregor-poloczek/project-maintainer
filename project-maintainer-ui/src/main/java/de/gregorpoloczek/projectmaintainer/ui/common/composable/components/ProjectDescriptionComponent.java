@@ -13,13 +13,13 @@ public class ProjectDescriptionComponent extends FlexLayout {
     private final Div text;
     private String description;
 
-    public static <C extends Composable<C>> Renderer<C> getRenderer() {
+    public static <C extends Composable<?, C>> Renderer<C> getRenderer() {
         return new ComponentRenderer<>(ProjectDescriptionComponent::new,
                 ((component, composable) -> ((ProjectDescriptionComponent) component).update(composable)));
     }
 
 
-    public ProjectDescriptionComponent(Composable<?> composable) {
+    public ProjectDescriptionComponent(Composable<?, ?> composable) {
         text = new Div();
         text.getStyle().set("text-wrap", "balance");
         this.add(text);
@@ -27,7 +27,7 @@ public class ProjectDescriptionComponent extends FlexLayout {
         this.update(composable);
     }
 
-    public ProjectDescriptionComponent update(Composable<?> composable) {
+    public ProjectDescriptionComponent update(Composable<?, ?> composable) {
         String newDescription = composable.requireTrait(HasProject.class)
                 .getProject()
                 .getMetaData()

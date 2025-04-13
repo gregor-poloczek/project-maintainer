@@ -1,5 +1,8 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.DetachEvent;
@@ -177,10 +180,7 @@ public class GitView extends VerticalLayout {
                 .map(this::toProjectItem)
                 .toList();
 
-        this.itemByFQPN = items.stream()
-                .collect(Collectors.toMap(
-                        p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
-                        Function.identity()));
+        this.itemByFQPN = items.stream().collect(toMap(ProjectItem::getKey, identity()));
 
         this.dataProvider.getItems().addAll(items);
         this.dataProvider.refreshAll();

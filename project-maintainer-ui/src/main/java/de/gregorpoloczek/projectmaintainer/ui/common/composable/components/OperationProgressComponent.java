@@ -20,7 +20,7 @@ public class OperationProgressComponent extends FlexLayout {
     private final ProgressBar progressBar;
     private final Div value;
 
-    public OperationProgressComponent(Composable<?> composable) {
+    public OperationProgressComponent(Composable<?, ?> composable) {
         text = new Div();
         value = new Div();
 
@@ -38,12 +38,12 @@ public class OperationProgressComponent extends FlexLayout {
         this.update(composable);
     }
 
-    public static <C extends Composable<C>> Renderer<C> getRenderer() {
+    public static <C extends Composable<?, C>> Renderer<C> getRenderer() {
         return new ComponentRenderer<>(OperationProgressComponent::new,
                 (component, composable) -> ((OperationProgressComponent) component).update(composable));
     }
 
-    public OperationProgressComponent update(Composable<?> composable) {
+    public OperationProgressComponent update(Composable<?, ?> composable) {
         Optional<OperationProgress<?>> maybeProgress = composable.requireTrait(HasOperationProgress.class)
                 .getOperationProgress();
 

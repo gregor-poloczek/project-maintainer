@@ -25,13 +25,13 @@ public class WorkingCopyStateComponent extends FlexLayout {
     private final HorizontalLayout badges;
     private final Div message;
 
-    public static <C extends Composable<C>> Renderer<C> getRenderer() {
+    public static <C extends Composable<?, C>> Renderer<C> getRenderer() {
         return new ComponentRenderer<>(WorkingCopyStateComponent::new,
                 (component, composable) -> ((WorkingCopyStateComponent) component).update(composable));
     }
 
 
-    public WorkingCopyStateComponent(Composable<?> composable) {
+    public WorkingCopyStateComponent(Composable<?, ?> composable) {
         this.message = new Div("");
         this.message.getStyle().set("text-wrap", "balance");
 
@@ -48,7 +48,7 @@ public class WorkingCopyStateComponent extends FlexLayout {
         this.update(composable);
     }
 
-    public WorkingCopyStateComponent update(Composable<?> composable) {
+    public WorkingCopyStateComponent update(Composable<?, ?> composable) {
         Optional<WorkingCopy> maybeWorkingCopy = composable.requireTrait(HasWorkingCopy.class).getWorkingCopy();
         Optional<Commit> maybeCommit = maybeWorkingCopy.flatMap(WorkingCopy::getLatestCommit);
         branch.setText(maybeWorkingCopy.map(WorkingCopy::getCurrentBranch).orElse(""));

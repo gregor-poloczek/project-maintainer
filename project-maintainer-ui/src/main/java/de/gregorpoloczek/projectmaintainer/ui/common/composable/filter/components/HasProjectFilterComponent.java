@@ -10,27 +10,27 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposab
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableObject;
 
-public class HasProjectFilterComponent<T extends AbstractComposable<T>> extends HorizontalLayout {
+public class HasProjectFilterComponent<T extends AbstractComposable<?, T>> extends HorizontalLayout {
 
-    public HasProjectFilterComponent(ComposableFilterSearch<T> search) {
-        MutableObject<String> query = new MutableObject<>("");
-        TextField searchTextField = new TextField();
-        searchTextField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        searchTextField.setPlaceholder("Project");
-        searchTextField.setValueChangeMode(ValueChangeMode.EAGER);
-        search.add(item -> {
-            if (StringUtils.isBlank(query.getValue())) {
+    public HasProjectFilterComponent(ComposableFilterSearch<T> composableFilterSearch) {
+        TextField textField = new TextField();
+        textField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        textField.setPlaceholder("Project");
+        textField.setValueChangeMode(ValueChangeMode.EAGER);
+        this.add(textField);
+
+        // participate in search
+        var handle = composableFilterSearch.add(item -> {
+            String value = textField.getValue();
+            if (StringUtils.isBlank(value)) {
                 return true;
             }
             Project project = item.requireTrait(HasProject.class).getProject();
-            return project.getFQPN().toString().toLowerCase().contains(query.getValue().toLowerCase());
+            // match any segment of th fqpn
+            return project.getFQPN().getSegments().stream()
+                    .anyMatch(segment -> segment.toLowerCase().contains(value.toLowerCase()));
         });
-        searchTextField.addValueChangeListener(e -> {
-            query.setValue(e.getValue().toLowerCase());
-            search.refresh();
-        });
-        this.add(searchTextField);
+        textField.addValueChangeListener(_ -> handle.refresh());
     }
 }

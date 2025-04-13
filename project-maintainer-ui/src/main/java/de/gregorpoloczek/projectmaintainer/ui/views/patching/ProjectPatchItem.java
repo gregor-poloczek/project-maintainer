@@ -21,7 +21,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class ProjectPatchItem
-        extends AbstractComposable<ProjectPatchItem>
+        extends AbstractComposable<FQPN, ProjectPatchItem>
         implements ProjectRelatable, Comparable<ProjectPatchItem> {
 
     PatchOperationResult patchOperationResult;
@@ -49,6 +49,11 @@ public class ProjectPatchItem
     @EqualsAndHashCode.Include
     @Override
     public FQPN getFQPN() {
+        return this.getProject().getFQPN();
+    }
+
+    @Override
+    public FQPN getKey() {
         return this.getProject().getFQPN();
     }
 

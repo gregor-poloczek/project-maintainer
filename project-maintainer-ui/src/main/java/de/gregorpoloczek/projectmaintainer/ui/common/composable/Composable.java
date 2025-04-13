@@ -3,7 +3,9 @@ package de.gregorpoloczek.projectmaintainer.ui.common.composable;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-public interface Composable<S extends Composable<S>> {
+public interface Composable<K, S extends Composable<K, S>> {
+
+    K getKey();
 
     <C> Optional<C> getTrait(Class<C> traitClass);
 

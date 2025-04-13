@@ -194,7 +194,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
             Optional<Image> image = imageResolverService.getProjectImage(row.getProject());
 
-            ReportRow item = new ReportRow(this.reportConfig.getColumns().size())
+            ReportRow item = new ReportRow(row.getProject().getFQPN(), this.reportConfig.getColumns().size())
                     .addTrait(HasProject.class, () -> project)
                     .addTrait(HasIcon.class, HasIcon.builder().icon(image.orElse(null)).build());
 

@@ -13,13 +13,13 @@ public class ProjectWebsiteLinkComponent extends FlexLayout {
 
     private final Anchor anchor;
 
-    public static <C extends Composable<C>> Renderer<C> getRenderer() {
+    public static <C extends Composable<?, C>> Renderer<C> getRenderer() {
         return new ComponentRenderer<>(ProjectWebsiteLinkComponent::new,
                 (component, composable) -> ((ProjectWebsiteLinkComponent) component).update(composable));
     }
 
 
-    public ProjectWebsiteLinkComponent(Composable<?> composable) {
+    public ProjectWebsiteLinkComponent(Composable<?, ?> composable) {
         anchor = new Anchor();
         anchor.add(VaadinIcon.GLOBE_WIRE.create());
         anchor.setTarget("_blank");
@@ -31,7 +31,7 @@ public class ProjectWebsiteLinkComponent extends FlexLayout {
         this.update(composable);
     }
 
-    public ProjectWebsiteLinkComponent update(Composable<?> composable) {
+    public ProjectWebsiteLinkComponent update(Composable<?, ?> composable) {
         composable.requireTrait(HasProject.class)
                 .getProject()
                 .getMetaData()

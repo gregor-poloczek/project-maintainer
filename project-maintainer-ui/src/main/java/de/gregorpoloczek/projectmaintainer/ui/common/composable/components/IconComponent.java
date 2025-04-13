@@ -11,17 +11,17 @@ import java.util.Optional;
 
 public class IconComponent extends Image {
 
-    public static <C extends Composable<C>> Renderer<C> getRenderer() {
+    public static <C extends Composable<?, C>> Renderer<C> getRenderer() {
         return new ComponentRenderer<>(IconComponent::new,
                 (component, composable) -> ((IconComponent) component).update(composable));
     }
 
-    public IconComponent(Composable<?> composable) {
+    public IconComponent(Composable<?, ?> composable) {
         this.getStyle().setHeight("48px");
         this.update(composable);
     }
 
-    private IconComponent update(Composable<?> composable) {
+    private IconComponent update(Composable<?, ?> composable) {
         HasIcon hasIcon = composable.requireTrait(HasIcon.class);
         // TODO only update if necessary
 

@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
-public abstract class AbstractComposable<S extends AbstractComposable<S>> implements Composable<S> {
+public abstract class AbstractComposable<K, S extends AbstractComposable<K, S>> implements Composable<K, S> {
 
     private final Map<Class<?>, Object> traits = new HashMap<>();
 

@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 
 import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
@@ -81,14 +82,15 @@ public class AnalysisView extends VerticalLayout {
         TextField labelsSearchFilter = new TextField();
         labelsSearchFilter.setPlaceholder("Labels");
         labelsSearchFilter.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        labelsSearchFilter.addValueChangeListener(_ -> search.refresh());
         labelsSearchFilter.setValueChangeMode(ValueChangeMode.EAGER);
-        search.add(c -> StringUtils.isBlank(labelsSearchFilter.getValue()) || c.requireTrait(HasLabels.class)
-                .getLabels()
-                .stream()
-                .anyMatch(l -> l.getValue()
-                        .toLowerCase()
-                        .contains(labelsSearchFilter.getValue().toLowerCase())));
+        var handle = search.add(
+                c -> StringUtils.isBlank(labelsSearchFilter.getValue()) || c.requireTrait(HasLabels.class)
+                        .getLabels()
+                        .stream()
+                        .anyMatch(l -> l.getValue()
+                                .toLowerCase()
+                                .contains(labelsSearchFilter.getValue().toLowerCase())));
+        labelsSearchFilter.addValueChangeListener(_ -> handle.refresh());
 
         this.grid.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
         this.grid.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name").setFlexGrow(0).setWidth("350px");
@@ -128,10 +130,7 @@ public class AnalysisView extends VerticalLayout {
         this.dataProvider.getItems().clear();
         this.dataProvider.getItems().addAll(items);
         this.dataProvider.refreshAll();
-        this.itemByFQPN = items.stream()
-                .collect(Collectors.toMap(
-                        p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
-                        identity()));
+        this.itemByFQPN = items.stream().collect(toMap(ProjectAnalysisItem::getKey, identity()));
 
         Disposable disposable = Flux.merge(projectService.findALl()
                         .stream()

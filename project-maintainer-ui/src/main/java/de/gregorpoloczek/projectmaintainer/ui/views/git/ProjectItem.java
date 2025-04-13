@@ -17,7 +17,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 public class ProjectItem
-        extends AbstractComposable<ProjectItem>
+        extends AbstractComposable<FQPN, ProjectItem>
         implements ProjectRelatable, Comparable<ProjectItem> {
 
     private de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project getProject() {
@@ -28,6 +28,11 @@ public class ProjectItem
     @Override
     public FQPN getFQPN() {
         return this.getProject().getFQPN();
+    }
+
+    @Override
+    public FQPN getKey() {
+        return this.getFQPN().getFQPN();
     }
 
     @Override

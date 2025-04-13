@@ -253,8 +253,7 @@ public class PatchesView extends VerticalLayout {
                 .map(this::toProjectItem)
                 .toList();
 
-        this.itemByFQPN = items.stream()
-                .collect(toMap(ProjectPatchItem::getFQPN, identity()));
+        this.itemByFQPN = items.stream().collect(toMap(ProjectPatchItem::getFQPN, identity()));
 
         this.dataProvider.getItems().addAll(items);
         this.dataProvider.refreshAll();

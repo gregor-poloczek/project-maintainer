@@ -21,13 +21,13 @@ public class LabelsComponent extends FlexLayout {
     Map<Label, Html> labelComponents = new HashMap<>();
     private final Supplier<String> queryProvider;
 
-    public static <C extends Composable<C>> Renderer<C> getRenderer(Supplier<String> queryProvider) {
+    public static <C extends Composable<?, C>> Renderer<C> getRenderer(Supplier<String> queryProvider) {
         return new ComponentRenderer<>((C composable) -> new LabelsComponent(composable, queryProvider),
                 ((component, composable) -> ((LabelsComponent) component).update(composable)));
     }
 
 
-    public LabelsComponent(Composable<?> composable, Supplier<String> queryProvider) {
+    public LabelsComponent(Composable<?, ?> composable, Supplier<String> queryProvider) {
         this.queryProvider = queryProvider;
         this.setFlexDirection(FlexDirection.ROW);
         this.setFlexWrap(FlexWrap.WRAP);
@@ -36,7 +36,7 @@ public class LabelsComponent extends FlexLayout {
         this.update(composable);
     }
 
-    public LabelsComponent update(Composable<?> composable) {
+    public LabelsComponent update(Composable<?, ?> composable) {
         Collection<Label> labels = composable.requireTrait(HasLabels.class).getLabels();
         String query = queryProvider.get();
 
