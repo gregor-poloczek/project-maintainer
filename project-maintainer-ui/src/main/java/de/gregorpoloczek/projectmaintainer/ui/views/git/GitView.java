@@ -111,8 +111,7 @@ public class GitView extends VerticalLayout {
                         this.workingCopyService.wipeProject(item)
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnTerminate(() -> this.unlockOperations(ui))
-                // TODO cancelation handling
+                .doFinally(s -> this.unlockOperations(ui))
                 .subscribe(p -> onUpdateEvent(p, ui));
         currentOperation.update(subscription);
     }
@@ -126,8 +125,7 @@ public class GitView extends VerticalLayout {
                         this.workingCopyService.cloneProject(item)
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnTerminate(() -> this.unlockOperations(ui))
-                // TODO cancelation handling
+                .doFinally(s -> this.unlockOperations(ui))
                 .subscribe(p -> onUpdateEvent(p, ui));
 
         currentOperation.update(subscription);
@@ -145,8 +143,7 @@ public class GitView extends VerticalLayout {
                         this.workingCopyService.pullProject(item)
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnTerminate(() -> unlockOperations(ui))
-                // TODO cancelation handling
+                .doFinally(s -> this.unlockOperations(ui))
                 .subscribe(p -> onUpdateEvent(p, ui));
 
         currentOperation.update(subscription);
@@ -154,10 +151,16 @@ public class GitView extends VerticalLayout {
 
 
     private void unlockOperations(UI ui) {
+        if (!ui.isAttached()) {
+            return;
+        }
         ui.access(() -> this.menuBar.setEnabled(true));
     }
 
     private void lockOperations(UI ui) {
+        if (!ui.isAttached()) {
+            return;
+        }
         ui.access(() -> this.menuBar.setEnabled(false));
     }
 

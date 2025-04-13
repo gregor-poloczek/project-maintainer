@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.common.composable;
 
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 public interface Composable<S extends Composable<S>> {
 
@@ -11,7 +11,7 @@ public interface Composable<S extends Composable<S>> {
 
     <T, I extends T> S addTrait(Class<T> traitClass, I trait);
 
-    <T, I extends T> S replaceTrait(Class<T> componentClass, Function<I, I> replacer);
+    <T, I extends T> S replaceTrait(Class<T> componentClass, UnaryOperator<I> replacer);
 
     <T> void removeTrait(Class<T> traitClass);
 }

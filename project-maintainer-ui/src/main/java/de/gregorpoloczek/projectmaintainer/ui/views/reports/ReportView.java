@@ -52,7 +52,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final ReportHeader header;
     private final transient ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
-    private final transient Disposable.Swap currentGeneration = Disposables.swap();
+    private final transient Disposable.Swap currentOperation = Disposables.swap();
     private transient ProjectReportConfig reportConfig;
     private final transient ListDataProvider<ReportRow> dataProvider = new ListDataProvider<>(new ArrayList<>());
 
@@ -95,7 +95,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         UI ui = UI.getCurrent();
 
         // TODO error handling
-        this.currentGeneration.update(projectReportGeneratorService.generateProjectReport(reportId)
+        this.currentOperation.update(projectReportGeneratorService.generateProjectReport(reportId)
                 .subscribeOn(Schedulers.parallel())
                 .subscribe(progress ->
                         ui.access(() -> {
@@ -184,7 +184,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
-        this.currentGeneration.dispose();
+        this.currentOperation.dispose();
     }
 
     private void applyReport(ProjectReport report) {

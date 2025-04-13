@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 import static java.util.function.Function.identity;
 
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.Icon;
@@ -42,6 +43,8 @@ import java.util.Optional;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import reactor.core.Disposable;
+import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
@@ -55,7 +58,8 @@ public class AnalysisView extends VerticalLayout {
     private final Grid<ProjectAnalysisItem> grid;
     private final ListDataProvider<ProjectAnalysisItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private Map<FQPN, ProjectAnalysisItem> itemByFQPN = new HashMap<>();
-    private ImageResolverService imageResolverService;
+    private final ImageResolverService imageResolverService;
+    private final transient Disposable.Swap currentOperation = Disposables.swap();
 
     public AnalysisView(
             ProjectAnalysisService projectAnalysisService,
@@ -100,6 +104,7 @@ public class AnalysisView extends VerticalLayout {
 
     }
 
+
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
@@ -128,23 +133,30 @@ public class AnalysisView extends VerticalLayout {
                         p -> p.requireTrait(HasProject.class).getProject().getMetaData().getFQPN(),
                         identity()));
 
-        Flux.merge(projectService.findALl()
-                .stream()
-                .filter(p -> workingCopyService.find(p.getMetaData().getFQPN()).isPresent())
-                .map(p -> projectAnalysisService.analyze(p.getMetaData().getFQPN())
-                        .subscribeOn(Schedulers.parallel())
-                        .last())
-                .toList()).subscribe(progress -> {
-            this.onUpdateEvent(progress, ui);
-        });
+        Disposable disposable = Flux.merge(projectService.findALl()
+                        .stream()
+                        .filter(p -> workingCopyService.find(p.getMetaData().getFQPN()).isPresent())
+                        .map(p -> projectAnalysisService.analyze(p.getMetaData().getFQPN())
+                                .subscribeOn(Schedulers.parallel())
+                                .last())
+                        .toList())
+                .subscribe(progress -> this.onUpdateEvent(progress, ui));
+
+        currentOperation.update(disposable);
     }
 
-    private void onUpdateEvent(ProjectOperationProgress<Void> e, UI current) {
-        if (!current.isAttached()) {
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        this.currentOperation.dispose();
+    }
+
+
+    private void onUpdateEvent(ProjectOperationProgress<Void> e, UI ui) {
+        if (!ui.isAttached()) {
             // browser has been reloaded or closed in the mean time
             return;
         }
-        current.access(() -> {
+        ui.access(() -> {
             if (e.getState().isTerminated()) {
                 SortedSet<Label> labels = this.labelService.find(e.getFQPN());
                 ProjectAnalysisItem item = this.itemByFQPN.get(e.getFQPN());

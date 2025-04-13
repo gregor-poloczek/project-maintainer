@@ -140,6 +140,9 @@ public class PatchesView extends VerticalLayout {
 
 
     private void unlockOperations(UI ui) {
+        if (!ui.isAttached()) {
+            return;
+        }
         ui.access(() -> {
             this.menuBar.setEnabled(true);
             this.patchesSelection.setEnabled(true);
@@ -147,6 +150,9 @@ public class PatchesView extends VerticalLayout {
     }
 
     private void lockOperations(UI ui) {
+        if (!ui.isAttached()) {
+            return;
+        }
         ui.access(() -> {
             this.menuBar.setEnabled(false);
             this.patchesSelection.setEnabled(false);
