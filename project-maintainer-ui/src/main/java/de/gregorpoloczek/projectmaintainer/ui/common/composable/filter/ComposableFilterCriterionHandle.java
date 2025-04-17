@@ -15,4 +15,8 @@ public class ComposableFilterCriterionHandle<T extends Composable<?, T>> {
     public void refresh() {
         this.composableFilterSearch.refresh(index);
     }
+
+    public void remove() {
+        this.composableFilterSearch.release(index);
+    }
 }

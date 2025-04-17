@@ -32,5 +32,6 @@ public class HasProjectFilterComponent<T extends AbstractComposable<?, T>> exten
                     .anyMatch(segment -> segment.toLowerCase().contains(value.toLowerCase()));
         });
         textField.addValueChangeListener(_ -> handle.refresh());
+        addDetachListener(e -> handle.remove());
     }
 }

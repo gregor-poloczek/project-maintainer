@@ -5,6 +5,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposab
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
@@ -12,10 +13,11 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @Builder
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProjectAnalysisItem extends AbstractComposable<FQPN, ProjectAnalysisItem> {
 
+    @NonNull
     FQPN fqpn;
 
     @Override

@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public class ComposableFilterSearch<T extends Composable<?, T>> {
 
+
     public enum FilterResult {
         HIT {
             @Override
@@ -79,10 +80,21 @@ public class ComposableFilterSearch<T extends Composable<?, T>> {
         return result;
     }
 
-    public void refresh(int index) {
+    public void refresh() {
+        Optional.ofNullable(refreshable).ifPresent(Refreshable::refresh);
+    }
+
+
+    void refresh(int index) {
         // mark all as dirty
         this.resultsCache.values().forEach(r -> r[index] = FilterResult.DIRTY);
 
-        Optional.ofNullable(refreshable).ifPresent(Refreshable::refresh);
+        this.refresh();
     }
+
+    public void release(int index) {
+        this.criteria.remove(index);
+        this.resultsCache.clear();
+    }
+
 }

@@ -91,6 +91,7 @@ public class AnalysisView extends VerticalLayout {
                                 .toLowerCase()
                                 .contains(labelsSearchFilter.getValue().toLowerCase())));
         labelsSearchFilter.addValueChangeListener(_ -> handle.refresh());
+        this.addDetachListener(e -> handle.remove());
 
         this.grid.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
         this.grid.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name").setFlexGrow(0).setWidth("350px");
@@ -120,6 +121,7 @@ public class AnalysisView extends VerticalLayout {
             if (workingCopy.isPresent()) {
                 Optional<Image> icon = AnalysisView.this.imageResolverService.getProjectImage(project);
                 items.add(ProjectAnalysisItem.builder()
+                        .fqpn(project.getFQPN())
                         .build()
                         .addTrait(HasProject.class, () -> project)
                         .addTrait(HasLabels.class, new HasLabels(Collections.emptyList()))

@@ -11,6 +11,7 @@ import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.router.Route;
@@ -34,6 +35,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.Proje
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectNameComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectWebsiteLinkComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.WorkingCopyStateComponent;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasWorkingCopyFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
@@ -42,8 +44,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -62,6 +62,7 @@ public class GitView extends VerticalLayout {
     private final ListDataProvider<ProjectItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
 
     private final transient Disposable.Swap currentOperation = Disposables.swap();
+    private ComposableFilterSearch<ProjectItem> search = new ComposableFilterSearch<>(this.dataProvider);
 
 
     public GitView(
@@ -72,11 +73,13 @@ public class GitView extends VerticalLayout {
         this.imageResolverService = imageResolverService;
         this.workingCopyService = workingCopyService;
 
-        var search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = createGrid();
 
         this.menuBar = createMenuBar();
-        this.add(new HasProjectFilterComponent<>(search), menuBar, grid);
+        this.add(new HorizontalLayout(
+                new HasWorkingCopyFilterComponent(search),
+                new HasProjectFilterComponent<>(search)
+        ), menuBar, grid);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
@@ -212,6 +215,8 @@ public class GitView extends VerticalLayout {
             }
 
             this.grid.getDataProvider().refreshItem(item);
+            // refresh search
+            this.search.refresh();
         });
     }
 
