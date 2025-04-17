@@ -248,7 +248,7 @@ public class PatchesView extends VerticalLayout {
         this.patchesSelection.setItems(patches);
         this.patchesSelection.setValue(patches.getFirst());
 
-        List<ProjectPatchItem> items = projectService.findALl().stream()
+        List<ProjectPatchItem> items = projectService.findAll().stream()
                 .filter(p -> workingCopyService.find(p).isPresent())
                 .map(this::toProjectItem)
                 .toList();

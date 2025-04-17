@@ -179,7 +179,7 @@ public class GitView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
-        List<ProjectItem> items = projectService.findALl().stream()
+        List<ProjectItem> items = projectService.findAll().stream()
                 .map(this::toProjectItem)
                 .toList();
 

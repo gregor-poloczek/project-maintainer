@@ -15,7 +15,7 @@ public class ProjectService {
 
     ProjectRepository projectRepository;
 
-    public List<Project> findALl() {
+    public List<Project> findAll() {
         return List.copyOf(this.projectRepository.findAll());
     }
 
