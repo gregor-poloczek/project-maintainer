@@ -29,7 +29,10 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.util.unit.DataSize;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
@@ -55,28 +58,24 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
     public void discoverProjects(final ProjectDiscoveryContext context) {
         for (String username : discoveryProperties.getUsers()) {
             String password = passwordResolverService.getPassword("bitbucket", username);
-
-            UsernamePasswordCredentialsProvider credentialsProvider =
-                    new UsernamePasswordCredentialsProvider(username, password);
-            String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
-            WebClient client = WebClient.builder().baseUrl("https://api.bitbucket.org/2.0")
-                    .defaultHeader("Authorization", "Basic " + auth)
-                    .build();
+            WebClient webClient = createWebClient(username, password);
 
             // can result in 403
-            WorkspaceMembershipListResource membershipList = client.get()
+            WorkspaceMembershipListResource membershipList = webClient.get()
                     .uri("/user/permissions/workspaces")
                     .retrieve()
                     .bodyToMono(WorkspaceMembershipListResource.class)
                     .blockOptional().orElseThrow(IllegalStateException::new);
 
+            UsernamePasswordCredentialsProvider credentialsProvider =
+                    new UsernamePasswordCredentialsProvider(username, password);
             for (WorkspaceMembershipResource membership : membershipList.getValues()) {
                 String workspace = membership.getWorkspace().getSlug();
 
                 Integer nextPage = 1;
                 do {
                     try {
-                        Mono<RepositoryListResource> response = client.get()
+                        Mono<RepositoryListResource> response = webClient.get()
                                 .uri("/repositories/" + workspace + "?page=" + nextPage)
                                 .retrieve()
                                 .bodyToMono(RepositoryListResource.class);
@@ -92,7 +91,7 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                                     repository.getName());
 
                             // TODO do not use this hack
-                            this.webClientRepository.save(fqpn, client);
+                            this.webClientRepository.save(fqpn, webClient);
 
                             context.discovered(c -> c.fqpn(fqpn)
                                     .owner(workspace)
@@ -120,6 +119,19 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                 } while (nextPage != null);
             }
         }
+    }
+
+    private WebClient createWebClient(String username, String password) {
+        String auth = Base64.getEncoder().encodeToString((username + ":" + password).getBytes());
+
+        final int size = (int) DataSize.ofMegabytes(16).toBytes();
+        final ExchangeStrategies strategies = ExchangeStrategies.builder()
+                .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(size))
+                .build();
+        return WebClient.builder().baseUrl("https://api.bitbucket.org/2.0")
+                .exchangeStrategies(strategies)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + auth)
+                .build();
     }
 
     @Override
