@@ -10,6 +10,8 @@ import java.util.stream.Stream;
 
 public class ComposableHolder<K, T extends Composable<K, T>> {
 
+    private static final ComposableHolder<?, ?> EMPTY = new ComposableHolder<>();
+
     public static <K2, T2 extends Composable<K2, T2>> Collector<T2, ComposableHolder<K2, T2>, ComposableHolder<K2, T2>> toComposableHolder() {
         return new ComposableHolderCollector<>();
     }
@@ -20,6 +22,11 @@ public class ComposableHolder<K, T extends Composable<K, T>> {
         ComposableHolder<K2, T2> result = new ComposableHolder<>();
         c.forEach(composable -> result.composables.put(composable.getKey(), composable));
         return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <K2, T2 extends Composable<K2, T2>> ComposableHolder<K2, T2> emptyHolder() {
+        return (ComposableHolder<K2, T2>) EMPTY;
     }
 
 

@@ -59,7 +59,7 @@ public class PatchesView extends VerticalLayout {
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
     private final transient PatchService patchService;
-    private transient ComposableHolder<FQPN, ProjectPatchItem> items;
+    private transient ComposableHolder<FQPN, ProjectPatchItem> items = ComposableHolder.emptyHolder();
     private final Grid<ProjectPatchItem> grid;
     private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final MenuBar menuBar;
