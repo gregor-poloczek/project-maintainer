@@ -5,11 +5,16 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 public class ComposableHolder<K, T extends Composable<K, T>> {
 
-    private final Map<K, T> composables = new LinkedHashMap<>();
+    public static <K2, T2 extends Composable<K2, T2>> Collector<T2, ComposableHolder<K2, T2>, ComposableHolder<K2, T2>> toComposableHolder() {
+        return new ComposableHolderCollector<>();
+    }
+
+    final Map<K, T> composables = new LinkedHashMap<>();
 
     public static <K2, T2 extends Composable<K2, T2>> ComposableHolder<K2, T2> of(Collection<T2> c) {
         ComposableHolder<K2, T2> result = new ComposableHolder<>();

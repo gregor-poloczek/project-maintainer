@@ -128,7 +128,7 @@ public class ReportGeneratorService {
 
         List<Project> projects = projectService.findAll()
                 .stream()
-                .filter(p -> workingCopyService.find(p).isPresent()).toList();
+                .filter(workingCopyService::hasWorkspace).toList();
 
         ProjectReport report = this.buildReport((ProjectReportConfig) reportConfig);
 

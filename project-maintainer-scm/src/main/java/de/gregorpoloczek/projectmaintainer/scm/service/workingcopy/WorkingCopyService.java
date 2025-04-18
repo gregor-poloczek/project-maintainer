@@ -177,6 +177,10 @@ public class WorkingCopyService {
         return workingCopyRepository.find(identifiesProject);
     }
 
+    public boolean hasWorkspace(@NonNull ProjectRelatable identifiesProject) {
+        return this.find(identifiesProject).isPresent();
+    }
+
     public WorkingCopy require(@NonNull ProjectRelatable identifiesProject) {
         return workingCopyRepository.require(identifiesProject);
     }

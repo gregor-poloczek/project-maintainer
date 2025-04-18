@@ -1,7 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.patching;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
+import static de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder.toComposableHolder;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
@@ -31,6 +30,7 @@ import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.Patc
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
@@ -43,9 +43,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperat
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import reactor.core.Disposable;
 import reactor.core.Disposable.Swap;
@@ -61,7 +59,7 @@ public class PatchesView extends VerticalLayout {
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
     private final transient PatchService patchService;
-    private transient Map<FQPN, ProjectPatchItem> itemByFQPN = new HashMap<>();
+    private transient ComposableHolder<FQPN, ProjectPatchItem> items;
     private final Grid<ProjectPatchItem> grid;
     private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final MenuBar menuBar;
@@ -98,7 +96,7 @@ public class PatchesView extends VerticalLayout {
         this.patchesSelection.setItemLabelGenerator(PatchMetaData::getId);
         this.patchesSelection.setRequired(true);
         this.patchesSelection.addValueChangeListener(e -> {
-            itemByFQPN.values().forEach(item -> {
+            items.getAll().forEach(item -> {
                 item.clearResult();
                 this.grid.setDetailsVisible(item, false);
                 this.grid.getListDataView().refreshItem(item);
@@ -248,14 +246,12 @@ public class PatchesView extends VerticalLayout {
         this.patchesSelection.setItems(patches);
         this.patchesSelection.setValue(patches.getFirst());
 
-        List<ProjectPatchItem> items = projectService.findAll().stream()
-                .filter(p -> workingCopyService.find(p).isPresent())
+        this.items = projectService.findAll().stream()
+                .filter(workingCopyService::hasWorkspace)
                 .map(this::toProjectItem)
-                .toList();
+                .collect(toComposableHolder());
 
-        this.itemByFQPN = items.stream().collect(toMap(ProjectPatchItem::getFQPN, identity()));
-
-        this.dataProvider.getItems().addAll(items);
+        this.dataProvider.getItems().addAll(items.getAll());
         this.dataProvider.refreshAll();
     }
 
@@ -265,7 +261,7 @@ public class PatchesView extends VerticalLayout {
             // browser has been reloaded or closed in the meantime
             return;
         }
-        ProjectPatchItem item = itemByFQPN.get(progress.getFQPN());
+        ProjectPatchItem item = items.get(progress.getFQPN());
         current.access(() -> {
             // TODO error handling
             if (progress.getState() == State.SCHEDULED) {

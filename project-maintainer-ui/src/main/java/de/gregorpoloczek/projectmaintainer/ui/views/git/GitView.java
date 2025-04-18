@@ -1,7 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
+import static de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder.toComposableHolder;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
@@ -22,6 +21,7 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
@@ -41,8 +41,6 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
@@ -56,7 +54,7 @@ public class GitView extends VerticalLayout {
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
-    private Map<FQPN, ProjectItem> itemByFQPN;
+    private ComposableHolder<FQPN, ProjectItem> items;
     private final MenuBar menuBar;
     private final Grid<ProjectItem> grid;
     private final ListDataProvider<ProjectItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
@@ -179,13 +177,10 @@ public class GitView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
-        List<ProjectItem> items = projectService.findAll().stream()
+        this.items = projectService.findAll().stream()
                 .map(this::toProjectItem)
-                .toList();
-
-        this.itemByFQPN = items.stream().collect(toMap(ProjectItem::getKey, identity()));
-
-        this.dataProvider.getItems().addAll(items);
+                .collect(toComposableHolder());
+        this.dataProvider.getItems().addAll(items.getAll());
         this.dataProvider.refreshAll();
     }
 
@@ -194,7 +189,7 @@ public class GitView extends VerticalLayout {
             // browser has been reloaded or closed in the mean time
             return;
         }
-        ProjectItem item = itemByFQPN.get(e.getFQPN());
+        ProjectItem item = items.get(e.getFQPN());
         current.access(() -> {
             // TODO error handling
 

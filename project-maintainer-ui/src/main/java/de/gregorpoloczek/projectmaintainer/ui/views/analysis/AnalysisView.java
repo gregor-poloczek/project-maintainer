@@ -1,5 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.analysis;
 
+import static de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder.toComposableHolder;
+
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
@@ -88,9 +90,9 @@ public class AnalysisView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         List<Project> projects = this.projectService.findAll();
 
-        this.items = ComposableHolder.of(projects.stream()
-                .filter(p -> this.workingCopyService.find(p).isPresent())
-                .map(this::toItem).toList());
+        this.items = projects.stream()
+                .filter(workingCopyService::hasWorkspace)
+                .map(this::toItem).collect(toComposableHolder());
         this.dataProvider.getItems().clear();
         this.dataProvider.getItems().addAll(items.getAll());
         this.dataProvider.refreshAll();
