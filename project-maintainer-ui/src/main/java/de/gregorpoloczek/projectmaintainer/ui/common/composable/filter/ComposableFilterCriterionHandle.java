@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.ui.common.composable.filter;
 
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
@@ -9,14 +10,15 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ComposableFilterCriterionHandle<T extends Composable<?, T>> {
 
-    int index;
     ComposableFilterSearch<T> composableFilterSearch;
+    @Getter(AccessLevel.PACKAGE)
+    ComposableFilterCriterion<T> criterion;
 
     public void refresh() {
-        this.composableFilterSearch.refresh(index);
+        this.composableFilterSearch.refresh(this);
     }
 
     public void remove() {
-        this.composableFilterSearch.release(index);
+        this.composableFilterSearch.release(this);
     }
 }

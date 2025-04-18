@@ -56,10 +56,9 @@ public class ComposableFilterSearch<T extends Composable<?, T>> {
     }
 
     public ComposableFilterCriterionHandle<T> add(ComposableFilterCriterion<T> criterion) {
-        int index = criteria.size();
         this.criteria.add(criterion);
         this.resultsCache.clear();
-        return new ComposableFilterCriterionHandle<>(index, this);
+        return new ComposableFilterCriterionHandle<>(this, criterion);
     }
 
     public boolean matches(T composable) {
@@ -85,15 +84,17 @@ public class ComposableFilterSearch<T extends Composable<?, T>> {
     }
 
 
-    void refresh(int index) {
+    void refresh(ComposableFilterCriterionHandle<T> handle) {
+        int index = this.criteria.indexOf(handle.getCriterion());
+
         // mark all as dirty
         this.resultsCache.values().forEach(r -> r[index] = FilterResult.DIRTY);
 
         this.refresh();
     }
 
-    public void release(int index) {
-        this.criteria.remove(index);
+    public void release(ComposableFilterCriterionHandle<T> handle) {
+        this.criteria.remove(handle.getCriterion());
         this.resultsCache.clear();
     }
 

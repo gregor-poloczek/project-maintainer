@@ -8,3 +8,7 @@ spring:
 project-maintainer:
   projects:
     uris:
+
+# TODO why does application crash without this?
+springdoc:
+  enable-spring-security: false

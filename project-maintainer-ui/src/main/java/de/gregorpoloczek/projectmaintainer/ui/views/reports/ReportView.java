@@ -5,16 +5,21 @@ import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.grid.ColumnTextAlign;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.Grid.Column;
+import com.vaadin.flow.component.grid.HeaderRow;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
+import de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.ProjectFullTextSearchService;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
@@ -42,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.scheduler.Schedulers;
@@ -55,24 +61,28 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
     private final transient Disposable.Swap currentOperation = Disposables.swap();
+    private final ComposableFilterSearch<ReportRow> search;
+    private final ProjectFullTextSearchService projectFullTextSearchService;
     private transient ProjectReportConfig reportConfig;
     private final transient ListDataProvider<ReportRow> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final ComposableHolder<FQPN, ReportRow> rows = ComposableHolder.emptyHolder();
+    private HeaderRow filterHeaderRow;
 
     public ReportView(
             ReportGeneratorService reportGeneratorService,
-            ImageResolverService imageResolverService) {
+            ImageResolverService imageResolverService, ProjectFullTextSearchService projectFullTextSearchService) {
         this.projectReportGeneratorService = reportGeneratorService;
         this.imageResolverService = imageResolverService;
         this.header = new ReportHeader(reportGeneratorService.getProjectReportConfigs());
 
-        ComposableFilterSearch<ReportRow> search = new ComposableFilterSearch<>(this.dataProvider);
+        this.search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = new Grid<>();
         this.grid.setDataProvider(dataProvider);
 
-        this.add(header, new HasProjectFilterComponent<>(search), this.grid);
+        this.add(header, this.grid);
         this.setSizeFull();
         this.grid.setSizeFull();
+        this.projectFullTextSearchService = projectFullTextSearchService;
     }
 
 
@@ -92,7 +102,11 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         this.grid.removeAllColumns();
         this.grid.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
-        this.grid.addColumn(ProjectNameComponent.getRenderer()).setHeader("Project").setFlexGrow(2).setWidth("350px");
+        this.grid.addColumn(ProjectNameComponent.getRenderer())
+                .setHeader("Project")
+                .setFlexGrow(2)
+                .setWidth("350px")
+                .setResizable(true);
 
         UI ui = UI.getCurrent();
 
@@ -125,21 +139,63 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void applyReportDefinition(ProjectReportDefinition definition) {
-        dataProvider.getItems().clear();
-        dataProvider.refreshAll();
+        this.rows.clear();
+        this.dataProvider.getItems().clear();
+        this.dataProvider.refreshAll();
+
+        // create a new header row for filtering
+        if (this.filterHeaderRow != null) {
+            this.grid.removeHeaderRow(this.filterHeaderRow);
+        }
+        this.filterHeaderRow = grid.appendHeaderRow();
+        // second column is always the project name
+        HasProjectFilterComponent<ReportRow> projectFilter = new HasProjectFilterComponent<>(search);
+        projectFilter.setDecorated(false);
+        this.filterHeaderRow.getCell(this.grid.getColumns().get(1)).setComponent(projectFilter);
 
         int index = 0;
-        for (ReportColumn column : definition.getColumns()) {
+        for (ReportColumn reportColumn : definition.getColumns()) {
             final int i = index;
-            this.grid
+            Column<ReportRow> column = this.grid
                     .addColumn(createCellRenderer(i))
-                    .setHeader(column.getLabel())
+                    .setHeader(reportColumn.getLabel())
                     .setFlexGrow(1)
-                    // .setWidth("250px")
+                    .setResizable(true)
                     .setTextAlign(
-                            toTextAlign(column.getTextAlignment()));
+                            toTextAlign(reportColumn.getTextAlignment()));
+
+            // append a filtering component
+            filterHeaderRow
+                    .getCell(column)
+                    .setComponent(createFilterComponent(index));
+
             index++;
         }
+
+    }
+
+    private Component createFilterComponent(int columnIndex) {
+        TextField result = new TextField();
+        result.setWidthFull();
+        result.setValueChangeMode(ValueChangeMode.EAGER);
+        var handler = search.add(row -> {
+            Optional<String> maybeQuery = Optional.of(result.getValue())
+                    .map(StringUtils::trim)
+                    .filter(StringUtils::isNotBlank);
+            if (maybeQuery.isEmpty()) {
+                return true;
+            }
+            String query = maybeQuery.get();
+
+            Optional<ReportCellValue> maybeValue = row.getValue(columnIndex);
+            if (maybeValue.isEmpty()) {
+                return false;
+            }
+            return maybeValue.get().getStringValue().toLowerCase().contains(query.toLowerCase());
+        });
+        result.addAttachListener(e1 -> result.addValueChangeListener(e2 -> handler.refresh()));
+        result.addDetachListener(e -> handler.remove());
+        return result;
     }
 
     private static ComponentRenderer<HorizontalLayout, ReportRow> createCellRenderer(

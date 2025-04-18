@@ -13,11 +13,12 @@ import org.apache.commons.lang3.StringUtils;
 
 public class HasProjectFilterComponent<T extends AbstractComposable<?, T>> extends HorizontalLayout {
 
+    private final TextField textField;
+
     public HasProjectFilterComponent(ComposableFilterSearch<T> composableFilterSearch) {
-        TextField textField = new TextField();
-        textField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        textField.setPlaceholder("Project");
+        textField = new TextField();
         textField.setValueChangeMode(ValueChangeMode.EAGER);
+        setDecorated(true);
         this.add(textField);
 
         // participate in search
@@ -33,5 +34,15 @@ public class HasProjectFilterComponent<T extends AbstractComposable<?, T>> exten
         });
         textField.addValueChangeListener(_ -> handle.refresh());
         addDetachListener(e -> handle.remove());
+    }
+
+    public void setDecorated(boolean decorated) {
+        if (decorated) {
+            textField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+            textField.setPlaceholder("Project");
+        } else {
+            textField.setPrefixComponent(null);
+            textField.setPlaceholder(null);
+        }
     }
 }
