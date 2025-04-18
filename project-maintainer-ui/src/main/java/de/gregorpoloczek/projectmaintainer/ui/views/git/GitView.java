@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.git;
 
 import static de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder.toComposableHolder;
+import static java.util.function.Predicate.not;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
@@ -110,7 +111,7 @@ public class GitView extends VerticalLayout {
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .sort()
-                .filter(item -> item.requireTrait(HasWorkingCopy.class).getWorkingCopy().isPresent())
+                .filter(workingCopyService::hasWorkspace)
                 .flatMap(item ->
                         this.workingCopyService.wipeProject(item)
                                 .subscribeOn(Schedulers.parallel()))
@@ -124,7 +125,7 @@ public class GitView extends VerticalLayout {
         UI ui = UI.getCurrent();
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .sort()
-                .filter(item -> item.requireTrait(HasWorkingCopy.class).getWorkingCopy().isEmpty())
+                .filter(not(workingCopyService::hasWorkspace))
                 .flatMap(item ->
                         this.workingCopyService.cloneProject(item)
                                 .subscribeOn(Schedulers.parallel()))
@@ -140,9 +141,7 @@ public class GitView extends VerticalLayout {
 
         Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
                 .sort()
-                .filter(item -> item.requireTrait(HasWorkingCopy.class)
-                        .getWorkingCopy()
-                        .isPresent())
+                .filter(workingCopyService::hasWorkspace)
                 .flatMap(item ->
                         this.workingCopyService.pullProject(item)
                                 .subscribeOn(Schedulers.parallel()))

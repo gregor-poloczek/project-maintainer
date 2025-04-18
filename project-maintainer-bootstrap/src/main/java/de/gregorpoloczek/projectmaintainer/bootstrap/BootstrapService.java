@@ -19,21 +19,40 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Schedulers;
 
 
 @Service
 @Slf4j
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class BootstrapService {
 
     ProjectDiscoveryService projectDiscoveryService;
     ProjectRepository projectRepository;
     WorkingCopyService workingCopyService;
 
+    Sinks.Many<Boolean> intialized = Sinks.many().replay().limit(1);
+
+    public Flux<Boolean> isInitialized() {
+        return this.intialized.asFlux();
+    }
 
     @PostConstruct
     void init() {
+        Mono.fromSupplier(() -> {
+                    discoverProjects();
+                    return true;
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnSubscribe(s -> intialized.tryEmitNext(false))
+                .subscribe(intialized::tryEmitNext);
+    }
+
+    private void discoverProjects() {
         final ProjectDiscoveryResult result = this.projectDiscoveryService.discoverProjects();
 
         final List<DiscoveredProject> discovered = result.getDiscoveredProjects();
