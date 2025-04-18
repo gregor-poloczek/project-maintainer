@@ -5,12 +5,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
 public class ComposableHolder<K, T extends Composable<K, T>> {
-
-    private static final ComposableHolder<?, ?> EMPTY = new ComposableHolder<>();
 
     public static <K2, T2 extends Composable<K2, T2>> Collector<T2, ComposableHolder<K2, T2>, ComposableHolder<K2, T2>> toComposableHolder() {
         return new ComposableHolderCollector<>();
@@ -26,7 +25,7 @@ public class ComposableHolder<K, T extends Composable<K, T>> {
 
     @SuppressWarnings("unchecked")
     public static <K2, T2 extends Composable<K2, T2>> ComposableHolder<K2, T2> emptyHolder() {
-        return (ComposableHolder<K2, T2>) EMPTY;
+        return new ComposableHolder<>();
     }
 
 
@@ -40,5 +39,22 @@ public class ComposableHolder<K, T extends Composable<K, T>> {
 
     public Stream<T> stream() {
         return getAll().stream();
+    }
+
+    public void clear() {
+        this.composables.clear();
+    }
+
+    public T compute(K key, Supplier<T> generator) {
+        T result = this.get(key);
+        if (result == null) {
+            result = generator.get();
+            this.add(result);
+        }
+        return result;
+    }
+
+    private void add(T composable) {
+        this.composables.put(composable.getKey(), composable);
     }
 }

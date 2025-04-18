@@ -16,6 +16,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellBooleanValue;
@@ -27,6 +28,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellValue;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
@@ -37,7 +39,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.Proje
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Comparator;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.Disposable;
@@ -55,7 +57,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient Disposable.Swap currentOperation = Disposables.swap();
     private transient ProjectReportConfig reportConfig;
     private final transient ListDataProvider<ReportRow> dataProvider = new ListDataProvider<>(new ArrayList<>());
-
+    private final ComposableHolder<FQPN, ReportRow> rows = ComposableHolder.emptyHolder();
 
     public ReportView(
             ReportGeneratorService reportGeneratorService,
@@ -103,6 +105,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                                 this.applyReportDefinition(progress.getResult().getDefinition());
                                 this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
 
+                                this.rows.clear();
                                 dataProvider.getItems().clear();
                                 dataProvider.refreshAll();
                             }
@@ -188,26 +191,26 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void applyReport(ProjectReport report) {
-        List<ReportRow> items = new ArrayList<>();
         for (ProjectReportRow row : report.getRows()) {
             Project project = row.getProject();
 
             Optional<Image> image = imageResolverService.getProjectImage(row.getProject());
 
-            ReportRow item = new ReportRow(row.getProject().getFQPN(), this.reportConfig.getColumns().size())
-                    .addTrait(HasProject.class, () -> project)
-                    .addTrait(HasIcon.class, HasIcon.builder().icon(image.orElse(null)).build());
-
+            FQPN fqpn = row.getProject().getFQPN();
+            ReportRow item = this.rows.compute(fqpn,
+                    () -> new ReportRow(fqpn, this.reportConfig.getColumns().size())
+                            .addTrait(HasProject.class, () -> project)
+                            .addTrait(HasIcon.class, HasIcon.builder().icon(image.orElse(null)).build()));
             int i = 0;
             for (ProjectReportCell cell : row.getCells()) {
                 item.setValue(i, cell.getValue());
                 i++;
             }
-            items.add(item);
         }
 
         dataProvider.getItems().clear();
-        dataProvider.getItems().addAll(items);
+        dataProvider.getItems()
+                .addAll(this.rows.getAll().stream().sorted(Comparator.comparing(ReportRow::getKey)).toList());
         dataProvider.refreshAll();
 
         // TODO only add items that are missing, instead of replacing all of them
