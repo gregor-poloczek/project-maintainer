@@ -33,6 +33,7 @@ import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReport
 import de.gregorpoloczek.projectmaintainer.reporting.projectreport.ProjectReportRow;
 import de.gregorpoloczek.projectmaintainer.reporting.config.ProjectReportConfig;
 import de.gregorpoloczek.projectmaintainer.reporting.common.ReportCellValue;
+import de.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
@@ -43,6 +44,7 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.IconC
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.ProjectNameComponent;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
+import de.gregorpoloczek.projectmaintainer.ui.common.progress.LabeledProgressBar;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
@@ -63,6 +65,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient Disposable.Swap currentOperation = Disposables.swap();
     private final ComposableFilterSearch<ReportRow> search;
     private final ProjectFullTextSearchService projectFullTextSearchService;
+    private final LabeledProgressBar progressBar;
     private transient ProjectReportConfig reportConfig;
     private final transient ListDataProvider<ReportRow> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final ComposableHolder<FQPN, ReportRow> rows = ComposableHolder.emptyHolder();
@@ -76,10 +79,13 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         this.header = new ReportHeader(reportGeneratorService.getProjectReportConfigs());
 
         this.search = new ComposableFilterSearch<>(this.dataProvider);
+        this.progressBar = new LabeledProgressBar();
+        this.progressBar.setWidthFull();
+        this.progressBar.setVisible(false);
         this.grid = new Grid<>();
         this.grid.setDataProvider(dataProvider);
 
-        this.add(header, this.grid);
+        this.add(header, this.grid, this.progressBar);
         this.setSizeFull();
         this.grid.setSizeFull();
         this.projectFullTextSearchService = projectFullTextSearchService;
@@ -110,15 +116,19 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         UI ui = UI.getCurrent();
 
+        progressBar.setLabel("Generating report ...");
+        progressBar.setValue(0.0d);
+        progressBar.setVisible(true);
+
         // TODO error handling
         this.currentOperation.update(projectReportGeneratorService.generateProjectReport(reportId)
                 .subscribeOn(Schedulers.parallel())
+                .doFinally(s -> VaadinUtils.access(progressBar, p -> p.setVisible(false)))
                 .subscribe(progress ->
                         ui.access(() -> {
+                            this.progressBar.setValue(progress.getProgressRelative());
                             if (progress.getState() == OperationProgress.State.SCHEDULED) {
                                 this.applyReportDefinition(progress.getResult().getDefinition());
-                                this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
-
                                 this.rows.clear();
                                 dataProvider.getItems().clear();
                                 dataProvider.refreshAll();
@@ -126,13 +136,9 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                             if (progress.getState() == OperationProgress.State.RUNNING) {
                                 // TODO report can be concurrently modified
                                 applyReport(progress.getResult());
-                                this.header.updateProgress(progress.getProgressCurrent(), progress.getProgressTotal());
                             }
                             if (progress.getState() == OperationProgress.State.DONE) {
                                 applyReport(progress.getResult());
-                            }
-                            if (progress.getState().isTerminated()) {
-                                this.header.hideProgress();
                             }
                         })
                 ));

@@ -18,6 +18,8 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectSe
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.ui.common.progress.ProjectProgressBar;
+import de.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasLabelsFilterComponent;
@@ -50,6 +52,8 @@ public class AnalysisView extends VerticalLayout {
     private final LabelService labelService;
     private final Grid<ProjectAnalysisItem> grid;
     private final ListDataProvider<ProjectAnalysisItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
+    private final ProjectProgressBar projectProgressBar;
+
     private ComposableHolder<FQPN, ProjectAnalysisItem> items;
     private final ImageResolverService imageResolverService;
     private final transient Disposable.Swap currentOperation = Disposables.swap();
@@ -67,6 +71,9 @@ public class AnalysisView extends VerticalLayout {
         this.labelService = labelService;
         this.imageResolverService = imageResolverService;
 
+        this.projectProgressBar = new ProjectProgressBar();
+        this.projectProgressBar.setWidthFull();
+
         ComposableFilterSearch<ProjectAnalysisItem> search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = new Grid<>();
         this.grid.setDataProvider(dataProvider);
@@ -80,7 +87,7 @@ public class AnalysisView extends VerticalLayout {
         this.add(
                 new HorizontalLayout(
                         new HasProjectFilterComponent<>(search),
-                        hasLabelsFilterComponent), grid);
+                        hasLabelsFilterComponent), grid, projectProgressBar);
         this.setSizeFull();
         this.grid.setSizeFull();
 
@@ -97,13 +104,15 @@ public class AnalysisView extends VerticalLayout {
         this.dataProvider.getItems().addAll(items.getAll());
         this.dataProvider.refreshAll();
 
+        this.projectProgressBar.start(this.items.getAll(), "Analyzing projects ...");
+
         UI ui = UI.getCurrent();
         Disposable disposable = Flux.merge(items
                         .stream()
                         .map(p -> projectAnalysisService.analyze(p)
-                                .subscribeOn(Schedulers.parallel())
-                                .last())
+                                .subscribeOn(Schedulers.parallel()))
                         .toList())
+                .doFinally(_ -> VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop))
                 .subscribe(progress -> this.onUpdateEvent(progress, ui));
 
         currentOperation.update(disposable);
@@ -126,16 +135,17 @@ public class AnalysisView extends VerticalLayout {
 
 
     private void onUpdateEvent(ProjectOperationProgress<Void> e, UI ui) {
-        if (!ui.isAttached()) {
-            // browser has been reloaded or closed in the meantime
-            return;
-        }
         ui.access(() -> {
+            if (!ui.isAttached()) {
+                return;
+            }
+            this.projectProgressBar.update(e);
+
             if (e.getState().isTerminated()) {
                 SortedSet<Label> labels = this.labelService.find(e.getFQPN());
                 ProjectAnalysisItem item = this.items.get(e.getFQPN());
                 item.replaceTrait(HasLabels.class, l -> new HasLabels(labels));
-                this.grid.getDataProvider().refreshItem(item);
+                this.dataProvider.refreshItem(item);
             }
         });
     }

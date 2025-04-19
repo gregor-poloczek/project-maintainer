@@ -61,10 +61,7 @@ public class ProjectAnalysisService {
                 // TODO possible thread starvation?
                 workingCopy.withReadLock(() -> {
                     final AnalysisContextImpl context = new AnalysisContextImpl(project, workingCopy);
-                    boolean performedAnalysis = this.performAnalysis(context, sink);
-                    if (performedAnalysis) {
-                        this.saveAnalysisResult(context);
-                    }
+                    this.performAnalysis(context, sink);
                 });
                 sink.complete();
             } catch (RuntimeException e) {
@@ -121,6 +118,9 @@ public class ProjectAnalysisService {
         }
 
         this.lastAnalyzedCommitHash.put(context.getFQPN(), latestHash);
+
+        this.saveAnalysisResult(context);
+
         sink.next(progress.state(State.DONE).progressCurrent(current).build());
         return true;
     }

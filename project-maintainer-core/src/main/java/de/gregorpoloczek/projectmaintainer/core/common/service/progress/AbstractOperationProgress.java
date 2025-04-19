@@ -36,5 +36,4 @@ public class AbstractOperationProgress<T> implements OperationProgress<T> {
         return result;
     }
 
-
 }

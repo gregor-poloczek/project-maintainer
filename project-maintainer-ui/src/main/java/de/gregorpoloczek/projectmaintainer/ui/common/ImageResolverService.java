@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.ui.common;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import java.io.File;
 import java.io.IOException;
@@ -12,17 +13,16 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class ImageResolverService {
 
-    public ImageResolverService(WorkingCopyService workingCopyService) {
-        this.workingCopyService = workingCopyService;
-    }
-
     private final WorkingCopyService workingCopyService;
+    private final ProjectService projectService;
 
     @Builder
     @Getter
@@ -40,8 +40,8 @@ public class ImageResolverService {
         private byte[] bytes;
     }
 
-    public Optional<Image> getProjectImage(Project project) {
-        Optional<URI> maybeIcon = workingCopyService.find(project.getMetaData().getFQPN())
+    public Optional<Image> getProjectImage(ProjectRelatable relatable) {
+        Optional<URI> maybeIcon = workingCopyService.find(relatable.getFQPN())
                 .map(w -> w.getDirectory().toPath().resolve("./.idea/icon.svg").toFile())
                 .filter(File::exists)
                 .map(File::toURI);
@@ -56,7 +56,8 @@ public class ImageResolverService {
                 throw new UncheckedIOException(e);
             }
         } else {
-            image = this.getImage("gitprovider", project.getMetaData().getGitProvider().name());
+            image = this.getImage("gitprovider",
+                    projectService.require(relatable).getMetaData().getGitProvider().name());
         }
         return image;
     }

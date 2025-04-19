@@ -20,8 +20,11 @@ import de.gregorpoloczek.projectmaintainer.core.common.service.progress.Operatio
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import de.gregorpoloczek.projectmaintainer.ui.common.progress.ProjectProgressBar;
+import de.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
@@ -42,7 +45,10 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -55,14 +61,15 @@ public class GitView extends VerticalLayout {
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
-    private ComposableHolder<FQPN, ProjectItem> items;
-    private final MenuBar menuBar;
-    private final Grid<ProjectItem> grid;
-    private final ListDataProvider<ProjectItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
+    private transient ComposableHolder<FQPN, ProjectItem> items;
+    private final transient MenuBar menuBar;
+    private final transient Grid<ProjectItem> grid;
+    private final transient ListDataProvider<ProjectItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
 
     private final transient Disposable.Swap currentOperation = Disposables.swap();
-    private ComposableFilterSearch<ProjectItem> search = new ComposableFilterSearch<>(this.dataProvider);
-
+    private final transient ComposableFilterSearch<ProjectItem> search = new ComposableFilterSearch<>(
+            this.dataProvider);
+    private final transient ProjectProgressBar projectProgressBar;
 
     public GitView(
             ProjectService projectService,
@@ -72,13 +79,15 @@ public class GitView extends VerticalLayout {
         this.imageResolverService = imageResolverService;
         this.workingCopyService = workingCopyService;
 
+        this.projectProgressBar = new ProjectProgressBar();
+        this.projectProgressBar.setWidthFull();
         this.grid = createGrid();
 
         this.menuBar = createMenuBar();
         this.add(new HorizontalLayout(
                 new HasWorkingCopyFilterComponent(search),
                 new HasProjectFilterComponent<>(search)
-        ), menuBar, grid);
+        ), menuBar, grid, this.projectProgressBar);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
@@ -106,66 +115,48 @@ public class GitView extends VerticalLayout {
         return result;
     }
 
-    private void onDetachClick(ClickEvent<MenuItem> event) {
-        UI ui = UI.getCurrent();
+    private void onOperationClick(Predicate<ProjectItem> predicate,
+            Function<ProjectRelatable, Flux<ProjectOperationProgress<Void>>> operation, String label) {
+        List<ProjectItem> relevantItems = grid.getSelectionModel()
+                .getSelectedItems()
+                .stream()
+                .filter(predicate)
+                .sorted()
+                .toList();
 
-        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .sort()
-                .filter(workingCopyService::hasWorkspace)
+        this.onBeforeOperation();
+        this.projectProgressBar.start(relevantItems, label);
+
+        Disposable subscription = Flux.fromIterable(relevantItems)
                 .flatMap(item ->
-                        this.workingCopyService.wipeProject(item)
+                        operation.apply(item)
                                 .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(s -> this.lockOperations(ui))
-                .doFinally(s -> this.unlockOperations(ui))
-                .subscribe(p -> onUpdateEvent(p, ui));
+                .doFinally(s -> VaadinUtils.access(this, GitView::onAfterOperation))
+                .subscribe(p -> VaadinUtils.access(this, p, GitView::onUpdateEvent));
         currentOperation.update(subscription);
+    }
+
+    private void onDetachClick(ClickEvent<MenuItem> event) {
+        this.onOperationClick(
+                this.workingCopyService::hasWorkspace,
+                this.workingCopyService::wipeProject,
+                "Detaching projects ...");
     }
 
     private void onAttachClick(ClickEvent<MenuItem> event) {
-        UI ui = UI.getCurrent();
-        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .sort()
-                .filter(not(workingCopyService::hasWorkspace))
-                .flatMap(item ->
-                        this.workingCopyService.cloneProject(item)
-                                .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(s -> this.lockOperations(ui))
-                .doFinally(s -> this.unlockOperations(ui))
-                .subscribe(p -> onUpdateEvent(p, ui));
-
-        currentOperation.update(subscription);
+        this.onOperationClick(
+                not(this.workingCopyService::hasWorkspace),
+                this.workingCopyService::cloneProject,
+                "Attaching projects ...");
     }
 
     private void onPullClick(ClickEvent<MenuItem> event) {
-        UI ui = UI.getCurrent();
-
-        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .sort()
-                .filter(workingCopyService::hasWorkspace)
-                .flatMap(item ->
-                        this.workingCopyService.pullProject(item)
-                                .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(s -> this.lockOperations(ui))
-                .doFinally(s -> this.unlockOperations(ui))
-                .subscribe(p -> onUpdateEvent(p, ui));
-
-        currentOperation.update(subscription);
+        this.onOperationClick(
+                this.workingCopyService::hasWorkspace,
+                this.workingCopyService::pullProject,
+                "Pulling projects ...");
     }
 
-
-    private void unlockOperations(UI ui) {
-        if (!ui.isAttached()) {
-            return;
-        }
-        ui.access(() -> this.menuBar.setEnabled(true));
-    }
-
-    private void lockOperations(UI ui) {
-        if (!ui.isAttached()) {
-            return;
-        }
-        ui.access(() -> this.menuBar.setEnabled(false));
-    }
 
     @Override
     protected void onDetach(DetachEvent detachEvent) {
@@ -183,38 +174,34 @@ public class GitView extends VerticalLayout {
         this.dataProvider.refreshAll();
     }
 
-    private void onUpdateEvent(ProjectOperationProgress<?> e, UI current) {
-        if (!current.isAttached()) {
-            // browser has been reloaded or closed in the mean time
-            return;
-        }
+    private void onUpdateEvent(ProjectOperationProgress<?> e) {
         ProjectItem item = items.get(e.getFQPN());
-        current.access(() -> {
-            // TODO error handling
+        // TODO error handling
 
-            if (e.getState() == OperationProgress.State.DONE) {
-                Project project = item.requireTrait(HasProject.class).getProject();
-                WorkingCopy workingCopy = this.workingCopyService.find(e).orElse(null);
-                Image icon = this.imageResolverService.getProjectImage(project).orElse(null);
-                item
-                        .replaceTrait(HasWorkingCopy.class, c -> c.toBuilder().workingCopy(workingCopy).build())
-                        .replaceTrait(HasIcon.class, c -> c.toBuilder()
-                                .icon(icon)
-                                // TODO glaube das funktioniert hier nicht?
-                                .blurred(workingCopy == null)
-                                .build())
-                        .replaceTrait(HasOperationProgress.class, c -> HasOperationProgress.empty());
-            } else {
-                item.replaceTrait(HasOperationProgress.class, c -> c.toBuilder().operationProgress(e).build());
-            }
+        if (e.getState().isTerminated()) {
+            this.projectProgressBar.update(e);
+        }
+        if (e.getState() == OperationProgress.State.DONE) {
+            WorkingCopy workingCopy = this.workingCopyService.find(item).orElse(null);
+            Image icon = this.imageResolverService.getProjectImage(item).orElse(null);
+            item
+                    .replaceTrait(HasWorkingCopy.class, t -> t.toBuilder().workingCopy(workingCopy).build())
+                    .replaceTrait(HasIcon.class, t -> t.toBuilder()
+                            .icon(icon)
+                            // TODO glaube das funktioniert hier nicht?
+                            .blurred(workingCopy == null)
+                            .build())
+                    .replaceTrait(HasOperationProgress.class, _ -> HasOperationProgress.empty());
+        } else {
+            item.replaceTrait(HasOperationProgress.class, t -> t.toBuilder().operationProgress(e).build());
+        }
 
-            this.grid.getDataProvider().refreshItem(item);
-            // refresh search
-            this.search.refresh();
-        });
+        this.grid.getDataProvider().refreshItem(item);
+        // refresh search
+        this.search.refresh();
     }
 
-    private ProjectItem toProjectItem(de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project p) {
+    private ProjectItem toProjectItem(Project p) {
         ProjectMetaData metaData = p.getMetaData();
         Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
         return ProjectItem.builder()
@@ -229,4 +216,12 @@ public class GitView extends VerticalLayout {
                 .addTrait(HasOperationProgress.class, HasOperationProgress.empty());
     }
 
+    private void onAfterOperation() {
+        this.menuBar.setEnabled(true);
+        this.projectProgressBar.stop();
+    }
+
+    private void onBeforeOperation() {
+        this.menuBar.setEnabled(false);
+    }
 }

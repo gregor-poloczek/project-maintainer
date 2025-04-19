@@ -13,6 +13,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -30,6 +31,8 @@ import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.Patc
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import de.gregorpoloczek.projectmaintainer.ui.common.progress.ProjectProgressBar;
+import de.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components.HasProjectFilterComponent;
@@ -59,6 +62,7 @@ public class PatchesView extends VerticalLayout {
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
     private final transient PatchService patchService;
+    private final ProjectProgressBar projectProgressBar;
     private transient ComposableHolder<FQPN, ProjectPatchItem> items = ComposableHolder.emptyHolder();
     private final Grid<ProjectPatchItem> grid;
     private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
@@ -80,6 +84,9 @@ public class PatchesView extends VerticalLayout {
         this.patchService = patchService;
 
         this.menuBar = createMenuBar();
+
+        this.projectProgressBar = new ProjectProgressBar();
+        this.projectProgressBar.setWidthFull();
 
         var search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = createGrid();
@@ -103,7 +110,12 @@ public class PatchesView extends VerticalLayout {
             });
         });
 
-        this.add(this.patchesSelection, new HasProjectFilterComponent<>(search), this.menuBar, this.grid);
+        this.add(new HorizontalLayout(this.patchesSelection,
+                        new HasProjectFilterComponent<>(search)),
+                this.menuBar,
+                this.grid,
+                this.projectProgressBar
+        );
         this.setSizeFull();
         this.grid.setSizeFull();
     }
@@ -160,40 +172,46 @@ public class PatchesView extends VerticalLayout {
     private void onStopClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
 
-        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .sort()
-                .filter(this::isItemHasWorkingCopy)
+        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
+                .filter(workingCopyService::hasWorkspace)
+                .sorted().toList();
+        projectProgressBar.start(relevantItems, "Stopping patch process ...");
+
+        Disposable subscription = Flux.fromIterable(relevantItems)
                 .doOnNext(this::clearItem)
                 .flatMap(item ->
                         this.patchService.stopPatch(item, this.patchesSelection.getValue().getId())
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnNext(p -> this.onPatchOperationProgress(p, ui))
-                .doFinally(s -> this.unlockOperations(ui))
+                .doFinally(s -> {
+                    this.unlockOperations(ui);
+                    VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop);
+                })
                 .subscribe();
 
         this.currentOperation.update(subscription);
     }
 
-    private boolean isItemHasWorkingCopy(ProjectPatchItem item) {
-        return item.requireTrait(HasWorkingCopy.class)
-                .getWorkingCopy()
-                .isPresent();
-    }
-
     private void onPreviewClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
 
-        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .sort()
-                .filter(this::isItemHasWorkingCopy)
+        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
+                .filter(workingCopyService::hasWorkspace)
+                .sorted().toList();
+        projectProgressBar.start(relevantItems, "Previewing patch ...");
+
+        Disposable subscription = Flux.fromIterable(relevantItems)
                 .doOnNext(this::clearItem)
                 .flatMap(item -> this.patchService.previewPatch(item, this.patchesSelection.getValue().getId())
                         .doOnError(t -> onError(item, t, ui))
                         .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnNext(p -> this.onPatchOperationProgress(p, ui))
-                .doFinally(s -> this.unlockOperations(ui))
+                .doFinally(s -> {
+                    this.unlockOperations(ui);
+                    VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop);
+                })
                 .subscribe();
 
         this.currentOperation.update(subscription);
@@ -210,9 +228,13 @@ public class PatchesView extends VerticalLayout {
     private void onApplyClick(ClickEvent<MenuItem> event) {
         UI ui = UI.getCurrent();
 
-        Disposable subscription = Flux.fromIterable(grid.getSelectionModel().getSelectedItems())
-                .sort()
-                .filter(this::isItemHasWorkingCopy)
+        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
+                .filter(workingCopyService::hasWorkspace)
+                .sorted().toList();
+
+        projectProgressBar.start(relevantItems, "Applying patch ...");
+
+        Disposable subscription = Flux.fromIterable(relevantItems)
                 .doOnNext(this::clearItem)
                 .flatMap(item ->
                         this.patchService.applyPatch(item, this.patchesSelection.getValue().getId())
@@ -220,7 +242,10 @@ public class PatchesView extends VerticalLayout {
                                 .subscribeOn(Schedulers.parallel()))
                 .doOnSubscribe(s -> this.lockOperations(ui))
                 .doOnNext(p -> onPatchOperationProgress(p, ui))
-                .doFinally(s -> this.unlockOperations(ui))
+                .doFinally(s -> {
+                    this.unlockOperations(ui);
+                    VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop);
+                })
                 .subscribe();
 
         this.currentOperation.update(subscription);
@@ -263,6 +288,8 @@ public class PatchesView extends VerticalLayout {
         }
         ProjectPatchItem item = items.get(progress.getFQPN());
         current.access(() -> {
+            this.projectProgressBar.update(progress);
+
             // TODO error handling
             if (progress.getState() == State.SCHEDULED) {
                 item.setPatchOperationResult(null);
