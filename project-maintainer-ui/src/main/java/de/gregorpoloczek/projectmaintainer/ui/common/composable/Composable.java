@@ -11,9 +11,9 @@ public interface Composable<K, S extends Composable<K, S>> {
 
     <C> C requireTrait(Class<C> traitClass);
 
-    <T, I extends T> S addTrait(Class<T> traitClass, I trait);
+    <C, I extends C> S addTrait(Class<C> traitClass, I trait);
 
-    <T, I extends T> S replaceTrait(Class<T> componentClass, UnaryOperator<I> replacer);
+    <C, T extends C> S replaceTrait(Class<C> componentClass, UnaryOperator<T> replacer);
 
-    <T> void removeTrait(Class<T> traitClass);
+    <C> void removeTrait(Class<C> traitClass);
 }

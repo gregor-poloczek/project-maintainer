@@ -5,7 +5,7 @@ import static de.gregorpoloczek.projectmaintainer.ui.common.composable.Composabl
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.JsModule;
@@ -23,6 +23,7 @@ import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectO
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
@@ -48,6 +49,8 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkin
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import org.apache.commons.lang3.BooleanUtils;
 import reactor.core.Disposable;
 import reactor.core.Disposable.Swap;
 import reactor.core.Disposables;
@@ -89,6 +92,21 @@ public class PatchesView extends VerticalLayout {
         this.projectProgressBar.setWidthFull();
 
         var search = new ComposableFilterSearch<>(this.dataProvider);
+
+        Checkbox ignoreNoOpCheckbox = new Checkbox();
+        ignoreNoOpCheckbox.setLabel("Ignore No-Op");
+        var handler = search.add(item -> {
+            if (BooleanUtils.isFalse(ignoreNoOpCheckbox.getValue())) {
+                return true;
+            }
+            if (item.getPatchOperationResult().isEmpty()) {
+                return true;
+            }
+            return !(item.getPatchOperationResult().get().getDetail() instanceof PatchExecutionResult.NoopResultDetail);
+        });
+        ignoreNoOpCheckbox.addAttachListener(e1 -> ignoreNoOpCheckbox.addValueChangeListener(e2 -> handler.refresh()));
+        ignoreNoOpCheckbox.addDetachListener(e -> handler.remove());
+
         this.grid = createGrid();
         this.grid.setItemDetailsRenderer(
                 new ComponentRenderer<>(item -> switch (item.getPatchOperationResult().orElse(null)) {
@@ -110,8 +128,12 @@ public class PatchesView extends VerticalLayout {
             });
         });
 
-        this.add(new HorizontalLayout(this.patchesSelection,
-                        new HasProjectFilterComponent<>(search)),
+        HorizontalLayout horizontalLayout = new HorizontalLayout(
+                this.patchesSelection,
+                new HasProjectFilterComponent<>(search),
+                ignoreNoOpCheckbox);
+        horizontalLayout.setAlignItems(Alignment.CENTER);
+        this.add(horizontalLayout,
                 this.menuBar,
                 this.grid,
                 this.projectProgressBar
@@ -127,7 +149,6 @@ public class PatchesView extends VerticalLayout {
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
-        result.addColumn(ProjectPatchItem::getState).setHeader("State");
         result.addColumn(OperationProgressComponent.getRenderer());
         return result;
     }
@@ -149,106 +170,51 @@ public class PatchesView extends VerticalLayout {
     }
 
 
-    private void unlockOperations(UI ui) {
-        if (!ui.isAttached()) {
-            return;
-        }
-        ui.access(() -> {
-            this.menuBar.setEnabled(true);
-            this.patchesSelection.setEnabled(true);
-        });
+    private void onAfterOperation() {
+        this.menuBar.setEnabled(true);
+        this.patchesSelection.setEnabled(true);
+        this.projectProgressBar.stop();
     }
 
-    private void lockOperations(UI ui) {
-        if (!ui.isAttached()) {
-            return;
-        }
-        ui.access(() -> {
-            this.menuBar.setEnabled(false);
-            this.patchesSelection.setEnabled(false);
-        });
+    private void onBeforeOperation() {
+        this.menuBar.setEnabled(false);
+        this.patchesSelection.setEnabled(false);
+    }
+
+    private <T extends PatchOperationResult> void onOperationClick(
+            Function<ProjectRelatable, Flux<ProjectOperationProgress<T>>> operation,
+            String label) {
+        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
+                .sorted().toList();
+        projectProgressBar.start(relevantItems, label);
+
+        Disposable subscription = Flux.fromIterable(relevantItems)
+                .doOnNext(this::clearItem)
+                .flatMap(item ->
+                        operation.apply(item)
+                                .onErrorComplete()
+                                .subscribeOn(Schedulers.parallel()))
+                .doOnSubscribe(_ -> VaadinUtils.access(this, PatchesView::onBeforeOperation))
+                .doOnNext(p -> VaadinUtils.access(this, p, PatchesView::onPatchOperationProgress))
+                .doFinally(_ -> VaadinUtils.access(this, PatchesView::onAfterOperation))
+                .subscribe();
+
+        this.currentOperation.update(subscription);
     }
 
     private void onStopClick(ClickEvent<MenuItem> event) {
-        UI ui = UI.getCurrent();
-
-        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
-                .filter(workingCopyService::hasWorkspace)
-                .sorted().toList();
-        projectProgressBar.start(relevantItems, "Stopping patch process ...");
-
-        Disposable subscription = Flux.fromIterable(relevantItems)
-                .doOnNext(this::clearItem)
-                .flatMap(item ->
-                        this.patchService.stopPatch(item, this.patchesSelection.getValue().getId())
-                                .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnNext(p -> this.onPatchOperationProgress(p, ui))
-                .doFinally(s -> {
-                    this.unlockOperations(ui);
-                    VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop);
-                })
-                .subscribe();
-
-        this.currentOperation.update(subscription);
+        this.onOperationClick(item -> this.patchService.stopPatch(item, this.patchesSelection.getValue().getId()),
+                "Stopping patch process ...");
     }
 
     private void onPreviewClick(ClickEvent<MenuItem> event) {
-        UI ui = UI.getCurrent();
-
-        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
-                .filter(workingCopyService::hasWorkspace)
-                .sorted().toList();
-        projectProgressBar.start(relevantItems, "Previewing patch ...");
-
-        Disposable subscription = Flux.fromIterable(relevantItems)
-                .doOnNext(this::clearItem)
-                .flatMap(item -> this.patchService.previewPatch(item, this.patchesSelection.getValue().getId())
-                        .doOnError(t -> onError(item, t, ui))
-                        .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnNext(p -> this.onPatchOperationProgress(p, ui))
-                .doFinally(s -> {
-                    this.unlockOperations(ui);
-                    VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop);
-                })
-                .subscribe();
-
-        this.currentOperation.update(subscription);
-    }
-
-    private void onError(ProjectPatchItem item, Throwable throwable, UI ui) {
-        ui.access(() -> {
-            item.setThrowable(throwable);
-            item.replaceTrait(HasOperationProgress.class, c -> HasOperationProgress.empty());
-            this.grid.getDataProvider().refreshItem(item);
-        });
+        this.onOperationClick(item -> this.patchService.previewPatch(item, this.patchesSelection.getValue().getId()),
+                "Previewing patch ...");
     }
 
     private void onApplyClick(ClickEvent<MenuItem> event) {
-        UI ui = UI.getCurrent();
-
-        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
-                .filter(workingCopyService::hasWorkspace)
-                .sorted().toList();
-
-        projectProgressBar.start(relevantItems, "Applying patch ...");
-
-        Disposable subscription = Flux.fromIterable(relevantItems)
-                .doOnNext(this::clearItem)
-                .flatMap(item ->
-                        this.patchService.applyPatch(item, this.patchesSelection.getValue().getId())
-                                .doOnError(t -> onError(item, t, ui))
-                                .subscribeOn(Schedulers.parallel()))
-                .doOnSubscribe(s -> this.lockOperations(ui))
-                .doOnNext(p -> onPatchOperationProgress(p, ui))
-                .doFinally(s -> {
-                    this.unlockOperations(ui);
-                    VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop);
-                })
-                .subscribe();
-
-        this.currentOperation.update(subscription);
+        this.onOperationClick(item -> this.patchService.applyPatch(item, this.patchesSelection.getValue().getId()),
+                "Applying patch ...");
     }
 
     private void clearItem(ProjectPatchItem item) {
@@ -280,30 +246,20 @@ public class PatchesView extends VerticalLayout {
         this.dataProvider.refreshAll();
     }
 
-    private void onPatchOperationProgress(ProjectOperationProgress<? extends PatchOperationResult> progress,
-            UI current) {
-        if (!current.isAttached()) {
-            // browser has been reloaded or closed in the meantime
-            return;
-        }
+    private void onPatchOperationProgress(ProjectOperationProgress<? extends PatchOperationResult> progress) {
         ProjectPatchItem item = items.get(progress.getFQPN());
-        current.access(() -> {
-            this.projectProgressBar.update(progress);
+        this.projectProgressBar.update(progress);
 
-            // TODO error handling
-            if (progress.getState() == State.SCHEDULED) {
-                item.setPatchOperationResult(null);
-            } else if (progress.getState() == State.DONE) {
-                item.replaceTrait(HasOperationProgress.class, c -> HasOperationProgress.empty());
-                item.setPatchOperationResult(progress.getResult());
-                this.grid.setDetailsVisible(item, true);
-            } else {
-                item.replaceTrait(HasOperationProgress.class,
-                        c -> c.toBuilder().operationProgress(progress).build());
-            }
+        if (progress.getState() == State.SCHEDULED) {
+            item.setPatchOperationResult(null);
+        } else if (progress.getState() == State.DONE) {
+            item.setPatchOperationResult(progress.getResult());
+            this.grid.setDetailsVisible(item, true);
+        }
+        item.replaceTrait(HasOperationProgress.class,
+                c -> c.toBuilder().operationProgress(progress).build());
 
-            this.grid.getDataProvider().refreshItem(item);
-        });
+        this.grid.getDataProvider().refreshItem(item);
     }
 
     private ProjectPatchItem toProjectItem(Project p) {

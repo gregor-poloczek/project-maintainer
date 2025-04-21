@@ -67,6 +67,16 @@ public class WorkingCopyImpl implements WorkingCopy {
     }
 
     @Override
+    public <T> T withWriteLockAndThrowing(final Operation<T> operation) throws Exception {
+        lock.writeLock().lock();
+        try {
+            return operation.execute();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
     public void withReadLock(final Runnable operation) {
         this.withReadLock(((Supplier<Void>) (() -> {
             operation.run();

@@ -25,17 +25,17 @@ public abstract class AbstractComposable<K, S extends AbstractComposable<K, S>> 
 
     @Override
     @SuppressWarnings("unchecked")
-    public <C, I extends C> S addTrait(Class<C> traitClass, I trait) {
+    public <C, T extends C> S addTrait(Class<C> traitClass, T trait) {
         this.traits.put(traitClass, trait);
         return (S) this;
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public <C, I extends C> S replaceTrait(Class<C> traitClass, UnaryOperator<I> replacer) {
-        I component = (I) traitClass.cast(this.traits.get(traitClass));
+    public <C, T extends C> S replaceTrait(Class<C> traitClass, UnaryOperator<T> replacer) {
+        T component = (T) traitClass.cast(this.traits.get(traitClass));
 
-        I newComponent = replacer.apply(component);
+        T newComponent = replacer.apply(component);
         if (newComponent == null) {
             throw new IllegalStateException("Component replacement for %s may not be null".formatted(traitClass));
         }

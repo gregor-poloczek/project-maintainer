@@ -4,6 +4,7 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -27,4 +28,19 @@ public class VaadinUtils {
         }));
     }
 
+    public void show(Component... components) {
+        Stream.of(components).forEach(c -> c.setVisible(true));
+    }
+
+    public void hide(Component... components) {
+        Stream.of(components).forEach(c -> c.setVisible(false));
+    }
+
+    public static void toggleClassName(Component component, boolean value, String className) {
+        if (value) {
+            component.addClassName(className);
+        } else {
+            component.removeClassName(className);
+        }
+    }
 }

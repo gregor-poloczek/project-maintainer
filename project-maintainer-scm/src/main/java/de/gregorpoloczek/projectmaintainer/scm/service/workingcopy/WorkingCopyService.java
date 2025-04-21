@@ -101,6 +101,7 @@ public class WorkingCopyService {
         return ProjectOperationProgress.<Void>builder()
                 .fqpn(p.getFQPN())
                 .state(p.getState())
+                .throwable(p.getThrowable().orElse(null))
                 .progressCurrent(p.getProgressCurrent())
                 .progressTotal(p.getProgressTotal())
                 .message(p.getMessage())
@@ -130,6 +131,7 @@ public class WorkingCopyService {
                 } catch (Exception e) {
                     sink.next(ProjectOperationProgress.<Void>builder()
                             .fqpn(project.getFQPN())
+                            .throwable(e)
                             .state(OperationProgress.State.FAILED)
                             .build());
                     sink.error(e);

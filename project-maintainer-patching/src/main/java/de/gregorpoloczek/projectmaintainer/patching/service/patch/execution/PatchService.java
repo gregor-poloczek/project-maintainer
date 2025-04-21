@@ -185,57 +185,71 @@ public class PatchService {
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
 
-        return Flux.create(sink -> {
-            ProjectOperationProgressBuilder<PatchExecutionResult> progress =
-                    ProjectOperationProgress.<PatchExecutionResult>builder().fqpn(fqpn);
+        return Flux.<ProjectOperationProgress<PatchExecutionResult>>create(sink -> {
+                    ProjectOperationProgressBuilder<PatchExecutionResult> progress =
+                            ProjectOperationProgress.<PatchExecutionResult>builder().fqpn(fqpn);
 
-            ProgressSink<PatchExecutionResult> progressSink = new ProgressSink<>(sink, progress);
+                    ProgressSink<PatchExecutionResult> progressSink = new ProgressSink<>(sink, progress);
 
-            sink.next(progress.state(State.SCHEDULED).build());
-            progressSink.total(previewOnly ? 4 : 6);
-            progress.state(State.RUNNING);
+                    sink.next(progress.state(State.SCHEDULED).build());
+                    progressSink.total(previewOnly ? 4 : 6);
+                    progress.state(State.RUNNING);
 
-            String defaultBranch = this.gitService.getBranchState(workingCopy).getDefaultBranch();
-            PatchExecutionContext executionContext = PatchExecutionContext.builder()
-                    .workingCopy(workingCopy)
-                    .progressSink(progressSink)
-                    .patch(patch)
-                    .defaultBranch(defaultBranch)
-                    .baseBranch(defaultBranch)
-                    .patchBranch(this.getPatchBranch(patch))
-                    .build();
+                    String defaultBranch = this.gitService.getBranchState(workingCopy).getDefaultBranch();
+                    PatchExecutionContext executionContext = PatchExecutionContext.builder()
+                            .workingCopy(workingCopy)
+                            .progressSink(progressSink)
+                            .patch(patch)
+                            .defaultBranch(defaultBranch)
+                            .baseBranch(defaultBranch)
+                            .patchBranch(this.getPatchBranch(patch))
+                            .build();
 
-            // TODO lock working copy
+                    // TODO lock working copy
 
-            log.info("A");
-            // TODO umbauen auf ohne "switchIfEmpty"
-            Mono.empty()
-                    .then(this.resetWorkspace(executionContext))
-                    .then(this.checkForExistingPullRequest(executionContext))
-                    .switchIfEmpty(this.checkForExistingRemoteBranch(executionContext))
-                    .switchIfEmpty(this.makeSourceCodeChanges(executionContext))
-                    .flatMap(detail -> {
-                        if (!(detail instanceof PreviewGeneratedResultDetail)) {
-                            return Mono.just(detail);
-                        } else if (!previewOnly) {
-                            return this.createBranchWithChanges(executionContext, (PreviewGeneratedResultDetail) detail)
-                                    .flatMap(remoteBranch -> this.createPullRequest(executionContext, remoteBranch));
-                        } else {
-                            log.info("Patch {} in {} is a dry run, not applying changes", id, fqpn);
-                            return Mono.just(detail);
-                        }
-                    })
-                    .subscribe(detail -> {
-                                sink.next(
-                                        progress.state(State.DONE)
-                                                .progressCurrent(1)
-                                                .progressTotal(1)
-                                                .result(PatchExecutionResult.builder().detail(detail).build())
-                                                .build());
-                                sink.complete();
-                            }, sink::error
-                    );
-        });
+                    log.info("A");
+                    // TODO umbauen auf ohne "switchIfEmpty"
+                    Mono.empty()
+                            .then(this.resetWorkspace(executionContext))
+                            .then(this.checkForExistingPullRequest(executionContext))
+                            .switchIfEmpty(this.checkForExistingRemoteBranch(executionContext))
+                            .switchIfEmpty(this.makeSourceCodeChanges(executionContext))
+                            .flatMap(detail -> {
+                                if (!(detail instanceof PreviewGeneratedResultDetail)) {
+                                    return Mono.just(detail);
+                                } else if (!previewOnly) {
+                                    return this.createBranchWithChanges(executionContext, (PreviewGeneratedResultDetail) detail)
+                                            .flatMap(remoteBranch -> this.createPullRequest(executionContext, remoteBranch));
+                                } else {
+                                    log.info("Patch {} in {} is a dry run, not applying changes", id, fqpn);
+                                    return Mono.just(detail);
+                                }
+                            })
+                            .subscribe(detail -> {
+                                        sink.next(
+                                                progress.state(State.DONE)
+                                                        .progressCurrent(1)
+                                                        .progressTotal(1)
+                                                        .result(PatchExecutionResult.builder().detail(detail).build())
+                                                        .build());
+                                        sink.complete();
+                                    }, sink::error
+                            );
+                }).map(p -> {
+                    if (p.getState() == State.DONE) {
+                        String message = Optional.ofNullable(p.getResult())
+                                .map(PatchExecutionResult::getDetail)
+                                .map(PatchOperationResultDetail::getName)
+                                .orElse(p.getMessage());
+                        return p.toBuilder().message(message).build();
+                    }
+                    return p;
+                })
+                .onErrorResume(t -> Flux.just(ProjectOperationProgress.<PatchExecutionResult>builder()
+                        .fqpn(projectRelatable.getFQPN())
+                        .state(State.FAILED)
+                        .throwable(t)
+                        .build()).concatWith(Mono.error(t)));
     }
 
 

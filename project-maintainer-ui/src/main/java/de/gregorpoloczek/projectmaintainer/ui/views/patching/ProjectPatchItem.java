@@ -4,7 +4,6 @@ import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
-import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResultDetail;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.Optional;
@@ -25,18 +24,6 @@ public class ProjectPatchItem
         implements ProjectRelatable, Comparable<ProjectPatchItem> {
 
     PatchOperationResult patchOperationResult;
-    Throwable throwable;
-
-    public String getState() {
-        if (throwable != null) {
-            return "Failed: " + throwable.getMessage();
-        }
-
-        return
-                getPatchOperationResult()
-                        .map(PatchOperationResult::getDetail)
-                        .map(PatchOperationResultDetail::getName).orElse("");
-    }
 
     public Optional<PatchOperationResult> getPatchOperationResult() {
         return Optional.ofNullable(patchOperationResult);
@@ -59,7 +46,6 @@ public class ProjectPatchItem
 
     public void clearResult() {
         this.patchOperationResult = null;
-        this.throwable = null;
     }
 
     @Override

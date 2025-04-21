@@ -1,5 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.common.service.progress;
 
+import java.util.Optional;
+
 public interface OperationProgress<T> {
 
     enum State {
@@ -17,6 +19,8 @@ public interface OperationProgress<T> {
     String getMessage();
 
     T getResult();
+
+    Optional<Throwable> getThrowable();
 
     int getProgressCurrent();
 

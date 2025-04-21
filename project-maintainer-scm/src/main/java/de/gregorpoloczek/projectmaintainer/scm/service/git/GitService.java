@@ -48,40 +48,41 @@ public class GitService {
                     .state(State.SCHEDULED)
                     .message("Pulling ...")
                     .build());
-            PullResult pullResult = workingCopy.withWriteLock(() -> {
+            try {
+                PullResult pullResult = workingCopy.withWriteLockAndThrowing(() -> {
+                    final File directory = workingCopy.getDirectory();
+                    try (Git git = Git.open(directory)) {
+                        log.info("Pulling \"{}\".", directory);
 
-                final File directory = workingCopy.getDirectory();
-                try (Git git = Git.open(directory)) {
-                    log.info("Pulling \"{}\".", directory);
+                        final CredentialsProvider cP = workingCopy.getCredentialsProvider();
 
-                    final CredentialsProvider cP = workingCopy.getCredentialsProvider();
+                        var p = git.pull()
+                                .setCredentialsProvider(cP)
+                                .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
+                                .call();
 
-                    var p = git.pull()
-                            .setCredentialsProvider(cP)
-                            .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
-                            .call();
+                        log.info("Pulling \"{}\" successfully.", directory);
+                        return new PullResult(Commit.of((RevCommit) p.getMergeResult().getNewHead()));
+                    }
+                });
+                sink.next(ProjectOperationProgress.<PullResult>builder()
+                        .fqpn(workingCopy.getFQPN())
+                        .state(State.DONE)
+                        .progressCurrent(1)
+                        .progressTotal(1)
+                        .result(pullResult)
+                        .build());
+                sink.complete();
 
-                    log.info("Pulling \"{}\" successfully.", directory);
-                    return new PullResult(Commit.of((RevCommit) p.getMergeResult().getNewHead()));
-                } catch (Exception e) {
-                    log.error("Pulling failed.", e);
-                    sink.next(ProjectOperationProgress.<PullResult>builder()
-                            .fqpn(workingCopy.getFQPN())
-                            .state(State.FAILED)
-                            .build());
-                    throw new IllegalStateException(e);
-                }
-            });
-
-            sink.next(ProjectOperationProgress.<PullResult>builder()
-                    .fqpn(workingCopy.getFQPN())
-                    .state(State.DONE)
-                    .progressCurrent(1)
-                    .progressTotal(1)
-                    .result(pullResult)
-                    .build());
-            sink.complete();
-
+            } catch (Exception e) {
+                log.error("Pulling failed.", e);
+                sink.next(ProjectOperationProgress.<PullResult>builder()
+                        .fqpn(workingCopy.getFQPN())
+                        .throwable(e)
+                        .state(State.FAILED)
+                        .build());
+                sink.error(e);
+            }
         });
     }
 
@@ -123,6 +124,7 @@ public class GitService {
                     log.error("Cloning failed.", e);
                     sink.next(ProjectOperationProgress.<CloneResult>builder()
                             .fqpn(workingCopy.getFQPN())
+                            .throwable(e)
                             .state(State.FAILED)
                             .build());
                     throw new IllegalStateException(e);
