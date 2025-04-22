@@ -1,10 +1,12 @@
 package de.gregorpoloczek.projectmaintainer.ui.views.patching;
 
+import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
+import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -23,10 +25,11 @@ public class ProjectPatchItem
         extends AbstractComposable<FQPN, ProjectPatchItem>
         implements ProjectRelatable, Comparable<ProjectPatchItem> {
 
-    PatchOperationResult patchOperationResult;
-
     public Optional<PatchOperationResult> getPatchOperationResult() {
-        return Optional.ofNullable(patchOperationResult);
+        return this.requireTrait(HasOperationProgress.class)
+                .getOperationProgress()
+                .flatMap(OperationProgress::getResult)
+                .map(PatchOperationResult.class::cast);
     }
 
     public Project getProject() {
@@ -45,7 +48,7 @@ public class ProjectPatchItem
     }
 
     public void clearResult() {
-        this.patchOperationResult = null;
+        this.replaceTrait(HasOperationProgress.class, _ -> HasOperationProgress.empty());
     }
 
     @Override

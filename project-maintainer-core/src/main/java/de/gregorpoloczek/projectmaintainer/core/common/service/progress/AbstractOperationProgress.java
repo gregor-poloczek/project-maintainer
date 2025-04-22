@@ -31,11 +31,8 @@ public class AbstractOperationProgress<T> implements OperationProgress<T> {
         return progressTotal;
     }
 
-    public T getResult() {
-        if (this.result == null) {
-            throw new IllegalStateException("No result defined.");
-        }
-        return result;
+    public Optional<T> getResult() {
+        return Optional.ofNullable(result);
     }
 
     public Optional<Throwable> getThrowable() {

@@ -93,10 +93,10 @@ public class PatchesView extends VerticalLayout {
 
         var search = new ComposableFilterSearch<>(this.dataProvider);
 
-        Checkbox ignoreNoOpCheckbox = new Checkbox();
-        ignoreNoOpCheckbox.setLabel("Ignore No-Op");
+        Checkbox hideNoOpCheckbox = new Checkbox();
+        hideNoOpCheckbox.setLabel("Hide No-Op");
         var handler = search.add(item -> {
-            if (BooleanUtils.isFalse(ignoreNoOpCheckbox.getValue())) {
+            if (BooleanUtils.isFalse(hideNoOpCheckbox.getValue())) {
                 return true;
             }
             if (item.getPatchOperationResult().isEmpty()) {
@@ -104,8 +104,8 @@ public class PatchesView extends VerticalLayout {
             }
             return !(item.getPatchOperationResult().get().getDetail() instanceof PatchExecutionResult.NoopResultDetail);
         });
-        ignoreNoOpCheckbox.addAttachListener(e1 -> ignoreNoOpCheckbox.addValueChangeListener(e2 -> handler.refresh()));
-        ignoreNoOpCheckbox.addDetachListener(e -> handler.remove());
+        hideNoOpCheckbox.addAttachListener(e1 -> hideNoOpCheckbox.addValueChangeListener(e2 -> handler.refresh()));
+        hideNoOpCheckbox.addDetachListener(e -> handler.remove());
 
         this.grid = createGrid();
         this.grid.setItemDetailsRenderer(
@@ -120,18 +120,19 @@ public class PatchesView extends VerticalLayout {
         this.patchesSelection.setWidth("400px");
         this.patchesSelection.setItemLabelGenerator(PatchMetaData::getId);
         this.patchesSelection.setRequired(true);
-        this.patchesSelection.addValueChangeListener(e -> {
+        this.patchesSelection.addValueChangeListener(_ -> {
             items.getAll().forEach(item -> {
                 item.clearResult();
                 this.grid.setDetailsVisible(item, false);
-                this.grid.getListDataView().refreshItem(item);
+                this.dataProvider.refreshItem(item);
             });
+            search.refresh();
         });
 
         HorizontalLayout horizontalLayout = new HorizontalLayout(
                 this.patchesSelection,
                 new HasProjectFilterComponent<>(search),
-                ignoreNoOpCheckbox);
+                hideNoOpCheckbox);
         horizontalLayout.setAlignItems(Alignment.CENTER);
         this.add(horizontalLayout,
                 this.menuBar,
@@ -250,16 +251,14 @@ public class PatchesView extends VerticalLayout {
         ProjectPatchItem item = items.get(progress.getFQPN());
         this.projectProgressBar.update(progress);
 
-        if (progress.getState() == State.SCHEDULED) {
-            item.setPatchOperationResult(null);
-        } else if (progress.getState() == State.DONE) {
-            item.setPatchOperationResult(progress.getResult());
+        if (progress.getState() == State.DONE) {
             this.grid.setDetailsVisible(item, true);
         }
         item.replaceTrait(HasOperationProgress.class,
                 c -> c.toBuilder().operationProgress(progress).build());
 
-        this.grid.getDataProvider().refreshItem(item);
+        this.dataProvider.refreshAll();
+        this.dataProvider.refreshItem(item);
     }
 
     private ProjectPatchItem toProjectItem(Project p) {

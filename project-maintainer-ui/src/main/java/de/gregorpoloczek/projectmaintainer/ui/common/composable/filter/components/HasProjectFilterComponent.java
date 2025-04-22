@@ -11,11 +11,11 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.filter.Composabl
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import org.apache.commons.lang3.StringUtils;
 
-public class HasProjectFilterComponent<T extends AbstractComposable<?, T>> extends HorizontalLayout {
+public class HasProjectFilterComponent<K, T extends AbstractComposable<K, T>> extends HorizontalLayout {
 
     private final TextField textField;
 
-    public HasProjectFilterComponent(ComposableFilterSearch<T> composableFilterSearch) {
+    public HasProjectFilterComponent(ComposableFilterSearch<K, T> composableFilterSearch) {
         textField = new TextField();
         textField.setValueChangeMode(ValueChangeMode.EAGER);
         setDecorated(true);

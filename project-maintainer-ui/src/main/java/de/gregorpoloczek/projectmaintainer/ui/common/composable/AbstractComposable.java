@@ -1,13 +1,28 @@
 package de.gregorpoloczek.projectmaintainer.ui.common.composable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 public abstract class AbstractComposable<K, S extends AbstractComposable<K, S>> implements Composable<K, S> {
 
+
     private final Map<Class<?>, Object> traits = new HashMap<>();
+
+    private final List<ChangeListener<K, S>> changeListeners = new ArrayList<>();
+
+    @Override
+    public void addChangeListener(ChangeListener<K, S> changeListener) {
+        this.changeListeners.add(changeListener);
+    }
+
+    @Override
+    public void removeChangeListener(ChangeListener<K, S> changeListener) {
+        this.changeListeners.remove(changeListener);
+    }
 
     @Override
     public <C> Optional<C> getTrait(Class<C> traitClass) {
@@ -27,6 +42,7 @@ public abstract class AbstractComposable<K, S extends AbstractComposable<K, S>> 
     @SuppressWarnings("unchecked")
     public <C, T extends C> S addTrait(Class<C> traitClass, T trait) {
         this.traits.put(traitClass, trait);
+        triggerUpdateListeners();
         return (S) this;
     }
 
@@ -41,11 +57,18 @@ public abstract class AbstractComposable<K, S extends AbstractComposable<K, S>> 
         }
 
         this.traits.put(traitClass, newComponent);
+
+        triggerUpdateListeners();
         return (S) this;
+    }
+
+    private void triggerUpdateListeners() {
+        this.changeListeners.forEach(l -> l.onChange((S) this));
     }
 
     @Override
     public <C> void removeTrait(Class<C> traitClass) {
         this.traits.remove(traitClass);
+        triggerUpdateListeners();
     }
 }

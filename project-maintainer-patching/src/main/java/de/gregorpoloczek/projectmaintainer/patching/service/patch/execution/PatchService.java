@@ -237,7 +237,7 @@ public class PatchService {
                             );
                 }).map(p -> {
                     if (p.getState() == State.DONE) {
-                        String message = Optional.ofNullable(p.getResult())
+                        String message = p.getResult()
                                 .map(PatchExecutionResult::getDetail)
                                 .map(PatchOperationResultDetail::getName)
                                 .orElse(p.getMessage());

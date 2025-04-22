@@ -67,7 +67,7 @@ public class GitView extends VerticalLayout {
     private final transient ListDataProvider<ProjectItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
 
     private final transient Disposable.Swap currentOperation = Disposables.swap();
-    private final transient ComposableFilterSearch<ProjectItem> search = new ComposableFilterSearch<>(
+    private final transient ComposableFilterSearch<FQPN, ProjectItem> search = new ComposableFilterSearch<>(
             this.dataProvider);
     private final transient ProjectProgressBar projectProgressBar;
 

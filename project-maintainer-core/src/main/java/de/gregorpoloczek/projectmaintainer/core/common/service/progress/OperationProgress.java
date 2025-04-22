@@ -18,7 +18,7 @@ public interface OperationProgress<T> {
 
     String getMessage();
 
-    T getResult();
+    Optional<T> getResult();
 
     Optional<Throwable> getThrowable();
 
