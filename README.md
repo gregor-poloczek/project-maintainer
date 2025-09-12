@@ -20,7 +20,7 @@
        discovery:
          bitbucket:
            users:
-             - your-bitbucket-user
+             - your-atlassian-email-adress@domain.org
    ```
 
 ### Credentials
@@ -28,7 +28,7 @@
 1. Create a file `./credentials/passwords.properties`
 2. Add the credentials from the `application-local.yml` file.
    ```
-   bitbucket.your-bitbucket-user=your-credential-in-plain-text
+   bitbucket.your-atlassian-email-adress@domain.org=your-credential-in-plain-text
    ```
 
 ## Assets
