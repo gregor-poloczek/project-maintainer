@@ -189,12 +189,15 @@ public class PatchesView extends VerticalLayout {
                 .sorted().toList();
         projectProgressBar.start(relevantItems, label);
 
+        // TODO alle betroffenen projekte zählen und anzeigen
+
         Disposable subscription = Flux.fromIterable(relevantItems)
                 .doOnNext(this::clearItem)
                 .flatMap(item ->
                         operation.apply(item)
+                                // TODO broken package is not visible in view
                                 .onErrorComplete()
-                                .subscribeOn(Schedulers.parallel()))
+                                .subscribeOn(Schedulers.boundedElastic()))
                 .doOnSubscribe(_ -> VaadinUtils.access(this, PatchesView::onBeforeOperation))
                 .doOnNext(p -> VaadinUtils.access(this, p, PatchesView::onPatchOperationProgress))
                 .doFinally(_ -> VaadinUtils.access(this, PatchesView::onAfterOperation))

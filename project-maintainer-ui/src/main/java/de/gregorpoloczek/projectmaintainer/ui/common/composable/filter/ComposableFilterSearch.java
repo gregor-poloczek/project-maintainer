@@ -92,6 +92,8 @@ public class ComposableFilterSearch<K, T extends Composable<K, T>> {
     }
 
     public void refresh() {
+        // TODO darf nur gemacht werden, wenn sich tatsächlich etwas ändert, sonst
+        //  wird es zu teuer.
         this.refreshable.setFilter(this::matches);
     }
 

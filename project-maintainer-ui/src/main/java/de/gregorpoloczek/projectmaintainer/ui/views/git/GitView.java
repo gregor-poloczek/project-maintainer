@@ -130,8 +130,7 @@ public class GitView extends VerticalLayout {
         Disposable subscription = Flux.fromIterable(relevantItems)
                 .flatMap(item ->
                         operation.apply(item)
-                                .onErrorComplete())
-                .subscribeOn(Schedulers.parallel())
+                                .onErrorComplete().subscribeOn(Schedulers.boundedElastic()))
                 .doFinally(s -> VaadinUtils.access(this, GitView::onAfterOperation))
                 .subscribe(p -> VaadinUtils.access(this, p, GitView::onUpdateEvent));
         currentOperation.update(subscription);

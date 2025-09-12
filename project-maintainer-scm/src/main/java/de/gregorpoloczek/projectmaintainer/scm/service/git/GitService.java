@@ -61,7 +61,7 @@ public class GitService {
                                 .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
                                 .call();
 
-                        log.info("Pulling \"{}\" successfully.", directory);
+                        log.info("Pulled \"{}\" successfully.", directory);
                         return new PullResult(Commit.of((RevCommit) p.getMergeResult().getNewHead()));
                     }
                 });
