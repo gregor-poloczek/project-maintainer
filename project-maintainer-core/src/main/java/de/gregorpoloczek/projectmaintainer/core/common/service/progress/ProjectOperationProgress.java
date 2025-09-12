@@ -28,14 +28,15 @@ public class ProjectOperationProgress<T> extends AbstractOperationProgress<T> im
                 .append("message", getMessage()).build();
     }
 
-    @Builder
+    @Builder(toBuilder = true)
     public ProjectOperationProgress(
             @NonNull State state,
             String message,
             T result,
+            Throwable throwable,
             Integer progressCurrent, Integer progressTotal,
             @NonNull FQPN fqpn) {
-        super(state, message, result, progressCurrent == null ? 0 : progressCurrent,
+        super(state, message, result, throwable, progressCurrent == null ? 0 : progressCurrent,
                 progressTotal == null ? 1 : progressTotal);
         this.fqpn = fqpn;
     }

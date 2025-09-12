@@ -67,7 +67,7 @@ public class GitView extends VerticalLayout {
     private final transient ListDataProvider<ProjectItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
 
     private final transient Disposable.Swap currentOperation = Disposables.swap();
-    private final transient ComposableFilterSearch<ProjectItem> search = new ComposableFilterSearch<>(
+    private final transient ComposableFilterSearch<FQPN, ProjectItem> search = new ComposableFilterSearch<>(
             this.dataProvider);
     private final transient ProjectProgressBar projectProgressBar;
 
@@ -130,7 +130,7 @@ public class GitView extends VerticalLayout {
         Disposable subscription = Flux.fromIterable(relevantItems)
                 .flatMap(item ->
                         operation.apply(item)
-                                .subscribeOn(Schedulers.parallel()))
+                                .onErrorComplete().subscribeOn(Schedulers.boundedElastic()))
                 .doFinally(s -> VaadinUtils.access(this, GitView::onAfterOperation))
                 .subscribe(p -> VaadinUtils.access(this, p, GitView::onUpdateEvent));
         currentOperation.update(subscription);
@@ -175,12 +175,13 @@ public class GitView extends VerticalLayout {
     }
 
     private void onUpdateEvent(ProjectOperationProgress<?> e) {
-        ProjectItem item = items.get(e.getFQPN());
-        // TODO error handling
-
         if (e.getState().isTerminated()) {
+            // only terminating operations can properly increase the progress, the other
+            // git operations don't have reliable progress values
             this.projectProgressBar.update(e);
         }
+
+        ProjectItem item = items.get(e.getFQPN());
         if (e.getState() == OperationProgress.State.DONE) {
             WorkingCopy workingCopy = this.workingCopyService.find(item).orElse(null);
             Image icon = this.imageResolverService.getProjectImage(item).orElse(null);
@@ -188,7 +189,6 @@ public class GitView extends VerticalLayout {
                     .replaceTrait(HasWorkingCopy.class, t -> t.toBuilder().workingCopy(workingCopy).build())
                     .replaceTrait(HasIcon.class, t -> t.toBuilder()
                             .icon(icon)
-                            // TODO glaube das funktioniert hier nicht?
                             .blurred(workingCopy == null)
                             .build())
                     .replaceTrait(HasOperationProgress.class, _ -> HasOperationProgress.empty());

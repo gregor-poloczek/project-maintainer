@@ -10,4 +10,7 @@ import lombok.experimental.FieldDefaults;
 public class RepositoryLinksResource {
 
     List<RepositoryLinkResource> clone;
+    RepositoryLinkResource html;
+    RepositoryLinkResource avatar;
+    RepositoryLinkResource self;
 }

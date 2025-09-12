@@ -13,8 +13,9 @@ public class GenericOperationProgress<T> extends AbstractOperationProgress<T> {
             @NonNull State state,
             String message,
             T result,
+            Throwable throwable,
             Integer progressCurrent, Integer progressTotal) {
-        super(state, message, result, progressCurrent == null ? 0 : progressCurrent,
+        super(state, message, result, throwable, progressCurrent == null ? 0 : progressCurrent,
                 progressTotal == null ? 1 : progressTotal);
     }
 }

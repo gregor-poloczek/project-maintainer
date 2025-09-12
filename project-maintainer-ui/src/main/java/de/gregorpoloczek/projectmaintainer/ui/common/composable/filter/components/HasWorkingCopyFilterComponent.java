@@ -24,7 +24,7 @@ public class HasWorkingCopyFilterComponent extends HorizontalLayout {
         String label;
     }
 
-    public HasWorkingCopyFilterComponent(ComposableFilterSearch<?> search) {
+    public HasWorkingCopyFilterComponent(ComposableFilterSearch<?, ?> search) {
         ComboBox<FilterType> filterTypeCombobox = new ComboBox<>();
         filterTypeCombobox.setItems(FilterType.values());
         filterTypeCombobox.setValue(FilterType.ALL);

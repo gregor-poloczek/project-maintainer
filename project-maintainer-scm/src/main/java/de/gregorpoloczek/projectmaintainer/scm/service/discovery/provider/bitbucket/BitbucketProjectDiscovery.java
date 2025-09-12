@@ -8,6 +8,7 @@ import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbuc
 import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource;
 import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource.Branch;
 import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource.PullRequestLocation;
+import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.RepositoryLinkResource;
 import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.RepositoryListResource;
 import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.RepositoryResource;
 import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.WorkspaceMembershipListResource;
@@ -67,8 +68,6 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                     .bodyToMono(WorkspaceMembershipListResource.class)
                     .blockOptional().orElseThrow(IllegalStateException::new);
 
-            UsernamePasswordCredentialsProvider credentialsProvider =
-                    new UsernamePasswordCredentialsProvider(username, password);
             for (WorkspaceMembershipResource membership : membershipList.getValues()) {
                 String workspace = membership.getWorkspace().getSlug();
 
@@ -83,6 +82,29 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
                         RepositoryListResource list = response.blockOptional().orElseThrow(IllegalStateException::new);
 
                         for (RepositoryResource repository : list.getValues()) {
+
+                            Optional<String> maybeCloneLink = repository.getLinks()
+                                    .getClone()
+                                    .stream()
+                                    .filter(l -> l.getName().equals("https"))
+                                    .findFirst()
+                                    .map(RepositoryLinkResource::getHref);
+                            if (maybeCloneLink.isEmpty()) {
+                                log.warn("Cannot determine clone link for repository {}/{}", workspace,
+                                        repository.getName());
+                                continue;
+                            }
+                            String cloneLink = maybeCloneLink.get();
+                            String cloneUsername = cloneLink.replaceAll("^https://([^@]+)@.*$", "$1");
+                            if (cloneUsername.contains("https")) {
+                                log.warn("Cannot determine username for connecting to repository {}/{}", workspace,
+                                        repository.getName());
+                                continue;
+                            }
+
+                            UsernamePasswordCredentialsProvider credentialsProvider =
+                                    new UsernamePasswordCredentialsProvider(cloneUsername, password);
+
                             // TODO the same workspace could be used by two different users
                             // TODO workspace name necessary
                             FQPN fqpn = FQPN.of("bitbucket",
@@ -95,12 +117,7 @@ public class BitbucketProjectDiscovery implements ProjectDiscovery {
 
                             context.discovered(c -> c.fqpn(fqpn)
                                     .owner(workspace)
-                                    .uri(URI.create(repository.getLinks()
-                                            .getClone()
-                                            .stream()
-                                            .filter(l -> l.getName().equals("https"))
-                                            .findFirst()
-                                            .orElseThrow(IllegalStateException::new).getHref()))
+                                    .uri(URI.create(cloneLink))
                                     .credentialsProvider(credentialsProvider)
                                     .description(repository.getDescription())
                                     .websiteLink(Optional.ofNullable(repository.getWebsite())

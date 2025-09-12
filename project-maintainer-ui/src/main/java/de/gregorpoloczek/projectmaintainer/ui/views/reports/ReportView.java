@@ -63,7 +63,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient ReportGeneratorService projectReportGeneratorService;
     private final transient ImageResolverService imageResolverService;
     private final transient Disposable.Swap currentOperation = Disposables.swap();
-    private final ComposableFilterSearch<ReportRow> search;
+    private final ComposableFilterSearch<FQPN, ReportRow> search;
     private final ProjectFullTextSearchService projectFullTextSearchService;
     private final LabeledProgressBar progressBar;
     private transient ProjectReportConfig reportConfig;
@@ -128,17 +128,17 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
                         ui.access(() -> {
                             this.progressBar.setValue(progress.getProgressRelative());
                             if (progress.getState() == OperationProgress.State.SCHEDULED) {
-                                this.applyReportDefinition(progress.getResult().getDefinition());
+                                this.applyReportDefinition(progress.getResult().orElseThrow().getDefinition());
                                 this.rows.clear();
                                 dataProvider.getItems().clear();
                                 dataProvider.refreshAll();
                             }
                             if (progress.getState() == OperationProgress.State.RUNNING) {
                                 // TODO report can be concurrently modified
-                                applyReport(progress.getResult());
+                                applyReport(progress.getResult().orElseThrow());
                             }
                             if (progress.getState() == OperationProgress.State.DONE) {
-                                applyReport(progress.getResult());
+                                applyReport(progress.getResult().orElseThrow());
                             }
                         })
                 ));
@@ -155,7 +155,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         }
         this.filterHeaderRow = grid.appendHeaderRow();
         // second column is always the project name
-        HasProjectFilterComponent<ReportRow> projectFilter = new HasProjectFilterComponent<>(search);
+        HasProjectFilterComponent<FQPN, ReportRow> projectFilter = new HasProjectFilterComponent<>(search);
         projectFilter.setDecorated(false);
         this.filterHeaderRow.getCell(this.grid.getColumns().get(1)).setComponent(projectFilter);
 

@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.eclipse.jgit.transport.CredentialsProvider;
-import reactor.core.publisher.Mono;
 
 public interface WorkingCopy extends ProjectRelatable {
 
@@ -29,6 +28,14 @@ public interface WorkingCopy extends ProjectRelatable {
     void withReadLock(Runnable operation);
 
     <T> T withWriteLock(Supplier<T> operation);
+
+    <T> T withWriteLockAndThrowing(final Operation<T> operation) throws Exception;
+
+    @FunctionalInterface
+    interface Operation<T> {
+
+        T execute() throws Exception;
+    }
 
     void withWriteLock(Runnable operation);
 

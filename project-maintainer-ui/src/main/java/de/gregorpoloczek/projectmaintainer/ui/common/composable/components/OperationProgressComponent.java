@@ -1,28 +1,36 @@
 package de.gregorpoloczek.projectmaintainer.ui.common.composable.components;
 
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.progressbar.ProgressBarVariant;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
+import com.vaadin.flow.dom.Style.WhiteSpace;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import de.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import java.text.MessageFormat;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
+@StyleSheet("./styles/common/composable/components/OperationProgressComponent.css")
 @Slf4j
 public class OperationProgressComponent extends FlexLayout {
 
     private final Div text;
     private final ProgressBar progressBar;
     private final Div value;
+    private final Div errorMessage;
 
     public OperationProgressComponent(Composable<?, ?> composable) {
+        this.addClassName(OperationProgressComponent.class.getSimpleName());
         text = new Div();
         value = new Div();
+        errorMessage = new Div();
+        errorMessage.getStyle().setWhiteSpace(WhiteSpace.PRE_WRAP);
 
         progressBar = new ProgressBar();
 
@@ -32,7 +40,7 @@ public class OperationProgressComponent extends FlexLayout {
         top.setFlexDirection(FlexDirection.ROW);
         top.add(text, value);
 
-        this.add(top, progressBar);
+        this.add(top, progressBar, errorMessage);
         this.setFlexDirection(FlexDirection.COLUMN);
 
         this.update(composable);
@@ -44,21 +52,26 @@ public class OperationProgressComponent extends FlexLayout {
     }
 
     public OperationProgressComponent update(Composable<?, ?> composable) {
-        Optional<OperationProgress<?>> maybeProgress = composable.requireTrait(HasOperationProgress.class)
+        Optional<OperationProgress<?>> maybeProgress = composable
+                .requireTrait(HasOperationProgress.class)
                 .getOperationProgress();
 
+        VaadinUtils.hide(errorMessage);
         if (maybeProgress.isEmpty()) {
-            this.progressBar.setVisible(false);
-            this.text.setVisible(false);
-            this.value.setVisible(false);
+            VaadinUtils.hide(progressBar, text, value);
             return this;
         }
-        this.progressBar.setVisible(true);
-        this.text.setVisible(true);
-        this.value.setVisible(true);
-
         OperationProgress<?> progress = maybeProgress.get();
-        text.setText(progress.getMessage());
+        VaadinUtils.toggleClassName(this, progress.getThrowable().isPresent(), "has-error");
+
+        if (progress.getThrowable().isPresent()) {
+            VaadinUtils.hide(progressBar, text, value);
+            VaadinUtils.show(errorMessage);
+            errorMessage.setText(progress.getThrowable().get().getMessage());
+            return this;
+        }
+
+        VaadinUtils.show(progressBar, text, value);
 
         double progressRelative = progress.getProgressRelative();
         if (Double.isNaN(progressRelative) || Double.isInfinite(progressRelative) || progressRelative > 1.0d) {
@@ -71,6 +84,7 @@ public class OperationProgressComponent extends FlexLayout {
                         progressRelative * 100));
         progressBar.setValue(progressRelative);
         progressBar.setIndeterminate(false);
+        text.setText(progress.getMessage());
 
         progressBar.removeThemeVariants(
                 ProgressBarVariant.LUMO_SUCCESS,

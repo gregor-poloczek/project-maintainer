@@ -63,7 +63,7 @@ public class WorkingCopyService {
 
         return clone.doOnNext(p -> {
                     if (p.getState() == OperationProgress.State.DONE) {
-                        CloneResult result = p.getResult();
+                        CloneResult result = p.getResult().orElseThrow();
                         this.save(
                                 workingCopy.getFQPN(),
                                 workingCopy.getURI(),
@@ -84,7 +84,7 @@ public class WorkingCopyService {
 
         return pull.doOnNext(p -> {
             if (p.getState() == OperationProgress.State.DONE) {
-                PullResult result = p.getResult();
+                PullResult result = p.getResult().orElseThrow();
                 this.save(
                         workingCopy.getFQPN(),
                         workingCopy.getURI(),
@@ -101,6 +101,7 @@ public class WorkingCopyService {
         return ProjectOperationProgress.<Void>builder()
                 .fqpn(p.getFQPN())
                 .state(p.getState())
+                .throwable(p.getThrowable().orElse(null))
                 .progressCurrent(p.getProgressCurrent())
                 .progressTotal(p.getProgressTotal())
                 .message(p.getMessage())
@@ -130,6 +131,7 @@ public class WorkingCopyService {
                 } catch (Exception e) {
                     sink.next(ProjectOperationProgress.<Void>builder()
                             .fqpn(project.getFQPN())
+                            .throwable(e)
                             .state(OperationProgress.State.FAILED)
                             .build());
                     sink.error(e);

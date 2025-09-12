@@ -74,7 +74,7 @@ public class AnalysisView extends VerticalLayout {
         this.projectProgressBar = new ProjectProgressBar();
         this.projectProgressBar.setWidthFull();
 
-        ComposableFilterSearch<ProjectAnalysisItem> search = new ComposableFilterSearch<>(this.dataProvider);
+        ComposableFilterSearch<FQPN, ProjectAnalysisItem> search = new ComposableFilterSearch<>(this.dataProvider);
         this.grid = new Grid<>();
         this.grid.setDataProvider(dataProvider);
 

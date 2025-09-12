@@ -54,7 +54,11 @@ public class ComposableHolder<K, T extends Composable<K, T>> {
         return result;
     }
 
-    private void add(T composable) {
+    public void add(T composable) {
         this.composables.put(composable.getKey(), composable);
+    }
+
+    public boolean contains(T composable) {
+        return this.composables.containsKey(composable.getKey());
     }
 }

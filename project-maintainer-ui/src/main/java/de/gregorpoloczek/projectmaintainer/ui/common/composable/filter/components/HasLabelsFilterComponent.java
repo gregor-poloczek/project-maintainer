@@ -16,7 +16,7 @@ public class HasLabelsFilterComponent extends HorizontalLayout {
 
     private final TextField labelsSearchFilter;
 
-    public HasLabelsFilterComponent(ComposableFilterSearch<?> search) {
+    public HasLabelsFilterComponent(ComposableFilterSearch<?, ?> search) {
         labelsSearchFilter = new TextField();
         labelsSearchFilter.setPlaceholder("Labels");
         labelsSearchFilter.setPrefixComponent(new Icon(VaadinIcon.SEARCH));

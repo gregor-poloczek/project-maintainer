@@ -8,11 +8,12 @@ import lombok.experimental.FieldDefaults;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class ComposableFilterCriterionHandle<T extends Composable<?, T>> {
+public class ComposableFilterCriterionHandle<K, T extends Composable<K, T>> {
 
-    ComposableFilterSearch<T> composableFilterSearch;
+    ComposableFilterSearch<K, T> composableFilterSearch;
+
     @Getter(AccessLevel.PACKAGE)
-    ComposableFilterCriterion<T> criterion;
+    ComposableFilterCriterion<K, T> criterion;
 
     public void refresh() {
         this.composableFilterSearch.refresh(this);
