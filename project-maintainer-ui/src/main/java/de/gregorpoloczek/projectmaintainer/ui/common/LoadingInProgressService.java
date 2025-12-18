@@ -25,7 +25,7 @@ public class LoadingInProgressService implements VaadinServiceInitListener {
     @Override
     public void serviceInit(ServiceInitEvent serviceInitEvent) {
         serviceInitEvent.getSource().addUIInitListener(
-                _ -> {
+                x -> {
                     if (Boolean.TRUE.equals(bootstrapService.isInitialized().blockFirst())) {
                         return;
                     }
@@ -48,10 +48,10 @@ public class LoadingInProgressService implements VaadinServiceInitListener {
         Disposable disposable = bootstrapService.isInitialized()
                 .takeUntil(initialized -> initialized)
                 .filter(initialized -> initialized)
-                .subscribe(_ -> {
+                .subscribe(x -> {
                     log.info("Projects are initialized, reloading page.");
                     ui.access(() -> ui.getPage().reload());
                 });
-        ui.addDetachListener(_ -> disposable.dispose());
+        ui.addDetachListener(x -> disposable.dispose());
     }
 }

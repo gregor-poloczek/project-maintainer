@@ -44,11 +44,13 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkin
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -116,7 +118,7 @@ public class GitView extends VerticalLayout {
     }
 
     private void onOperationClick(Predicate<ProjectItem> predicate,
-            Function<ProjectRelatable, Flux<ProjectOperationProgress<Void>>> operation, String label) {
+                                  Function<ProjectRelatable, Flux<ProjectOperationProgress<Void>>> operation, String label) {
         List<ProjectItem> relevantItems = grid.getSelectionModel()
                 .getSelectedItems()
                 .stream()
@@ -191,7 +193,7 @@ public class GitView extends VerticalLayout {
                             .icon(icon)
                             .blurred(workingCopy == null)
                             .build())
-                    .replaceTrait(HasOperationProgress.class, _ -> HasOperationProgress.empty());
+                    .replaceTrait(HasOperationProgress.class, x -> HasOperationProgress.empty());
         } else {
             item.replaceTrait(HasOperationProgress.class, t -> t.toBuilder().operationProgress(e).build());
         }

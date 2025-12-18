@@ -9,7 +9,7 @@ public class PatchExecutionResultDetailView extends PatchOperationDetailView {
     public PatchExecutionResultDetailView(PatchExecutionResult patchExecutionResult) {
         this.add(new Div(patchExecutionResult.getDetail().getDescription()));
         switch (patchExecutionResult.getDetail()) {
-            case PatchExecutionResult.NoopResultDetail _ -> {
+            case PatchExecutionResult.NoopResultDetail x -> {
             }
             case PatchExecutionResult.PreviewGeneratedResultDetail detail ->
                     this.add(new DiffComponent(detail.getUnifiedDiff()));

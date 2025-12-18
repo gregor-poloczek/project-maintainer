@@ -46,10 +46,12 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+
 import org.apache.commons.lang3.BooleanUtils;
 import reactor.core.Disposable;
 import reactor.core.Disposable.Swap;
@@ -120,7 +122,7 @@ public class PatchesView extends VerticalLayout {
         this.patchesSelection.setWidth("400px");
         this.patchesSelection.setItemLabelGenerator(PatchMetaData::getId);
         this.patchesSelection.setRequired(true);
-        this.patchesSelection.addValueChangeListener(_ -> {
+        this.patchesSelection.addValueChangeListener(x -> {
             items.getAll().forEach(item -> {
                 item.clearResult();
                 this.grid.setDetailsVisible(item, false);
@@ -198,9 +200,9 @@ public class PatchesView extends VerticalLayout {
                                 // TODO broken package is not visible in view
                                 .onErrorComplete()
                                 .subscribeOn(Schedulers.boundedElastic()))
-                .doOnSubscribe(_ -> VaadinUtils.access(this, PatchesView::onBeforeOperation))
+                .doOnSubscribe(x -> VaadinUtils.access(this, PatchesView::onBeforeOperation))
                 .doOnNext(p -> VaadinUtils.access(this, p, PatchesView::onPatchOperationProgress))
-                .doFinally(_ -> VaadinUtils.access(this, PatchesView::onAfterOperation))
+                .doFinally(x -> VaadinUtils.access(this, PatchesView::onAfterOperation))
                 .subscribe();
 
         this.currentOperation.update(subscription);

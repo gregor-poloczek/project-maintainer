@@ -25,6 +25,7 @@ import de.gregorpoloczek.projectmaintainer.scm.service.git.BranchState;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
 import java.util.stream.Stream;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -74,13 +76,13 @@ public class PatchService {
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> previewPatch(ProjectRelatable projectRelatable,
-            String id) {
+                                                                             String id) {
         return usePatch(projectRelatable, id, true);
     }
 
 
     public Flux<ProjectOperationProgress<PatchStopResult>> stopPatch(ProjectRelatable projectRelatable,
-            String id) {
+                                                                     String id) {
         Patch patch = requirePatch(id);
 
         return Flux.create(sink -> {
@@ -123,7 +125,7 @@ public class PatchService {
     }
 
     private Mono<? extends PatchOperationResultDetail> deleteRemoteBranch(PatchStopContext stopContext,
-            Optional<PullRequest> pullRequest) {
+                                                                          Optional<PullRequest> pullRequest) {
         return Mono.fromSupplier(() -> {
             SortedSet<String> remoteBranches = this.gitService.getBranchState(stopContext.getWorkingCopy())
                     .getRemoteBranches();
@@ -157,7 +159,7 @@ public class PatchService {
             } else {
                 return PatchStopResult.NoopResultDetail.builder().build();
             }
-        }).doOnSubscribe(_ -> stopContext.publish("Deleting patch branch"));
+        }).doOnSubscribe(x -> stopContext.publish("Deleting patch branch"));
     }
 
     private Mono<Optional<PullRequest>> declinePullRequest(PatchStopContext stopContext) {
@@ -176,11 +178,11 @@ public class PatchService {
                                         .then(Mono.just(pullRequest));
                     }
                 })
-                .doOnSubscribe(_ -> stopContext.publish("Close pull request"));
+                .doOnSubscribe(x -> stopContext.publish("Close pull request"));
     }
 
     private Flux<ProjectOperationProgress<PatchExecutionResult>> usePatch(ProjectRelatable projectRelatable,
-            String id, boolean previewOnly) {
+                                                                          String id, boolean previewOnly) {
         Patch patch = this.requirePatch(id);
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
@@ -254,7 +256,7 @@ public class PatchService {
 
 
     private Mono<? extends PatchOperationResultDetail> createPullRequest(PatchExecutionContext executionContext,
-            RemoteBranch remoteBranch) {
+                                                                         RemoteBranch remoteBranch) {
         PullRequestCreation pullRequestCreation = PullRequestCreation.builder()
                 .title(getPullRequestTitle(executionContext.getPatch()))
                 .sourceBranchName(executionContext.getPatchBranch())
@@ -267,7 +269,7 @@ public class PatchService {
                                 .remoteBranch(remoteBranch)
                                 .pullRequest(pR)
                                 .build())
-                .doOnSubscribe(_ -> executionContext.publish("Creating pull request"));
+                .doOnSubscribe(x -> executionContext.publish("Creating pull request"));
     }
 
     private String getPullRequestTitle(Patch patch) {
@@ -338,7 +340,7 @@ public class PatchService {
                     .name(executionContext.getPatchBranch())
                     .href(getPatchRemoteBranchHref(executionContext))
                     .build();
-        }).doOnSubscribe(_ -> executionContext.publish("Applying changes"));
+        }).doOnSubscribe(x -> executionContext.publish("Applying changes"));
     }
 
     private String getCommitMessage(Patch patch) {
@@ -402,7 +404,7 @@ public class PatchService {
                             .href(href)
                             .build())
                     .build();
-        }).doOnSubscribe(_ -> executionContext.publish("Checking for remote branches"));
+        }).doOnSubscribe(x -> executionContext.publish("Checking for remote branches"));
     }
 
     private String getPatchRemoteBranchHref(PatchOperationContext executionContext) {
@@ -446,7 +448,7 @@ public class PatchService {
                                 .unifiedDiff(unifiedDiff).build();
                     }
                 })
-                .doOnSubscribe(_ -> executionContext.publish("Evaluating changes"));
+                .doOnSubscribe(x -> executionContext.publish("Evaluating changes"));
     }
 
     private Mono<PatchOperationResultDetail> checkForExistingPullRequest(PatchExecutionContext context) {
@@ -514,8 +516,8 @@ public class PatchService {
 
         String filePath = operation.getLocation().getRelativePath().toString();
         List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(
-                operation.getBefore().map(_ -> filePath).orElse(null),
-                operation.getAfter().map(_ -> filePath).orElse(null),
+                operation.getBefore().map(x -> filePath).orElse(null),
+                operation.getAfter().map(x -> filePath).orElse(null),
                 before,
                 patches, 2);
 

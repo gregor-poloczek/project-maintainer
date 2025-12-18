@@ -1,117 +1,141 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>de.gregorpoloczek.project-maintainer</groupId>
-  <artifactId>project-maintainer</artifactId>
-  <version>1.0-SNAPSHOT</version>
-  <packaging>pom</packaging>
+    <groupId>de.gregorpoloczek.project-maintainer</groupId>
+    <artifactId>project-maintainer</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
 
-  <modules>
-    <module>project-maintainer-core</module>
-    <module>project-maintainer-ui</module>
-    <module>project-maintainer-analysis</module>
-    <module>project-maintainer-bootstrap</module>
-    <module>project-maintainer-scm</module>
-    <module>project-maintainer-reporting</module>
-    <module>project-maintainer-patching</module>
-    <module>project-maintainer-custom</module>
-  </modules>
+    <modules>
+        <module>project-maintainer-core</module>
+        <module>project-maintainer-ui</module>
+        <module>project-maintainer-analysis</module>
+        <module>project-maintainer-bootstrap</module>
+        <module>project-maintainer-scm</module>
+        <module>project-maintainer-reporting</module>
+        <module>project-maintainer-patching</module>
+        <module>project-maintainer-custom</module>
+    </modules>
 
-  <properties>
-    <vaadin.version>24.7.2</vaadin.version>
-    <maven.compiler.source>21</maven.compiler.source>
-    <maven.compiler.target>21</maven.compiler.target>
-    <spring-boot.version>3.3.1</spring-boot.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+    <properties>
+        <vaadin.version>24.7.2</vaadin.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <spring-boot.version>3.3.1</spring-boot.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
 
-  <dependencyManagement>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <artifactId>project-maintainer-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <artifactId>project-maintainer-bootstrap</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <artifactId>project-maintainer-scm</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <artifactId>project-maintainer-patching</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <artifactId>project-maintainer-reporting</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <artifactId>project-maintainer-analysis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <artifactId>project-maintainer-custom</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <!-- Declare the latest Vaadin version
+                     as a property or directly here -->
+                <version>${vaadin.version}</version> <!-- <1> -->
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <!-- Import dependency management from Spring Boot -->
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>2.23.5</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.jgit</groupId>
+                <artifactId>org.eclipse.jgit</artifactId>
+                <version>6.8.0.202311291450-r</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.42</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>2.13.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-core</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-bootstrap</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-scm</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-patching</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-reporting</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-analysis</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>de.gregorpoloczek.project-maintainer</groupId>
-        <artifactId>project-maintainer-custom</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.vaadin</groupId>
-        <artifactId>vaadin-bom</artifactId>
-        <!-- Declare the latest Vaadin version
-             as a property or directly here -->
-        <version>${vaadin.version}</version> <!-- <1> -->
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
-        <!-- Import dependency management from Spring Boot -->
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${spring-boot.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>bom</artifactId>
-        <version>2.23.5</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.eclipse.jgit</groupId>
-        <artifactId>org.eclipse.jgit</artifactId>
-        <version>6.8.0.202311291450-r</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <version>1.18.30</version>
-        <scope>provided</scope>
-      </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
     </dependencies>
-  </dependencyManagement>
-  <dependencies>
-    <dependency>
-      <groupId>org.projectlombok</groupId>
-      <artifactId>lombok</artifactId>
-    </dependency>
-  </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

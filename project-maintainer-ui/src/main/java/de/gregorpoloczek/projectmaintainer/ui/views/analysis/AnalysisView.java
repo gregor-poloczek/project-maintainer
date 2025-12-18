@@ -33,11 +33,13 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.Proje
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasLabels;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
+
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -112,7 +114,7 @@ public class AnalysisView extends VerticalLayout {
                         .map(p -> projectAnalysisService.analyze(p)
                                 .subscribeOn(Schedulers.parallel()))
                         .toList())
-                .doFinally(_ -> VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop))
+                .doFinally(x -> VaadinUtils.access(this.projectProgressBar, ProjectProgressBar::stop))
                 .subscribe(progress -> this.onUpdateEvent(progress, ui));
 
         currentOperation.update(disposable);

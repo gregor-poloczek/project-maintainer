@@ -8,7 +8,9 @@ import de.gregorpoloczek.projectmaintainer.patching.service.patch.execution.Patc
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractComposable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasOperationProgress;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
+
 import java.util.Optional;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -48,7 +50,7 @@ public class ProjectPatchItem
     }
 
     public void clearResult() {
-        this.replaceTrait(HasOperationProgress.class, _ -> HasOperationProgress.empty());
+        this.replaceTrait(HasOperationProgress.class, x -> HasOperationProgress.empty());
     }
 
     @Override

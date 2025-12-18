@@ -32,7 +32,7 @@ public class HasProjectFilterComponent<K, T extends AbstractComposable<K, T>> ex
             return project.getFQPN().getSegments().stream()
                     .anyMatch(segment -> segment.toLowerCase().contains(value.toLowerCase()));
         });
-        textField.addValueChangeListener(_ -> handle.refresh());
+        textField.addValueChangeListener(x -> handle.refresh());
         addDetachListener(e -> handle.remove());
     }
 

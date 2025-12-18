@@ -4,6 +4,7 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.function.SerializablePredicate;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -76,7 +77,7 @@ public class ComposableFilterSearch<K, T extends Composable<K, T>> {
         }
 
         FilterResult[] results = this.resultsCache.computeIfAbsent(composable.getKey(),
-                (_) -> {
+                (x) -> {
                     FilterResult[] init = new FilterResult[this.criteria.size()];
                     Arrays.fill(init, FilterResult.DIRTY);
                     return init;
