@@ -18,4 +18,9 @@ public class GenericOperationProgress<T> extends AbstractOperationProgress<T> {
         super(state, message, result, throwable, progressCurrent == null ? 0 : progressCurrent,
                 progressTotal == null ? 1 : progressTotal);
     }
+
+    @Override
+    public String toString() {
+        return "OperationProgress[state=%s, progress=%d/%d, message=%s]".formatted(this.state, this.progressCurrent, this.progressTotal, this.message);
+    }
 }

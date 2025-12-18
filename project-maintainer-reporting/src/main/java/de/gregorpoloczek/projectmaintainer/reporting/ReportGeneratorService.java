@@ -32,6 +32,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -45,6 +46,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
@@ -114,7 +116,7 @@ public class ReportGeneratorService {
                 .toList();
     }
 
-    public Flux<GenericOperationProgress<ProjectReport>> generateProjectReport(String reportId) {
+    public Flux<GenericOperationProgress<ProjectReport>> generateProjectReport(String workspaceId, String reportId) {
         ReportConfig reportConfig = this.reportConfigs.get(reportId);
 
         if (reportConfig == null) {
@@ -126,7 +128,7 @@ public class ReportGeneratorService {
                     "Report definition is not of type project-report"));
         }
 
-        List<Project> projects = projectService.findAll()
+        List<Project> projects = projectService.findAllByWorkspaceId(workspaceId)
                 .stream()
                 .filter(workingCopyService::hasWorkspace).toList();
 

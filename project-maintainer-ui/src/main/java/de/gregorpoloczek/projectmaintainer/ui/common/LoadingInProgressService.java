@@ -6,13 +6,13 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.server.ServiceInitEvent;
 import com.vaadin.flow.server.VaadinServiceInitListener;
-import de.gregorpoloczek.projectmaintainer.bootstrap.BootstrapService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 @Component
 @Slf4j
@@ -20,13 +20,11 @@ import reactor.core.Disposable;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LoadingInProgressService implements VaadinServiceInitListener {
 
-    BootstrapService bootstrapService;
-
     @Override
     public void serviceInit(ServiceInitEvent serviceInitEvent) {
         serviceInitEvent.getSource().addUIInitListener(
                 x -> {
-                    if (Boolean.TRUE.equals(bootstrapService.isInitialized().blockFirst())) {
+                    if (Boolean.TRUE.equals(true)) {
                         return;
                     }
                     blockUIUntilInitialized();
@@ -45,7 +43,7 @@ public class LoadingInProgressService implements VaadinServiceInitListener {
 
         // reload ui
         UI ui = UI.getCurrent();
-        Disposable disposable = bootstrapService.isInitialized()
+        Disposable disposable = Flux.just(true)
                 .takeUntil(initialized -> initialized)
                 .filter(initialized -> initialized)
                 .subscribe(x -> {

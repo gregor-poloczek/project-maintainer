@@ -142,13 +142,13 @@ public class PatchService {
                     git.push()
                             .setRemote("origin")
                             .setRefSpecs(new RefSpec(":refs/heads/" + stopContext.getPatchBranch()))
-                            .setCredentialsProvider(stopContext.getWorkingCopy().getCredentialsProvider())
+                            .setCredentialsProvider(gitService.getCredentialsProvider(stopContext.getWorkingCopy()))
                             .call();
 
                     // delete local branch by pruning
                     git.fetch()
                             .setRemoveDeletedRefs(true)
-                            .setCredentialsProvider(stopContext.getWorkingCopy().getCredentialsProvider())
+                            .setCredentialsProvider(gitService.getCredentialsProvider(stopContext.getWorkingCopy()))
                             .call();
                 });
 
@@ -305,7 +305,7 @@ public class PatchService {
                     git.push()
                             .setRemote("origin")
                             .add(executionContext.getPatchBranch())
-                            .setCredentialsProvider(executionContext.getWorkingCopy().getCredentialsProvider())
+                            .setCredentialsProvider(gitService.getCredentialsProvider(executionContext.getWorkingCopy()))
                             .call();
 
                     // apply changes in file system
@@ -326,7 +326,7 @@ public class PatchService {
 
                     // push changes
                     git.push()
-                            .setCredentialsProvider(executionContext.getWorkingCopy().getCredentialsProvider())
+                            .setCredentialsProvider(gitService.getCredentialsProvider(executionContext.getWorkingCopy()))
                             .call();
 
                     git.checkout().setName(branchState.getDefaultBranch()).call();
@@ -428,7 +428,7 @@ public class PatchService {
                     // switch to target branch
                     gitService.execute(workingCopy, git -> {
                         git.checkout().setName(executionContext.getBaseBranch()).call();
-                        git.pull().setCredentialsProvider(workingCopy.getCredentialsProvider())
+                        git.pull().setCredentialsProvider(gitService.getCredentialsProvider(workingCopy))
                                 .call();
                     });
 

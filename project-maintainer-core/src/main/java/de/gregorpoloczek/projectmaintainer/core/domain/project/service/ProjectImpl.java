@@ -1,26 +1,41 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
 @Slf4j
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProjectImpl implements Project {
 
+    private final String workspaceId;
+    private final String connectionId;
     private final ProjectMetaData metaData;
-    private final CredentialsProvider credentialsProvider;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    private Map<Class<?>, Object> facets = new LinkedHashMap<>();
 
-    public ProjectImpl(ProjectMetaData metaData, final CredentialsProvider credentialsProvider) {
+    public ProjectImpl(String workspaceId, String connectionId, ProjectMetaData metaData) {
+        this.workspaceId = workspaceId;
+        this.connectionId = connectionId;
         this.metaData = metaData;
-        this.credentialsProvider = credentialsProvider;
+    }
+
+    public <C, F extends C> void addFacet(Class<C> facetClass, F facet) {
+        this.facets.put(facetClass, facet);
+    }
+
+    @Override
+    public <C> Optional<C> getFacet(Class<C> facetClass) {
+        return Optional.ofNullable(this.facets.get(facetClass)).map(facetClass::cast);
     }
 
     public URI getURI() {

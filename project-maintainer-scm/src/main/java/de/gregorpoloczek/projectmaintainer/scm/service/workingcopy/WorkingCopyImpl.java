@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.scm.service.workingcopy;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
+
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
@@ -10,6 +11,7 @@ import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,7 +27,6 @@ public class WorkingCopyImpl implements WorkingCopy {
     private final FQPN fqpn;
     private final File directory;
     private final URI uri;
-    private final CredentialsProvider credentialsProvider;
     private final Commit latestCommit;
     @Getter(AccessLevel.NONE)
     @Builder.Default

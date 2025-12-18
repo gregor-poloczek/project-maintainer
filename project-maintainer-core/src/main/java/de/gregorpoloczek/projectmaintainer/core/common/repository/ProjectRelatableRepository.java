@@ -1,7 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.core.common.repository;
 
-import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -15,5 +15,5 @@ public interface ProjectRelatableRepository<T> {
 
     void save(ProjectRelatable projectRelatable, T data);
 
-    boolean delete(FQPN fqpn);
+    boolean delete(ProjectRelatable projectRelatable);
 }

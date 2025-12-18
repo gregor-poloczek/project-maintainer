@@ -13,6 +13,7 @@ import com.vaadin.flow.data.renderer.Renderer;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
+
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -58,7 +59,8 @@ public class ProjectNameComponent extends FlexLayout {
     private String getNamePrefix(Project project) {
         return project.getMetaData().getFQPN().getSegments()
                 .stream()
-                .skip(1)
+                // TODO [Layout] no hard coding here
+                .skip(2)
                 .filter(s -> !s.equals(project.getMetaData().getName()))
                 .collect(Collectors.joining(" / "));
     }

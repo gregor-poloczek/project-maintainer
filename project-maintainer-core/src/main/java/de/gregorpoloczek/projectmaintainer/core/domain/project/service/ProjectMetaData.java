@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
 import java.net.URI;
 import java.util.Optional;
+
 import lombok.Builder;
 import lombok.Getter;
 
@@ -35,20 +36,6 @@ public class ProjectMetaData implements ProjectRelatable {
 
     public URI getURI() {
         return uri;
-    }
-
-    public GitProvider getGitProvider() {
-        final GitProvider provider;
-        if (this.getFQPN().getValue().startsWith("github:")) {
-            provider = GitProvider.GITHUB;
-        } else if (this.getFQPN().getValue().startsWith("aws-codecommit")) {
-            provider = GitProvider.AWS_CODECOMMIT;
-        } else if (this.getFQPN().getValue().startsWith("bitbucket")) {
-            provider = GitProvider.BITBUCKET;
-        } else {
-            provider = GitProvider.UNKNOWN;
-        }
-        return provider;
     }
 
 }

@@ -2,7 +2,9 @@ package de.gregorpoloczek.projectmaintainer.ui.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
+import de.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.BelongsToProjectConnection;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -11,6 +13,7 @@ import java.net.URL;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,8 @@ public class ImageResolverService {
 
     private final WorkingCopyService workingCopyService;
     private final ProjectService projectService;
+
+    public static final String GIT_PROVIDER_GROUP = "gitprovider";
 
     @Builder
     @Getter
@@ -56,8 +61,8 @@ public class ImageResolverService {
                 throw new UncheckedIOException(e);
             }
         } else {
-            image = this.getImage("gitprovider",
-                    projectService.require(relatable).getMetaData().getGitProvider().name());
+            image = this.getImage(GIT_PROVIDER_GROUP,
+                    projectService.require(relatable).requireFacet(BelongsToProjectConnection.class).getProjectConnection().getType());
         }
         return image;
     }

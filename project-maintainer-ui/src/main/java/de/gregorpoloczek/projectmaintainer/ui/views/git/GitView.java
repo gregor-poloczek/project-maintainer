@@ -6,7 +6,6 @@ import static java.util.function.Predicate.not;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
@@ -14,8 +13,9 @@ import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.ListDataProvider;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteAlias;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
@@ -56,9 +56,8 @@ import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-@RouteAlias(value = "/", layout = MainLayout.class)
-@Route(value = "/git", layout = MainLayout.class)
-public class GitView extends VerticalLayout {
+@Route(value = "/workspace/:workspaceId/git", layout = MainLayout.class)
+public class GitView extends VerticalLayout implements BeforeEnterObserver {
 
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
@@ -72,6 +71,7 @@ public class GitView extends VerticalLayout {
     private final transient ComposableFilterSearch<FQPN, ProjectItem> search = new ComposableFilterSearch<>(
             this.dataProvider);
     private final transient ProjectProgressBar projectProgressBar;
+    private String workspaceId;
 
     public GitView(
             ProjectService projectService,
@@ -111,9 +111,15 @@ public class GitView extends VerticalLayout {
 
     private MenuBar createMenuBar() {
         MenuBar result = new MenuBar();
-        result.addItem("Attach", this::onAttachClick);
-        result.addItem("Pull", this::onPullClick);
-        result.addItem("Detach", this::onDetachClick);
+        result.addItem("Attach",
+                "Clone project, and make it available for use.",
+                this::onAttachClick);
+        result.addItem("Pull",
+                "Pull latest changes from SCM.",
+                this::onPullClick);
+        result.addItem("Detach",
+                "Remove cloned project from disk, and make it no longer available for use.",
+                this::onDetachClick);
         return result;
     }
 
@@ -169,7 +175,7 @@ public class GitView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
-        this.items = projectService.findAll().stream()
+        this.items = projectService.findAllByWorkspaceId(workspaceId).stream()
                 .map(this::toProjectItem)
                 .collect(toComposableHolder());
         this.dataProvider.getItems().addAll(items.getAll());
@@ -225,5 +231,10 @@ public class GitView extends VerticalLayout {
 
     private void onBeforeOperation() {
         this.menuBar.setEnabled(false);
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
     }
 }

@@ -2,6 +2,7 @@ package de.gregorpoloczek.projectmaintainer.core.common.repository;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,7 @@ public class GenericProjectRelatableRepository<T> implements ProjectRelatableRep
     }
 
     @Override
-    public boolean delete(FQPN fqpn) {
-        return this.data.remove(fqpn) != null;
+    public boolean delete(ProjectRelatable projectRelatable) {
+        return this.data.remove(projectRelatable.getFQPN()) != null;
     }
 }

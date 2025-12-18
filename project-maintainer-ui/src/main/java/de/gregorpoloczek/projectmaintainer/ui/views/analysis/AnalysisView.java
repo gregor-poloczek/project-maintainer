@@ -9,6 +9,8 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.ListDataProvider;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
 import de.gregorpoloczek.projectmaintainer.analysis.service.label.LabelService;
@@ -45,8 +47,8 @@ import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-@Route(layout = MainLayout.class)
-public class AnalysisView extends VerticalLayout {
+@Route(value = "/workspace/:workspaceId/analysis", layout = MainLayout.class)
+public class AnalysisView extends VerticalLayout implements BeforeEnterObserver {
 
     private final ProjectAnalysisService projectAnalysisService;
     private final ProjectService projectService;
@@ -59,6 +61,7 @@ public class AnalysisView extends VerticalLayout {
     private ComposableHolder<FQPN, ProjectAnalysisItem> items;
     private final ImageResolverService imageResolverService;
     private final transient Disposable.Swap currentOperation = Disposables.swap();
+    private String workspaceId;
 
     public AnalysisView(
             ProjectAnalysisService projectAnalysisService,
@@ -97,7 +100,7 @@ public class AnalysisView extends VerticalLayout {
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
-        List<Project> projects = this.projectService.findAll();
+        List<Project> projects = this.projectService.findAllByWorkspaceId(this.workspaceId);
 
         this.items = projects.stream()
                 .filter(workingCopyService::hasWorkspace)
@@ -152,4 +155,8 @@ public class AnalysisView extends VerticalLayout {
         });
     }
 
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
+    }
 }
