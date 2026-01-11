@@ -1,14 +1,15 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.discovery.service;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+
 import java.net.URI;
 import java.util.Optional;
+
 import lombok.Builder;
 import lombok.Getter;
-import org.eclipse.jgit.transport.CredentialsProvider;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class DiscoveredProject {
 
     private final URI uri;
@@ -40,5 +41,4 @@ public class DiscoveredProject {
         return uri;
     }
 
-    private CredentialsProvider credentialsProvider;
 }

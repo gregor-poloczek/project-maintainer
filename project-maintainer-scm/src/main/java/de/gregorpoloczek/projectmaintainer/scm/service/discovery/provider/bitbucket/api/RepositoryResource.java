@@ -13,5 +13,6 @@ public class RepositoryResource {
     String name;
     String description;
     String website;
+    MainBranchResource mainbranch;
     RepositoryLinksResource links;
 }

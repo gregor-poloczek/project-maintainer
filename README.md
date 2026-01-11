@@ -2,7 +2,7 @@
 
 ## Disclaimers
 
-1. This application does not store any credentials, nor does it send them to any external location
+1. This application stores credentials on your machine only, and does not send them to any external location
    apart from when they are needed for authentication purposes (e.g. when accessing Github).
 2. This application does not send any cloned repository content anywhere. Everything is stored on
    the machine where the application is executed.
@@ -13,23 +13,13 @@
 
 ### Repository locations
 
-1. Define a `src/main/resources/application-local.yml` profile
-   ```yaml
-   project-maintainer:
-     projects:
-       discovery:
-         bitbucket:
-           users:
-             - your-atlassian-email-adress@domain.org
-   ```
-
-### Credentials
-
-1. Create a file `./credentials/passwords.properties`
-2. Add the credentials from the `application-local.yml` file.
-   ```
-   bitbucket.your-atlassian-email-adress@domain.org=your-credential-in-plain-text
-   ```
+1. Open the [Workspace page](http://localhost:8080/workspace)
+2. Create a workspace and open it
+3. Create a project connection for a git provider (e.g. Bitbucket)
+4. Save the workspace
+5. Press "Discover projects"
+6. Go to the projects view in the menu to on the left side
+7. Select the projects you are interested in, and press *attach*.
 
 ## Assets
 

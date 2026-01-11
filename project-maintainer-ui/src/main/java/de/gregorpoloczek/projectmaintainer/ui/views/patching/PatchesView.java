@@ -17,6 +17,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
@@ -59,15 +61,16 @@ import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-@Route(value = "/patch", layout = MainLayout.class)
+@Route(value = "/workspace/:workspaceId/patch", layout = MainLayout.class)
 @JsModule("./diff2html-integration.js")
-public class PatchesView extends VerticalLayout {
+public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
     private final transient PatchService patchService;
     private final ProjectProgressBar projectProgressBar;
+    private String workspaceId;
     private transient ComposableHolder<FQPN, ProjectPatchItem> items = ComposableHolder.emptyHolder();
     private final Grid<ProjectPatchItem> grid;
     private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
@@ -243,7 +246,7 @@ public class PatchesView extends VerticalLayout {
         this.patchesSelection.setItems(patches);
         this.patchesSelection.setValue(patches.getFirst());
 
-        this.items = projectService.findAll().stream()
+        this.items = projectService.findAllByWorkspaceId(this.workspaceId).stream()
                 .filter(workingCopyService::hasWorkspace)
                 .map(this::toProjectItem)
                 .collect(toComposableHolder());
@@ -281,4 +284,8 @@ public class PatchesView extends VerticalLayout {
                 .addTrait(HasOperationProgress.class, HasOperationProgress.empty());
     }
 
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
+    }
 }

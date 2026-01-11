@@ -1,10 +1,15 @@
 package de.gregorpoloczek.projectmaintainer.core.domain.project.service;
 
+import de.gregorpoloczek.projectmaintainer.core.common.facets.HasFacets;
+
 import java.net.URI;
 import java.util.function.Supplier;
-import org.eclipse.jgit.transport.CredentialsProvider;
 
-public interface Project extends ProjectRelatable {
+public interface Project extends ProjectRelatable, HasFacets {
+
+    String getWorkspaceId();
+
+    String getConnectionId();
 
     URI getURI();
 
@@ -13,6 +18,4 @@ public interface Project extends ProjectRelatable {
     <T> T withReadLock(Supplier<T> operation);
 
     <T> T withWriteLock(Supplier<T> operation);
-
-    CredentialsProvider getCredentialsProvider();
 }

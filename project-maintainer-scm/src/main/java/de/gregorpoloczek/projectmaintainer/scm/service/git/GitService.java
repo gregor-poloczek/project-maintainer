@@ -3,22 +3,29 @@ package de.gregorpoloczek.projectmaintainer.scm.service.git;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import de.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery.PullRequestCreation;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.PullRequest;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.BitbucketProjectDiscovery;
+import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
+import de.gregorpoloczek.projectmaintainer.core.domain.workspace.service.ProjectConnection;
+import de.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.GitUsernamePasswordCredentialsFacet;
+import de.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
+import de.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.BelongsToProjectConnection;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +36,7 @@ import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.transport.CredentialsProvider;
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -38,7 +46,22 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class GitService {
 
-    private final BitbucketProjectDiscovery bitbucketProjectDiscovery;
+    private final List<ProjectDiscovery<?>> projectDiscoveries;
+    private final WorkspaceService workspaceService;
+    private final ProjectService projectService;
+
+    public CredentialsProvider getCredentialsProvider(WorkingCopy workingCopy) {
+        Project require = projectService.require(workingCopy);
+        ProjectConnection projectConnection = this.workspaceService.requireConnection(require.getWorkspaceId(), require.getConnectionId());
+
+        if (projectConnection.hasFacet(GitUsernamePasswordCredentialsFacet.class)) {
+            GitUsernamePasswordCredentialsFacet upc = projectConnection.requireFacet(GitUsernamePasswordCredentialsFacet.class);
+            return new UsernamePasswordCredentialsProvider(upc.getUsername(), upc.getPassword());
+        } else {
+            throw new IllegalStateException("No credentials available for connection " + projectConnection.getId());
+        }
+    }
+
 
     public Flux<ProjectOperationProgress<PullResult>> pull(@NonNull WorkingCopy workingCopy) {
 
@@ -51,10 +74,11 @@ public class GitService {
             try {
                 PullResult pullResult = workingCopy.withWriteLockAndThrowing(() -> {
                     final File directory = workingCopy.getDirectory();
+                    // TODO [Working-Copy] configure transport not to not use credentials at the first attempt
                     try (Git git = Git.open(directory)) {
                         log.info("Pulling \"{}\".", directory);
 
-                        final CredentialsProvider cP = workingCopy.getCredentialsProvider();
+                        final CredentialsProvider cP = this.getCredentialsProvider(workingCopy);
 
                         var p = git.pull()
                                 .setCredentialsProvider(cP)
@@ -102,7 +126,7 @@ public class GitService {
                     throw new IllegalStateException("Project already cloned");
                 }
 
-                final CredentialsProvider credentialProvider = workingCopy.getCredentialsProvider();
+                final CredentialsProvider credentialProvider = getCredentialsProvider(workingCopy);
 
                 try {
                     log.info("Cloning \"{}\".", workingCopy.getFQPN());
@@ -170,27 +194,21 @@ public class GitService {
 
 
     public Mono<List<PullRequest>> getOpenPullRequests(ProjectRelatable projectRelatable) {
-        // TODO ordentlich abstrahieren
-        if (projectRelatable.getFQPN().getFQPN().getSegments().getFirst().equals("bitbucket")) {
-            return bitbucketProjectDiscovery.getOpenPullRequests(projectRelatable);
-        }
-        return Mono.just(Collections.emptyList());
+        return getProjectDiscovery(projectRelatable).getOpenPullRequests(projectRelatable);
     }
 
     public Mono<PullRequest> createPullRequest(ProjectRelatable projectRelatable,
-            PullRequestCreation pullRequestCreation) {
+                                               PullRequestCreation pullRequestCreation) {
+        return getProjectDiscovery(projectRelatable).createPullRequest(projectRelatable, pullRequestCreation);
+    }
 
-        if (projectRelatable.getFQPN().getFQPN().getSegments().getFirst().equals("bitbucket")) {
-            return bitbucketProjectDiscovery.createPullRequest(projectRelatable, pullRequestCreation);
-        }
-        return Mono.error(new IllegalStateException("Not implemented"));
+    private ProjectDiscovery<?> getProjectDiscovery(ProjectRelatable projectRelatable) {
+        String type = this.projectService.require(projectRelatable).getFacet(BelongsToProjectConnection.class).get().getProjectConnection().getType();
+        return projectDiscoveries.stream().filter(pD -> pD.supports(type)).findFirst().orElseThrow(() -> new IllegalStateException("No project discovery found for %s".formatted(type)));
     }
 
     public Mono<Object> closePullRequest(ProjectRelatable projectRelatable, PullRequest pullRequest) {
-        if (projectRelatable.getFQPN().getFQPN().getSegments().getFirst().equals("bitbucket")) {
-            return bitbucketProjectDiscovery.closePullRequest(projectRelatable, pullRequest);
-        }
-        return Mono.error(new IllegalStateException("Not implemented"));
+        return getProjectDiscovery(projectRelatable).closePullRequest(projectRelatable, pullRequest);
     }
 
     @FunctionalInterface
@@ -233,7 +251,7 @@ public class GitService {
     }
 
     public BranchState getBranchState(WorkingCopy workingCopy, Git git) throws GitAPIException {
-        git.fetch().setRemoveDeletedRefs(true).setCredentialsProvider(workingCopy.getCredentialsProvider()).call();
+        git.fetch().setRemoveDeletedRefs(true).setCredentialsProvider(getCredentialsProvider(workingCopy)).call();
 
         List<String> allBranches =
                 git.branchList().setListMode(ListMode.ALL).call().stream().map(Ref::getName).toList();

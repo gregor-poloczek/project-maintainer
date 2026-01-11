@@ -5,7 +5,7 @@ import com.vaadin.flow.router.Route;
 import de.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
 import de.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 
-@Route(value = "/reports", layout = MainLayout.class)
+@Route(value = "/workspace/:workspaceId/reports", layout = MainLayout.class)
 public class ReportsView extends VerticalLayout {
 
     public ReportsView(

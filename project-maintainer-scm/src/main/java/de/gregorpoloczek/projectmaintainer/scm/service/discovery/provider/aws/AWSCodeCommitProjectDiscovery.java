@@ -1,14 +1,13 @@
 package de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.aws;
 
-import de.gregorpoloczek.projectmaintainer.scm.AWSCodeCommitLocation;
-import de.gregorpoloczek.projectmaintainer.scm.ProjectsDiscoveryAWSCodeCommitProperties;
-import de.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.common.PasswordResolverService;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import de.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
+
 import java.net.URI;
+import java.util.stream.Stream;
+
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -18,55 +17,36 @@ import software.amazon.awssdk.services.sts.StsClient;
 
 @Service
 @Slf4j
-public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
-
-    private final PasswordResolverService passwordResolverService;
-    private final ProjectsDiscoveryAWSCodeCommitProperties discoveryProperties;
-
-    public AWSCodeCommitProjectDiscovery(
-            PasswordResolverService passwordResolverService,
-            ProjectsDiscoveryAWSCodeCommitProperties discoveryProperties) {
-        this.passwordResolverService = passwordResolverService;
-        this.discoveryProperties = discoveryProperties;
-    }
-
+public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery<AWSCodeCommitProjectConnection> {
     @Override
-    public void discoverProjects(final ProjectDiscoveryContext context) {
-        for (final AWSCodeCommitLocation location : discoveryProperties.getLocations()) {
-            ProfileCredentialsProvider awsCredentialsProvider = ProfileCredentialsProvider.create(
-                    location.getProfile());
+    public void discoverProjects(final ProjectDiscoveryContext<AWSCodeCommitProjectConnection> context) {
+        AWSCodeCommitProjectConnection connection = context.getConnection();
 
-            String username = location.getUsername();
-            String password = passwordResolverService.getPassword("aws-codecommit", username);
-            UsernamePasswordCredentialsProvider credentialsProvider =
-                    new UsernamePasswordCredentialsProvider(username, password);
+        ProfileCredentialsProvider awsCredentialsProvider = ProfileCredentialsProvider.create(
+                connection.getProfile());
 
-            for (Region region : location.getRegions().stream().map(Region::of).toList()) {
-                String accountId = getAccountId(awsCredentialsProvider, region);
-                try (CodeCommitClient client = CodeCommitClient.builder()
-                        .credentialsProvider(awsCredentialsProvider)
-                        .region(region).build()) {
+        for (Region region : Stream.of(connection.getRegion()).map(Region::of).toList()) {
+            String accountId = getAccountId(awsCredentialsProvider, region);
+            try (CodeCommitClient client = CodeCommitClient.builder()
+                    .credentialsProvider(awsCredentialsProvider)
+                    .region(region).build()) {
 
-                    client.listRepositories().repositories().stream()
-                            .map(r -> client.getRepository(b -> b.repositoryName(r.repositoryName())))
-                            .map(GetRepositoryResponse::repositoryMetadata)
-                            .forEach(r -> context.discovered(b -> b
-                                            .fqpn(FQPN.of("aws-codecommit", accountId, region.id(), r.repositoryName()))
-                                            .uri(URI.create(r.cloneUrlHttp()))
-                                            .browserLink(
-                                                    "https://%s.console.aws.amazon.com/codesuite/codecommit/repositories/%s/browse?region=%s"
-                                                            .formatted(region.id(), r.repositoryName(), region.id())
-                                            )
-                                            .name(r.repositoryName())
-                                            .owner(accountId)
-                                            .description(r.repositoryDescription())
-                                            .credentialsProvider(credentialsProvider)
-                                    )
-                            );
-                }
-
+                client.listRepositories().repositories().stream()
+                        .map(r -> client.getRepository(b -> b.repositoryName(r.repositoryName())))
+                        .map(GetRepositoryResponse::repositoryMetadata)
+                        .forEach(r -> context.discovered(b -> b
+                                        .fqpn(FQPN.of(accountId, region.id(), r.repositoryName()))
+                                        .uri(URI.create(r.cloneUrlHttp()))
+                                        .browserLink(
+                                                "https://%s.console.aws.amazon.com/codesuite/codecommit/repositories/%s/browse?region=%s"
+                                                        .formatted(region.id(), r.repositoryName(), region.id())
+                                        )
+                                        .name(r.repositoryName())
+                                        .owner(accountId)
+                                        .description(r.repositoryDescription())
+                                )
+                        );
             }
-
 
         }
 
@@ -80,5 +60,10 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery {
                 .build()) {
             return stsClient.getCallerIdentity().account();
         }
+    }
+
+    @Override
+    public boolean supports(String type) {
+        return type.equals("aws-codecommit");
     }
 }

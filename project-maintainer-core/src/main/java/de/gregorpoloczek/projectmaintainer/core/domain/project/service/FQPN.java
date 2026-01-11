@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import lombok.Getter;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -17,7 +19,7 @@ public class FQPN implements Comparable<FQPN>, ProjectRelatable, Serializable {
     private final String value;
     private final List<String> segments;
 
-    private FQPN(final List<String> segments) {
+    public FQPN(final List<String> segments) {
         this.value = segments.stream().collect(Collectors.joining(SEPARATOR));
         this.segments = segments;
     }
@@ -64,5 +66,9 @@ public class FQPN implements Comparable<FQPN>, ProjectRelatable, Serializable {
     @Override
     public FQPN getFQPN() {
         return this;
+    }
+
+    public FQPN append(FQPN fqpn) {
+        return new FQPN(Stream.of(this.segments, fqpn.segments).flatMap(List::stream).toList());
     }
 }

@@ -45,16 +45,18 @@ import de.gregorpoloczek.projectmaintainer.ui.common.composable.components.Proje
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 import de.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import de.gregorpoloczek.projectmaintainer.ui.common.progress.LabeledProgressBar;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.scheduler.Schedulers;
 
-@Route(value = "/reports/:reportId", layout = MainLayout.class)
+@Route(value = "/workspace/:workspaceId/reports/:reportId", layout = MainLayout.class)
 @Slf4j
 public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
@@ -70,6 +72,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     private final transient ListDataProvider<ReportRow> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final ComposableHolder<FQPN, ReportRow> rows = ComposableHolder.emptyHolder();
     private HeaderRow filterHeaderRow;
+    private String workspaceId;
 
     public ReportView(
             ReportGeneratorService reportGeneratorService,
@@ -98,6 +101,9 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         String reportId = parameters.get("reportId")
                 .orElseThrow(() -> new IllegalArgumentException("No report id defined"));
 
+        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
+
+
         this.reportConfig = projectReportGeneratorService.getProjectReportConfigs().stream()
                 .filter(r -> r.getId().equals(reportId))
                 .findFirst()
@@ -120,8 +126,8 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         progressBar.setValue(0.0d);
         progressBar.setVisible(true);
 
-        // TODO error handling
-        this.currentOperation.update(projectReportGeneratorService.generateProjectReport(reportId)
+        // TODO [Reporting] error handling
+        this.currentOperation.update(projectReportGeneratorService.generateProjectReport(this.workspaceId, reportId)
                 .subscribeOn(Schedulers.parallel())
                 .doFinally(s -> VaadinUtils.access(progressBar, p -> p.setVisible(false)))
                 .subscribe(progress ->

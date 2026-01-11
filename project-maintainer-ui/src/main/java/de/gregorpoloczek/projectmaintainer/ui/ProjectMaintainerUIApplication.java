@@ -1,5 +1,6 @@
 package de.gregorpoloczek.projectmaintainer.ui;
 
+import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.theme.Theme;
@@ -9,7 +10,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 
 @Push
-@Theme(variant = Lumo.DARK)
+@NpmPackage(value = "diff2html", version = "3.4.55")
+@Theme(value = "project-maintainer-theme", variant = Lumo.DARK)
 @SpringBootApplication(scanBasePackages = "de.gregorpoloczek.projectmaintainer")
 public class ProjectMaintainerUIApplication implements AppShellConfigurator {
 
