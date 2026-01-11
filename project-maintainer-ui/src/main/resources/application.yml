@@ -5,15 +5,6 @@ spring:
     async:
       request-timeout: -1
 
-project-maintainer:
-  projects:
-    uris:
-
-# TODO why does application crash without this?
-springdoc:
-  enable-spring-security: false
-
-
 logging:
   level:
     com.vaadin.flow.server.frontend.TaskRunDevBundleBuild: debug

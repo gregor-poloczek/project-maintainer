@@ -1,6 +1,7 @@
 package de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.common;
 
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
+
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
@@ -16,4 +17,6 @@ public interface ProjectFiles {
     List<ProjectFileLocation> findLocations(String regex);
 
     Optional<ProjectFileLocation> findLocation(String regex);
+
+    ProjectFileLocation get(String name);
 }

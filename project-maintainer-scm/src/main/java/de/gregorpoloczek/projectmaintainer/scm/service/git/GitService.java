@@ -24,10 +24,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
@@ -41,6 +41,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import static java.util.stream.Collectors.toCollection;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -49,19 +51,6 @@ public class GitService {
     private final List<ProjectDiscovery<?>> projectDiscoveries;
     private final WorkspaceService workspaceService;
     private final ProjectService projectService;
-
-    public CredentialsProvider getCredentialsProvider(WorkingCopy workingCopy) {
-        Project require = projectService.require(workingCopy);
-        ProjectConnection projectConnection = this.workspaceService.requireConnection(require.getWorkspaceId(), require.getConnectionId());
-
-        if (projectConnection.hasFacet(GitUsernamePasswordCredentialsFacet.class)) {
-            GitUsernamePasswordCredentialsFacet upc = projectConnection.requireFacet(GitUsernamePasswordCredentialsFacet.class);
-            return new UsernamePasswordCredentialsProvider(upc.getUsername(), upc.getPassword());
-        } else {
-            throw new IllegalStateException("No credentials available for connection " + projectConnection.getId());
-        }
-    }
-
 
     public Flux<ProjectOperationProgress<PullResult>> pull(@NonNull WorkingCopy workingCopy) {
 
@@ -78,10 +67,8 @@ public class GitService {
                     try (Git git = Git.open(directory)) {
                         log.info("Pulling \"{}\".", directory);
 
-                        final CredentialsProvider cP = this.getCredentialsProvider(workingCopy);
-
-                        var p = git.pull()
-                                .setCredentialsProvider(cP)
+                        var p = this.createGitActionContext(workingCopy, git)
+                                .command(Git::pull)
                                 .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
                                 .call();
 
@@ -109,7 +96,6 @@ public class GitService {
             }
         });
     }
-
 
     public Flux<ProjectOperationProgress<CloneResult>> clone(@NonNull final WorkingCopy workingCopy) {
         return Flux.create(sink -> {
@@ -204,7 +190,10 @@ public class GitService {
 
     private ProjectDiscovery<?> getProjectDiscovery(ProjectRelatable projectRelatable) {
         String type = this.projectService.require(projectRelatable).getFacet(BelongsToProjectConnection.class).get().getProjectConnection().getType();
-        return projectDiscoveries.stream().filter(pD -> pD.supports(type)).findFirst().orElseThrow(() -> new IllegalStateException("No project discovery found for %s".formatted(type)));
+        return projectDiscoveries.stream()
+                .filter(pD -> pD.supports(type))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No project discovery found for %s".formatted(type)));
     }
 
     public Mono<Object> closePullRequest(ProjectRelatable projectRelatable, PullRequest pullRequest) {
@@ -214,18 +203,18 @@ public class GitService {
     @FunctionalInterface
     public interface GitActionWithResult<T> {
 
-        T execute(Git git) throws GitAPIException;
+        T execute(GitActionContext gitActionContext) throws GitAPIException;
     }
 
     @FunctionalInterface
     public interface GitActionWithoutResult {
 
-        void execute(Git git) throws GitAPIException, IOException;
+        void execute(GitActionContext gitActionContext) throws GitAPIException, IOException;
     }
 
     public <T> T execute(WorkingCopy workingCopy, GitActionWithResult<T> action) {
         try (Git git = Git.open(workingCopy.getDirectory())) {
-            return action.execute(git);
+            return action.execute(createGitActionContext(workingCopy, git));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (GitAPIException e) {
@@ -244,32 +233,68 @@ public class GitService {
         });
     }
 
-    public BranchState getBranchState(WorkingCopy workingCopy) {
-        return this.execute(workingCopy, git -> {
-            return getBranchState(workingCopy, git);
-        });
-    }
+    @SneakyThrows({GitAPIException.class})
+    private BranchState getBranchState(GitActionContext gitActionContext) {
+        gitActionContext.command(Git::fetch)
+                .setRemoveDeletedRefs(true)
+                .call();
 
-    public BranchState getBranchState(WorkingCopy workingCopy, Git git) throws GitAPIException {
-        git.fetch().setRemoveDeletedRefs(true).setCredentialsProvider(getCredentialsProvider(workingCopy)).call();
+        List<String> allBranches = gitActionContext.command(Git::branchList)
+                .setListMode(ListMode.ALL)
+                .call()
+                .stream()
+                .map(Ref::getName).toList();
 
-        List<String> allBranches =
-                git.branchList().setListMode(ListMode.ALL).call().stream().map(Ref::getName).toList();
-
-        SortedSet<String> remoteBranches = allBranches.stream()
-                .filter(name1 -> name1.matches("^refs/heads/.+$"))
-                .map(name1 -> name1.replaceAll("^refs/heads/", ""))
-                .collect(Collectors.toCollection(TreeSet::new));
         SortedSet<String> localBranches = allBranches.stream()
+                .filter(name -> name.matches("^refs/heads/.+$"))
+                .map(name -> name.replaceAll("^refs/heads/", ""))
+                .collect(toCollection(TreeSet::new));
+        SortedSet<String> remoteBranches = allBranches.stream()
                 .filter(name -> name.matches("^refs/remotes/origin/.+$"))
                 .map(name -> name.replaceAll("^refs/remotes/origin/", ""))
-                .collect(Collectors.toCollection(TreeSet::new));
-        return new BranchState(
-                localBranches,
-                remoteBranches,
-                remoteBranches.stream()
-                        .filter(b -> Set.of("master", "main").contains(b)).findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("Cannot find default branch")));
+                .collect(toCollection(TreeSet::new));
+        // TODO [Working-Copy] read default branch during project discovery
+        String defaultBranch = localBranches.stream()
+                .filter(b -> Set.of("master", "main").contains(b)).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Cannot find default branch"));
+
+        return new BranchState(remoteBranches, localBranches, defaultBranch);
     }
+
+    private GitActionContext createGitActionContext(WorkingCopy workingCopy, Git git) {
+        CredentialsProvider credentialsProvider = getCredentialsProvider(workingCopy);
+        Project project = projectService.require(workingCopy);
+
+        GitActionContext tmp = GitActionContext.builder()
+                .git(git)
+                .project(project)
+                .branchState(new BranchState(new TreeSet<>(), new TreeSet<>(), "undefined"))
+                .credentialsProvider(credentialsProvider)
+                .build();
+
+        return GitActionContext.builder()
+                .git(git)
+                .project(project)
+                .branchState(getBranchState(tmp))
+                .credentialsProvider(credentialsProvider)
+                .build();
+    }
+
+    private CredentialsProvider getCredentialsProvider(WorkingCopy workingCopy) {
+        ProjectConnection projectConnection = getProjectConnection(workingCopy);
+
+        if (projectConnection.hasFacet(GitUsernamePasswordCredentialsFacet.class)) {
+            GitUsernamePasswordCredentialsFacet upc = projectConnection.requireFacet(GitUsernamePasswordCredentialsFacet.class);
+            return new UsernamePasswordCredentialsProvider(upc.getUsername(), upc.getPassword());
+        } else {
+            throw new IllegalStateException("No credentials available for connection " + projectConnection.getId());
+        }
+    }
+
+    private ProjectConnection getProjectConnection(WorkingCopy workingCopy) {
+        Project require = projectService.require(workingCopy);
+        return this.workspaceService.requireConnection(require.getWorkspaceId(), require.getConnectionId());
+    }
+
 
 }
