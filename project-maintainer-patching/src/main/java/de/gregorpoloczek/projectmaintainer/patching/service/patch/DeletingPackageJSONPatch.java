@@ -1,12 +1,13 @@
 package de.gregorpoloczek.projectmaintainer.patching.service.patch;
 
+import com.google.auto.service.AutoService;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.AbstractProgrammablePatch;
+import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Patch;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchContext;
 import de.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchMetaData;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
-@Component
+@AutoService(Patch.class)
 @Slf4j
 public class DeletingPackageJSONPatch extends AbstractProgrammablePatch {
 

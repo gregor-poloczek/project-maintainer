@@ -35,16 +35,18 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.SortedSet;
 import java.util.stream.Stream;
 
+import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.RefSpec;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
@@ -58,7 +60,7 @@ import reactor.core.publisher.Mono;
 public class PatchService {
 
     WorkingCopyService workingCopyService;
-    List<Patch> patches;
+    final List<Patch> patches = new ArrayList<>();
     ProjectService projectService;
     GitService gitService;
     private final ConversionService conversionService;
@@ -97,7 +99,9 @@ public class PatchService {
             progress.state(State.RUNNING);
 
             WorkingCopy workingCopy = workingCopyService.require(projectRelatable);
-            String defaultBranch = this.gitService.getBranchState(workingCopy).getDefaultBranch();
+            String defaultBranch = this.gitService.execute(workingCopy, c -> {
+                return c.getBranchState().getDefaultBranch();
+            });
             PatchStopContext stopContext = PatchStopContext.builder()
                     .patch(patch)
                     .workingCopy(workingCopy)
@@ -127,8 +131,9 @@ public class PatchService {
     private Mono<? extends PatchOperationResultDetail> deleteRemoteBranch(PatchStopContext stopContext,
                                                                           Optional<PullRequest> pullRequest) {
         return Mono.fromSupplier(() -> {
-            SortedSet<String> remoteBranches = this.gitService.getBranchState(stopContext.getWorkingCopy())
-                    .getRemoteBranches();
+            SortedSet<String> remoteBranches = this.gitService.execute(stopContext.getWorkingCopy(), c -> {
+                return c.getBranchState().getRemoteBranches();
+            });
             if (remoteBranches.contains(stopContext.getPatchBranch())) {
                 log.info("Deleting branch \"{}\" from \"{}\".", stopContext.getPatchBranch(), stopContext.getFQPN());
                 RemoteBranch branch =
@@ -136,19 +141,17 @@ public class PatchService {
                                 .name(stopContext.getPatchBranch())
                                 .href(getPatchRemoteBranchHref(stopContext))
                                 .build();
-                gitService.execute(stopContext.getWorkingCopy(), git -> {
+                gitService.execute(stopContext.getWorkingCopy(), gitActionContext -> {
                     // TODO where is the delete operation?
                     // delete origin branch
-                    git.push()
+                    gitActionContext.command(Git::push)
                             .setRemote("origin")
                             .setRefSpecs(new RefSpec(":refs/heads/" + stopContext.getPatchBranch()))
-                            .setCredentialsProvider(gitService.getCredentialsProvider(stopContext.getWorkingCopy()))
                             .call();
 
                     // delete local branch by pruning
-                    git.fetch()
+                    gitActionContext.command(Git::fetch)
                             .setRemoveDeletedRefs(true)
-                            .setCredentialsProvider(gitService.getCredentialsProvider(stopContext.getWorkingCopy()))
                             .call();
                 });
 
@@ -172,10 +175,9 @@ public class PatchService {
                     } else {
                         log.info("Closing pull request \"{}\" from \"{}\".",
                                 getPullRequestTitle(stopContext.getPatch()), stopContext.getFQPN());
-                        // TODO add pull request to result
-                        return
-                                this.gitService.closePullRequest(stopContext, pullRequest.get())
-                                        .then(Mono.just(pullRequest));
+                        // TODO [Patching] add pull request to result
+                        return this.gitService.closePullRequest(stopContext, pullRequest.get())
+                                .then(Mono.just(pullRequest));
                     }
                 })
                 .doOnSubscribe(x -> stopContext.publish("Close pull request"));
@@ -197,7 +199,9 @@ public class PatchService {
                     progressSink.total(previewOnly ? 4 : 6);
                     progress.state(State.RUNNING);
 
-                    String defaultBranch = this.gitService.getBranchState(workingCopy).getDefaultBranch();
+                    String defaultBranch = this.gitService.execute(workingCopy, c -> {
+                        return c.getBranchState().getDefaultBranch();
+                    });
                     PatchExecutionContext executionContext = PatchExecutionContext.builder()
                             .workingCopy(workingCopy)
                             .progressSink(progressSink)
@@ -207,12 +211,12 @@ public class PatchService {
                             .patchBranch(this.getPatchBranch(patch))
                             .build();
 
-                    // TODO lock working copy
+                    // TODO [Patching] lock working copy
 
                     log.info("A");
-                    // TODO umbauen auf ohne "switchIfEmpty"
+                    // TODO [Patching] umbauen auf ohne "switchIfEmpty"
                     Mono.empty()
-                            .then(this.resetWorkspace(executionContext))
+                            .then(this.resetWorkingCopy(executionContext))
                             .then(this.checkForExistingPullRequest(executionContext))
                             .switchIfEmpty(this.checkForExistingRemoteBranch(executionContext))
                             .switchIfEmpty(this.makeSourceCodeChanges(executionContext))
@@ -273,7 +277,7 @@ public class PatchService {
     }
 
     private String getPullRequestTitle(Patch patch) {
-        // TODO better title
+        // TODO [Patching] better title
         return patch.getMetaData().getDescription();
     }
 
@@ -283,10 +287,10 @@ public class PatchService {
     ) {
         return Mono.fromSupplier(() -> {
 
-            gitService.execute(executionContext.getWorkingCopy(), git -> {
-                BranchState branchState = this.gitService.getBranchState(executionContext.getWorkingCopy(), git);
-
-                git.checkout().setName(branchState.getDefaultBranch()).call();
+            gitService.execute(executionContext.getWorkingCopy(), gitActionContext -> {
+                BranchState branchState = gitActionContext.getBranchState();
+                gitActionContext.command(Git::checkout)
+                        .setName(branchState.getDefaultBranch()).call();
 
                 try {
                     // delete previously created local branch (in case it was retained)
@@ -295,17 +299,22 @@ public class PatchService {
                                 executionContext.getPatchBranch(),
                                 executionContext.getFQPN());
                         // delete local branch
-                        git.branchDelete().setForce(true).setBranchNames(executionContext.getPatchBranch()).call();
+                        gitActionContext.command(Git::branchDelete)
+                                .setForce(true)
+                                .setBranchNames(executionContext.getPatchBranch())
+                                .call();
                     }
 
                     // create local branch
-                    git.checkout().setCreateBranch(true).setName(executionContext.getPatchBranch()).call();
+                    gitActionContext
+                            .command(Git::checkout)
+                            .setCreateBranch(true)
+                            .setName(executionContext.getPatchBranch()).call();
 
                     // push branch to remote
-                    git.push()
+                    gitActionContext.command(Git::push)
                             .setRemote("origin")
                             .add(executionContext.getPatchBranch())
-                            .setCredentialsProvider(gitService.getCredentialsProvider(executionContext.getWorkingCopy()))
                             .call();
 
                     // apply changes in file system
@@ -315,25 +324,22 @@ public class PatchService {
                     for (ProjectFileOperation o : detail.getOperations()) {
                         String pattern = o.getLocation().getRelativePath().toString();
                         if (o instanceof ProjectFileDeletion) {
-                            git.rm().addFilepattern(pattern).call();
+                            gitActionContext.command(Git::rm).addFilepattern(pattern).call();
                         } else {
-                            git.add().addFilepattern(pattern).call();
+                            gitActionContext.command(Git::add).addFilepattern(pattern).call();
                         }
                     }
 
                     // commit changes
-                    git.commit().setMessage(getCommitMessage(executionContext.getPatch())).call();
+                    gitActionContext.command(Git::commit).setMessage(getCommitMessage(executionContext.getPatch())).call();
 
                     // push changes
-                    git.push()
-                            .setCredentialsProvider(gitService.getCredentialsProvider(executionContext.getWorkingCopy()))
-                            .call();
+                    gitActionContext.command(Git::push).call();
 
-                    git.checkout().setName(branchState.getDefaultBranch()).call();
-                    git.branchDelete().setBranchNames(executionContext.getPatchBranch()).setForce(true).call();
+                    gitActionContext.command(Git::checkout).setName(branchState.getDefaultBranch()).call();
+                    gitActionContext.command(Git::branchDelete).setBranchNames(executionContext.getPatchBranch()).setForce(true).call();
                 } finally {
-                    git.reset().setMode(ResetType.HARD).call();
-                    git.checkout().setName(branchState.getDefaultBranch()).call();
+                    workingCopyService.reset(executionContext.getWorkingCopy());
                 }
             });
             return RemoteBranch.builder()
@@ -386,8 +392,10 @@ public class PatchService {
 
     private Mono<? extends PatchOperationResultDetail> checkForExistingRemoteBranch(
             PatchExecutionContext executionContext) {
-        SortedSet<String> remoteBranches = this.gitService.getBranchState(
-                executionContext.getWorkingCopy()).getRemoteBranches();
+        SortedSet<String> remoteBranches = this.gitService.execute(
+                executionContext.getWorkingCopy(), c -> {
+                    return c.getBranchState().getRemoteBranches();
+                });
         if (!remoteBranches.contains(executionContext.getPatchBranch())) {
             log.info("Detected existing remote branch \"{}\", cannot patch \"{}\".",
                     executionContext.getPatchBranch(),
@@ -408,7 +416,7 @@ public class PatchService {
     }
 
     private String getPatchRemoteBranchHref(PatchOperationContext executionContext) {
-        // TODO branch url for every git provider
+        // TODO [Patching] branch url for every git provider
         return projectService.require(executionContext)
                 .getMetaData()
                 .getBrowserLink()
@@ -426,10 +434,9 @@ public class PatchService {
                     WorkingCopy workingCopy = executionContext.getWorkingCopy();
 
                     // switch to target branch
-                    gitService.execute(workingCopy, git -> {
-                        git.checkout().setName(executionContext.getBaseBranch()).call();
-                        git.pull().setCredentialsProvider(gitService.getCredentialsProvider(workingCopy))
-                                .call();
+                    gitService.execute(workingCopy, gitActionContext -> {
+                        gitActionContext.command(Git::checkout).setName(executionContext.getBaseBranch()).call();
+                        gitActionContext.command(Git::pull).call();
                     });
 
                     // execute patch
@@ -485,10 +492,11 @@ public class PatchService {
                 });
     }
 
-    private Mono<Void> resetWorkspace(PatchExecutionContext executionContext) {
-        return Mono.defer(() -> {
+    private Mono<Void> resetWorkingCopy(PatchExecutionContext executionContext) {
+        return Mono.fromRunnable(() -> {
             executionContext.publish("Resetting working copy");
-            return workingCopyService.reset(executionContext.getWorkingCopy());
+
+            workingCopyService.reset(executionContext.getWorkingCopy());
         });
     }
 
@@ -533,6 +541,13 @@ public class PatchService {
                 operation.getAfter().map(DigestUtils::md5Hex).orElse("000000000000")));
         return Stream.concat(header.stream(), unifiedDiff.stream())
                 .collect(joining("\n"));
+    }
+
+    @PostConstruct
+    void init() {
+        ServiceLoader.load(Patch.class).stream()
+                .map(ServiceLoader.Provider::get)
+                .forEach(this.patches::add);
     }
 
 }

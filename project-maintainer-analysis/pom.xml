@@ -9,7 +9,6 @@
         <version>0.10.0-SNAPSHOT</version>
     </parent>
     <properties>
-        <lucene.version>8.10.1</lucene.version>
     </properties>
 
     <artifactId>project-maintainer-analysis</artifactId>
@@ -33,17 +32,14 @@
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-core</artifactId>
-            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-queryparser</artifactId>
-            <version>${lucene.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-common</artifactId>
-            <version>${lucene.version}</version>
         </dependency>
     </dependencies>
 

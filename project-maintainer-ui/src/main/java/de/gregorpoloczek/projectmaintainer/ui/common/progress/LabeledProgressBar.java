@@ -7,8 +7,10 @@ import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.dom.Style.WhiteSpace;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+@Slf4j
 @StyleSheet("./styles/common/progress/LabeledProgressBar.css")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LabeledProgressBar extends HorizontalLayout {
@@ -39,8 +41,18 @@ public class LabeledProgressBar extends HorizontalLayout {
     }
 
     public void setValue(double value) {
-        this.progressBar.setValue(value);
-        this.percentage.setText(String.format("%.2f %%", value * 100.0d));
+        double actualValue;
+        if (value < 0) {
+            log.warn("Value {} is negative, not allowed", value);
+            actualValue = 0;
+        } else if (value > 1.0) {
+            log.warn("Value {} is too big, not allowed", value);
+            actualValue = 1.0;
+        } else {
+            actualValue = value;
+        }
+        this.progressBar.setValue(actualValue);
+        this.percentage.setText(String.format("%.2f %%", actualValue * 100.0d));
     }
 
 }

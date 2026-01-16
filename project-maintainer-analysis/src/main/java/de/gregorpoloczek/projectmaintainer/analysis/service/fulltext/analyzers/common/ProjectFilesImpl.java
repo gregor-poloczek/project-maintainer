@@ -3,6 +3,7 @@ package de.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.
 import de.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.ProjectFileLocationImpl;
 import de.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -96,6 +98,11 @@ public class ProjectFilesImpl implements ProjectFiles {
                 .map(f -> ProjectFileLocationImpl.of(workingCopy, f))
                 .map(ProjectFileLocation.class::cast)
                 .findFirst();
+    }
+
+    @Override
+    public ProjectFileLocation get(String path) {
+        return workingCopy.createLocation(path);
     }
 
 }

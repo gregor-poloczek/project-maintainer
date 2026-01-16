@@ -244,13 +244,19 @@ public class WorkingCopyService {
                 .resolve(Path.of(projectRelatable.getFQPN().toString().replaceAll("::", "/")));
     }
 
-    public Mono<Void> reset(WorkingCopy workingCopy) {
-        return Mono.fromRunnable(() -> {
-            this.gitService.execute(workingCopy, (git) -> {
-                git.reset().setMode(ResetType.HARD).call();
-                BranchState branchState = this.gitService.getBranchState(workingCopy, git);
-                git.checkout().setName(branchState.getDefaultBranch()).call();
-            });
+    public void reset(WorkingCopy workingCopy) {
+        this.gitService.execute(workingCopy, (gitActionContext) -> {
+            // remove all changes
+            gitActionContext.command(Git::reset)
+                    .setMode(ResetType.HARD)
+                    .call();
+            gitActionContext.command(Git::clean)
+                    .setCleanDirectories(true)
+                    .call();
+            // check out default branch
+            gitActionContext.command(Git::checkout)
+                    .setName(gitActionContext.getBranchState().getDefaultBranch())
+                    .call();
         });
     }
 
