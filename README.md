@@ -3,63 +3,44 @@
 ## Disclaimers
 
 1. This application stores credentials on your machine only, and does not send them to any external location
-   apart from when they are needed for authentication purposes (e.g. when accessing Github).
+   apart from when they are needed for authentication purposes (e.g. when accessing Git repositories or APIs such as
+   Github).
 2. This application does not send any cloned repository content anywhere. Everything is stored on
    the machine where the application is executed.
 3. This application does not **automatically** perform any manipulation on source code, nor does it
-   push any changes to the attached repositories unless the user explicitly consents to it.
+   push any changes to the cloned repositories unless the user explicitly consents to it.
+4. This application runs entirely on your machine, and does not facilitate any external logic on external servers or
+   cloud services and alike, which are part of this project or related to it. APIs for source code management are exempt
+   from this rule. These include:
+    * Github API (when explicitly used by you)
+    * Bitbucket Cloud API (when explicitly used by you)
+    * AWS CodeCommit API (when explicitly used by you)
+5. Please use this software at your own risk.
 
 ## Configuration
 
-### Repository locations
+The application needs some setup work to be done, before it can be properly used.
+
+### Definition of project/repository locations
 
 1. Open the [Workspace page](http://localhost:8080/workspace)
 2. Create a workspace and open it
 3. Create a project connection for a git provider (e.g. Bitbucket)
 4. Save the workspace
-5. Press "Discover projects"
+5. Press "Discover projects" (If discovery fails, check your credential, and make sure they have the appropriate
+   permissions.)
 6. Go to the projects view in the menu to on the left side
 7. Select the projects you are interested in, and press *attach*.
 
-## Assets
+## License
 
-* vue.js logo: https://github.com/vuejs/art/blob/master/logo.svg
+This software uses [custom Source Available License (SAL)](/LICENSE-1.0.md).
 
-* react: https://en.m.wikipedia.org/wiki/File:React-icon.svg
-  This file is licensed under the Creative Commons Attribution-Share Alike 1.0 Generic license.
+## Used external Assets
 
+The following assets are used within the application, and included the source code. The above-mentioned license
+does not apply to them.
 
-* nestjs: https://commons.wikimedia.org/wiki/File:NestJS.svg
-  This logo image consists only of simple geometric shapes or text. It does not meet the threshold
-  of originality needed for copyright protection, and is therefore in the public domain. Although it
-  is free of copyright restrictions, this image may still be subject to other restrictions. See WP:
-  PD § Fonts and typefaces or Template talk:PD-textlogo for more information.
-
-* nuxtjs: https://en.wikipedia.org/wiki/File:Nuxt_logo.svg
-  This file is licensed under the Expat License, sometimes known as the MIT License:
-
-* angular: https://angular.io/presskit
-  CC BY 4.0
-
-* nextjs: https://en.wikipedia.org/wiki/File:Nextjs-logo.svg
-  This file is licensed under the Creative Commons Attribution-Share Alike 4.0 International
-  license.
-  adjusted color to white
-
-* unity: https://unity.com/de/legal/branding-trademarks
-
-* wasm: https://de.wikipedia.org/wiki/Datei:WebAssembly_Logo.svg
-  Diese Datei wird unter der Creative-Commons-Lizenz „CC0 1.0 Verzicht auf das Copyright“ zur
-  Verfügung gestellt.
-  https://github.com/carlosbaraza/web-assembly-logo/blob/master/dist/icon/web-assembly-icon.svg
-
-* webpack: https://github.com/webpack/media/blob/master/logo/icon-square-big.svg
-  public domain https://en.m.wikipedia.org/wiki/File:Webpack.svg
-
-* github: https://en.m.wikipedia.org/wiki/File:Octicons-mark-github.svg
-  MIT
-
-
-* aws codecommit: https://aws.amazon.com/de/architecture/icons/
-
-* bitbucket: https://atlassian.design/resources/logo-library#atlassian-product-logos
+* Github Logo: https://en.m.wikipedia.org/wiki/File:Octicons-mark-github.svg
+* AWS CodeCommit Logo: https://aws.amazon.com/de/architecture/icons/
+* Bitbucket Logo: https://atlassian.design/resources/logo-library#atlassian-product-logos
