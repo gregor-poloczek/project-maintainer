@@ -4,10 +4,36 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>de.gregorpoloczek.project-maintainer</groupId>
+    <groupId>io.github.gregor-poloczek.project-maintainer</groupId>
     <artifactId>project-maintainer</artifactId>
     <version>0.11.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>A browser based tool for maintaining applications managed in git repositories</description>
+    <url>https://github.com/gregor-poloczek/project-maintainer</url>
+
+    <developers>
+        <developer>
+            <name>Gregor Poloczek</name>
+            <email>gregor.poloczek@googlemail.com</email>
+            <organization>Private</organization>
+            <organizationUrl>https://github.com/gregor-poloczek</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/gregor-poloczek/project-maintainer.git</connection>
+        <developerConnection>scm:git:ssh://github.com:gregor-poloczek/project-maintainer.git</developerConnection>
+        <url>https://github.com/gregor-poloczek/project-maintainer/tree/main</url>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>Source Available License (SAL) – Custom, Version 1.0</name>
+            <url>https://github.com/gregor-poloczek/project-maintainer/blob/main/LICENSE-1.0.md</url>
+        </license>
+    </licenses>
 
     <modules>
         <module>project-maintainer-core</module>
@@ -16,14 +42,13 @@
         <module>project-maintainer-scm</module>
         <module>project-maintainer-reporting</module>
         <module>project-maintainer-patching</module>
-        <module>project-maintainer-custom</module>
     </modules>
 
     <properties>
-        <vaadin.version>24.7.2</vaadin.version>
+        <vaadin.version>24.7.14</vaadin.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
-        <spring-boot.version>3.3.13</spring-boot.version>
+        <spring-boot.version>3.5.9</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <google-auto-service.version>1.1.1</google-auto-service.version>
         <lucene.version>8.10.1</lucene.version>
@@ -32,33 +57,28 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <groupId>io.github.gregor-poloczek.project-maintainer</groupId>
                 <artifactId>project-maintainer-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <groupId>io.github.gregor-poloczek.project-maintainer</groupId>
                 <artifactId>project-maintainer-scm</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <groupId>io.github.gregor-poloczek.project-maintainer</groupId>
                 <artifactId>project-maintainer-patching</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <groupId>io.github.gregor-poloczek.project-maintainer</groupId>
                 <artifactId>project-maintainer-reporting</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>de.gregorpoloczek.project-maintainer</groupId>
+                <groupId>io.github.gregor-poloczek.project-maintainer</groupId>
                 <artifactId>project-maintainer-analysis</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>de.gregorpoloczek.project-maintainer</groupId>
-                <artifactId>project-maintainer-custom</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -163,7 +183,7 @@
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-core</artifactId>
-                <version>3.9.3</version>
+                <version>3.9.12</version>
             </dependency>
 
             <dependency>
@@ -208,6 +228,65 @@
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
+            </plugin>
+
+            <!-- Source JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Optional: Javadoc JAR -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.12.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludePackageNames>io.github.gregorpoloczek.**</excludePackageNames>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.9.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central.sonatype.org</publishingServerId>
+                    <checksums>all</checksums>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.8</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

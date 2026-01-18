@@ -1,21 +1,28 @@
 # Project Maintainer
 
+*Project Maintainer* is a browser based to tool for maintaining applications managed in git repositories. Though being
+used via a browser, it is as of now only intended to be run locally on your machine. Running the application on a
+server, though technically possible, is strongly discouraged as multiple users are not supported.
+
 ## Disclaimers
 
 1. This application stores credentials on your machine only, and does not send them to any external location
    apart from when they are needed for authentication purposes (e.g. when accessing Git repositories or APIs such as
    Github).
-2. This application does not send any cloned repository content anywhere. Everything is stored on
-   the machine where the application is executed.
-3. This application does not **automatically** perform any manipulation on source code, nor does it
+2. Your credentials will be encrypted before stored on your disk. However, these can be easily decrypted, if someone has
+   access to your filesystem and has knowledge of the source code of this application. A better encryption policy is
+   planned, but has not been implemented yet.
+3. This application does not send any cloned repository content anywhere. Working copies and their content remain on
+   your machine.
+4. This application does not **automatically** perform any manipulation on source code, nor does it
    push any changes to the cloned repositories unless the user explicitly consents to it.
-4. This application runs entirely on your machine, and does not facilitate any external logic on external servers or
+5. This application runs entirely on your machine, and does not facilitate any external logic on external servers or
    cloud services and alike, which are part of this project or related to it. APIs for source code management are exempt
    from this rule. These include:
     * Github API (when explicitly used by you)
     * Bitbucket Cloud API (when explicitly used by you)
     * AWS CodeCommit API (when explicitly used by you)
-5. Please use this software at your own risk.
+6. Please use this software at your own risk.
 
 ## Configuration
 

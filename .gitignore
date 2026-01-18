@@ -42,7 +42,6 @@ build/
 /project-maintainer-core/src/main/resources/application-private.yml
 /project-maintainer-angular-ui/src/assets/icons/AWS_CODECOMMIT.png
 /project-maintainer-angular-ui/src/assets/icons/GITHUB.png
-/.idea/sonarlint/
 project-maintainer-core/frontend/
 project-maintainer-ui/frontend/
 /**/application-local.yml
@@ -57,7 +56,7 @@ project-maintainer-ui/frontend/
 /.lucene/
 /project-maintainer-custom/src/
 /bitbucket-pullrequests-example.json
-/project-maintainer-custom/src/main/java/de/gregorpoloczek/projectmaintainer/custom/analysis/
+/project-maintainer-custom/src/main/java/io/github/gregorpoloczek/projectmaintainer/custom/analysis/
 /project-maintainer-ui/src/main/frontend/generated/
 /project-maintainer-ui/src/main/frontend/index.html
 /src/main/frontend/

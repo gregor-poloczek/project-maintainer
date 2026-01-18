@@ -1,0 +1,41 @@
+package io.github.gregorpoloczek.projectmaintainer.core.domain.project.service;
+
+import java.net.URI;
+import java.util.Optional;
+
+import lombok.Builder;
+import lombok.Getter;
+
+@Getter
+@Builder
+public class ProjectMetaData implements ProjectRelatable {
+
+    private String owner;
+    private String name;
+    private String description;
+    private URI uri;
+    private String browserLink;
+    private String websiteLink;
+    private FQPN fqpn;
+
+    public Optional<String> getDescription() {
+        return Optional.ofNullable(description);
+    }
+
+    public Optional<String> getBrowserLink() {
+        return Optional.ofNullable(browserLink);
+    }
+
+    public Optional<String> getWebsiteLink() {
+        return Optional.ofNullable(websiteLink);
+    }
+
+    public FQPN getFQPN() {
+        return fqpn;
+    }
+
+    public URI getURI() {
+        return uri;
+    }
+
+}

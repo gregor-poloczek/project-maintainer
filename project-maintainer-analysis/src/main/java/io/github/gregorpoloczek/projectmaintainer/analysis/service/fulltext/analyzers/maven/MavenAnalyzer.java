@@ -1,0 +1,110 @@
+package io.github.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.maven;
+
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+
+import io.github.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.common.AnalysisContext;
+import io.github.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.common.FactsCollector;
+import io.github.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.common.ProjectAnalyzer;
+import io.github.gregorpoloczek.projectmaintainer.analysis.service.fulltext.analyzers.common.ProjectFiles;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.Parent;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class MavenAnalyzer implements ProjectAnalyzer {
+
+    @Override
+    public void analyze(final @NonNull AnalysisContext context) {
+        final ProjectFiles files = context.files();
+        final List<ProjectFileLocation> poms = files.findLocations("pom\\.xml");
+        MavenXpp3Reader reader = new MavenXpp3Reader();
+        for (ProjectFileLocation pom : poms) {
+            final FactsCollector facts = context.facts(pom);
+            final File cwd = pom.getAbsolutePath().toFile().getParentFile();
+            final File effectivePom = new File(cwd, "effective-pom.xml");
+            try {
+                final Process process = new ProcessBuilder("mvn", "help:effective-pom",
+                        "-Doutput=effective-pom.xml")
+                        .directory(cwd).start();
+
+                final String string = IOUtils.toString(process.getInputStream());
+                process.waitFor();
+                final int exitCode = process.exitValue();
+                if (exitCode != 0) {
+                    log.error("Generation of effective pom failed for \"%s\": %s.".formatted(pom, exitCode),
+                            string);
+                    continue;
+                }
+
+                if (!effectivePom.exists()) {
+                    throw new IllegalStateException(
+                            "File \"%s\" should have been created.".formatted(effectivePom));
+                }
+
+                Model model = reader.read(new FileInputStream(effectivePom));
+                model.getDependencies().forEach(d -> facts.has(
+                        h -> h.dependency("maven", d.getGroupId() + ":" + d.getArtifactId(), d.getVersion())));
+
+                Parent parent = model.getParent();
+                if (parent != null) {
+                    facts.has(h -> h.dependency("maven", parent.getGroupId() + ":" + parent.getArtifactId(),
+                            parent.getVersion()));
+                }
+                model.getBuild().getPlugins().forEach(plugin -> {
+                    facts.has(h -> h.dependency("maven", plugin.getGroupId() + ":" + plugin.getArtifactId(),
+                            plugin.getVersion()));
+                });
+
+                facts.when(isNotBlank(model.getGroupId()))
+                        .has(h -> h.label("maven", "group-id", model.getGroupId()));
+                facts.when(isNotBlank(model.getArtifactId()))
+                        .has(h -> h.label("maven", "artifact-id", model.getArtifactId()));
+                facts.when(isNotBlank(model.getVersion()))
+                        .has(h -> h.label("maven", "version", model.getVersion()));
+
+                // TODO muss ".version" ignoriert werden?
+                model.getProperties()
+                        .keySet()
+                        .stream()
+                        .map(String.class::cast)
+                        .filter(key -> !key.endsWith(".version"))
+                        .forEach(key -> facts.has(h -> h.label("maven", "property", key)));
+
+                Optional.ofNullable(model.getProperties().get("maven.compiler.target"))
+                        .filter(String.class::isInstance)
+                        .map(String.class::cast)
+                        .map(this::convertJavaVersion)
+                        .ifPresent(v -> facts.uses(u -> u.language("java", v)));
+                Optional.ofNullable(model.getProperties().get("java.version"))
+                        .filter(String.class::isInstance)
+                        .map(String.class::cast)
+                        .map(this::convertJavaVersion)
+                        .ifPresent(v -> facts.uses(u -> u.language("java", v)));
+            } catch (IOException | InterruptedException | XmlPullParserException e) {
+                log.error("Analysis for \"%s\" failed.".formatted(pom), e);
+            } finally {
+                effectivePom.delete();
+            }
+        }
+
+        context.facts()
+                .when(files.hasAny("pom\\.xml"))
+                .uses(u -> u.dependencyManagement("maven"));
+    }
+
+    private String convertJavaVersion(String version) {
+        return version.replaceAll("^1\\.(\\d)$", "$1");
+    }
+}

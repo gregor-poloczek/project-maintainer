@@ -5,7 +5,7 @@
     <selectedOptions>
       <option name="environmentVariables" />
     </selectedOptions>
-    <option name="SPRING_BOOT_MAIN_CLASS" value="de.gregorpoloczek.projectmaintainer.ui.ProjectMaintainerUIApplication" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="io.github.gregorpoloczek.projectmaintainer.ui.ProjectMaintainerUIApplication" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="de.gregorpoloczek.projectmaintainer.ui.*" />

@@ -1,1 +1,0 @@
-package de.gregorpoloczek.projectmaintainer.custom;
