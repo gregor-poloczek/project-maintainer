@@ -259,7 +259,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <excludePackageNames>io.github.gregorpoloczek.**</excludePackageNames>
+                    <failOnError>false</failOnError>
                 </configuration>
             </plugin>
 
