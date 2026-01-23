@@ -2,10 +2,13 @@ package io.github.gregorpoloczek.projectmaintainer.ui.common;
 
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNavItem;
+import com.vaadin.flow.component.textfield.PasswordField;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.RouteParam;
@@ -20,6 +23,8 @@ import io.github.gregorpoloczek.projectmaintainer.ui.views.workspaces.Workspaces
 
 import java.util.*;
 
+@Uses(TextField.class)
+@Uses(PasswordField.class)
 public class MainLayout extends AppLayout implements BeforeEnterObserver {
 
     private final VerticalLayout itemsLayout;
