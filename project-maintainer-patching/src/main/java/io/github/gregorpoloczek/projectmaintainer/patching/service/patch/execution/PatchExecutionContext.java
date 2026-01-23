@@ -2,7 +2,8 @@ package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execut
 
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Patch;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentsImpl;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -18,6 +19,8 @@ import lombok.experimental.FieldDefaults;
 class PatchExecutionContext implements ProjectRelatable, PatchOperationContext {
 
     @NonNull
+    PatchParameterArgumentsImpl arguments;
+    @NonNull
     WorkingCopy workingCopy;
     @NonNull
     Patch patch;
@@ -29,6 +32,8 @@ class PatchExecutionContext implements ProjectRelatable, PatchOperationContext {
     String baseBranch;
     @NonNull
     ProgressSink<PatchExecutionResult> progressSink;
+    @NonNull
+    PatchContextImpl patchContext;
 
     @Override
     public FQPN getFQPN() {
@@ -38,4 +43,5 @@ class PatchExecutionContext implements ProjectRelatable, PatchOperationContext {
     public void publish(String message) {
         this.progressSink.next(message);
     }
+
 }

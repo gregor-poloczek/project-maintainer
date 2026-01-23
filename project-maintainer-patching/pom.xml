@@ -36,10 +36,5 @@
             <groupId>io.github.gregor-poloczek.project-maintainer</groupId>
             <artifactId>project-maintainer-analysis</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>com.google.auto.service</groupId>
-            <artifactId>auto-service-annotations</artifactId>
-        </dependency>
     </dependencies>
 </project>
