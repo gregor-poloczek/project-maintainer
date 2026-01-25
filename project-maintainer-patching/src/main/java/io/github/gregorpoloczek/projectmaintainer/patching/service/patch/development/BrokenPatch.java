@@ -1,13 +1,10 @@
-package io.github.gregorpoloczek.projectmaintainer.patching.service.patch;
+package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.development;
 
-import com.google.auto.service.AutoService;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.AbstractProgrammablePatch;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Patch;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchContext;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchMetaData;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchContext;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
 import lombok.extern.slf4j.Slf4j;
 
-@AutoService(Patch.class)
 @Slf4j
 public class BrokenPatch extends AbstractProgrammablePatch {
 

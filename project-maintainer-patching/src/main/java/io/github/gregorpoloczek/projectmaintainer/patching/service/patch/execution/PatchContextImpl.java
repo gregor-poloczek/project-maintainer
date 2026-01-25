@@ -5,18 +5,23 @@ import io.github.gregorpoloczek.projectmaintainer.analysis.service.fulltext.anal
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchContext;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentsImpl;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchContext;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileCreation;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileDeletion;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileUpdate;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArguments;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
@@ -30,11 +35,18 @@ import org.apache.commons.io.IOUtils;
 public class PatchContextImpl implements PatchContext {
 
     @NonNull
+    PatchMetaData patchMetaData;
+    @NonNull
     final Project project;
     @NonNull
     final WorkingCopy workingCopy;
+    @NonNull
+    final PatchParameterArgumentsImpl arguments;
 
     final List<ProjectFileOperation> operations = new ArrayList<>();
+
+    String pullRequestCommitMessage;
+    String pullRequestTitle;
 
     @Override
     public FQPN getFQPN() {
@@ -79,8 +91,24 @@ public class PatchContextImpl implements PatchContext {
         }
     }
 
+
+    @Override
+    public void pullRequestTitle(String title) {
+        this.pullRequestTitle = title;
+    }
+
+    @Override
+    public void pullRequestCommitMessage(String commitMessage) {
+        this.pullRequestCommitMessage = commitMessage;
+    }
+
     @Override
     public ProjectFiles files() {
         return new ProjectFilesImpl(this.workingCopy);
+    }
+
+    @Override
+    public PatchParameterArguments arguments() {
+        return arguments;
     }
 }

@@ -60,3 +60,4 @@ project-maintainer-ui/frontend/
 /project-maintainer-ui/src/main/frontend/generated/
 /project-maintainer-ui/src/main/frontend/index.html
 /src/main/frontend/
+/project-maintainer-patching/src/main/resources/META-INF/services/io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch

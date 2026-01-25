@@ -1,6 +1,10 @@
-package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition;
+package io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,8 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Builder
-@RequiredArgsConstructor
 @Getter
+@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PatchMetaData {
 
@@ -22,14 +26,10 @@ public class PatchMetaData {
     String commitMessage;
     String branchName;
 
-    public Optional<String> getCommitPrefix() {
-        return Optional.ofNullable(commitPrefix);
-    }
+    @Builder.Default
+    List<PatchParameter> patchParameters = new ArrayList<>();
 
-    public Optional<String> getCommitMessage() {
-        return Optional.ofNullable(commitMessage);
-    }
-
+    @Deprecated
     public Optional<String> getBranchName() {
         return Optional.ofNullable(branchName);
     }

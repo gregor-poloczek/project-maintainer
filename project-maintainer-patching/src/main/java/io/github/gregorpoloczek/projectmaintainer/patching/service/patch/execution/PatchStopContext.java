@@ -2,7 +2,7 @@ package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execut
 
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Patch;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import lombok.AccessLevel;
 import lombok.Builder;

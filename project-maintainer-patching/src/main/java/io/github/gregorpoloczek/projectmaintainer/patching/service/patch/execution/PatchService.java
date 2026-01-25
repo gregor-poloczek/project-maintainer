@@ -2,6 +2,7 @@ package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execut
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
 
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
@@ -13,14 +14,19 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.Patch;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.PatchMetaData;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentImpl;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentsImpl;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.WellKnownPatchParameters;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileCreation;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileDeletion;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperationType;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileUpdate;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult.PreviewGeneratedResultDetail;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.git.BranchState;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
@@ -34,7 +40,9 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.SortedSet;
 import java.util.stream.Stream;
@@ -48,7 +56,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.RefSpec;
-import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -63,7 +70,6 @@ public class PatchService {
     final List<Patch> patches = new ArrayList<>();
     ProjectService projectService;
     GitService gitService;
-    private final ConversionService conversionService;
 
     public List<PatchMetaData> getAvailablePatches() {
         return this.patches.stream()
@@ -73,19 +79,23 @@ public class PatchService {
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> applyPatch(
-            ProjectRelatable projectRelatable, String id) {
-        return usePatch(projectRelatable, id, false);
+            ProjectRelatable projectRelatable, String id, Map<String, Object> parameters) {
+        return usePatch(projectRelatable, id, parameters, false);
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> previewPatch(ProjectRelatable projectRelatable,
-                                                                             String id) {
-        return usePatch(projectRelatable, id, true);
+                                                                             String id,
+                                                                             Map<String, Object> parameters) {
+        return usePatch(projectRelatable, id, parameters, true);
     }
 
 
     public Flux<ProjectOperationProgress<PatchStopResult>> stopPatch(ProjectRelatable projectRelatable,
-                                                                     String id) {
+                                                                     String id, Map<String, Object> rawArguments) {
         Patch patch = requirePatch(id);
+
+        PatchParameterArgumentsImpl arguments = buildArguments(rawArguments, patch);
+
 
         return Flux.create(sink -> {
             FQPN fqpn = projectRelatable.getFQPN();
@@ -105,7 +115,7 @@ public class PatchService {
             PatchStopContext stopContext = PatchStopContext.builder()
                     .patch(patch)
                     .workingCopy(workingCopy)
-                    .patchBranch(getPatchBranch(patch))
+                    .patchBranch(arguments.getString(WellKnownPatchParameters.BRANCH).getValue().orElse(getDefaultPatchBranch(patch)))
                     .baseBranch(defaultBranch)
                     .progressSink(progressSink)
                     .defaultBranch(defaultBranch)
@@ -170,11 +180,11 @@ public class PatchService {
                 .flatMap(pullRequest -> {
                     if (pullRequest.isEmpty()) {
                         log.info("No open pull request \"{}\" found \"{}\".",
-                                getPullRequestTitle(stopContext.getPatch()), stopContext.getFQPN());
+                                getDefaultPullRequestTitle(stopContext.getPatch()), stopContext.getFQPN());
                         return Mono.just(pullRequest);
                     } else {
                         log.info("Closing pull request \"{}\" from \"{}\".",
-                                getPullRequestTitle(stopContext.getPatch()), stopContext.getFQPN());
+                                getDefaultPullRequestTitle(stopContext.getPatch()), stopContext.getFQPN());
                         // TODO [Patching] add pull request to result
                         return this.gitService.closePullRequest(stopContext, pullRequest.get())
                                 .then(Mono.just(pullRequest));
@@ -184,7 +194,7 @@ public class PatchService {
     }
 
     private Flux<ProjectOperationProgress<PatchExecutionResult>> usePatch(ProjectRelatable projectRelatable,
-                                                                          String id, boolean previewOnly) {
+                                                                          String id, Map<String, Object> rawArguments, boolean previewOnly) {
         Patch patch = this.requirePatch(id);
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
@@ -202,14 +212,28 @@ public class PatchService {
                     String defaultBranch = this.gitService.execute(workingCopy, c -> {
                         return c.getBranchState().getDefaultBranch();
                     });
+
+
+                    PatchContextImpl patchContext = new PatchContextImpl(
+                            patch.getMetaData(),
+                            projectService.require(fqpn),
+                            workingCopyService.require(fqpn), buildArguments(rawArguments, patch));
+                    patchContext.pullRequestTitle(getDefaultPullRequestTitle(patch));
+                    patchContext.pullRequestCommitMessage(getDefaultCommitMessage(patch));
+
+                    PatchParameterArgument<String> branch = patchContext.arguments().getString(WellKnownPatchParameters.BRANCH);
+
                     PatchExecutionContext executionContext = PatchExecutionContext.builder()
                             .workingCopy(workingCopy)
+                            .arguments(patchContext.getArguments())
                             .progressSink(progressSink)
                             .patch(patch)
                             .defaultBranch(defaultBranch)
                             .baseBranch(defaultBranch)
-                            .patchBranch(this.getPatchBranch(patch))
+                            .patchBranch(branch.getValue().orElse(getDefaultPatchBranch(patch)))
+                            .patchContext(patchContext)
                             .build();
+
 
                     // TODO [Patching] lock working copy
 
@@ -258,11 +282,23 @@ public class PatchService {
                         .build()).concatWith(Mono.error(t)));
     }
 
+    private static PatchParameterArgumentsImpl buildArguments(Map<String, Object> rawArguments, Patch patch) {
+        // possible parameters are parameters of the patch, on well known parameters
+        List<PatchParameter> parameters = Stream.concat(
+                patch.getMetaData().getPatchParameters().stream(),
+                Stream.of(WellKnownPatchParameters.BRANCH)).toList();
+
+        List<PatchParameterArgumentImpl<Object>> arguments = parameters.stream()
+                .map(p -> new PatchParameterArgumentImpl<>(p, rawArguments.get(p.getId()))).toList();
+
+        return new PatchParameterArgumentsImpl(parameters, arguments);
+    }
+
 
     private Mono<? extends PatchOperationResultDetail> createPullRequest(PatchExecutionContext executionContext,
                                                                          RemoteBranch remoteBranch) {
         PullRequestCreation pullRequestCreation = PullRequestCreation.builder()
-                .title(getPullRequestTitle(executionContext.getPatch()))
+                .title(executionContext.getPatchContext().getPullRequestTitle())
                 .sourceBranchName(executionContext.getPatchBranch())
                 .targetBranchName(executionContext.getDefaultBranch())
                 .build();
@@ -276,7 +312,7 @@ public class PatchService {
                 .doOnSubscribe(x -> executionContext.publish("Creating pull request"));
     }
 
-    private String getPullRequestTitle(Patch patch) {
+    private String getDefaultPullRequestTitle(Patch patch) {
         // TODO [Patching] better title
         return patch.getMetaData().getDescription();
     }
@@ -331,7 +367,8 @@ public class PatchService {
                     }
 
                     // commit changes
-                    gitActionContext.command(Git::commit).setMessage(getCommitMessage(executionContext.getPatch())).call();
+                    gitActionContext.command(Git::commit).setMessage(
+                            executionContext.getPatchContext().getPullRequestCommitMessage()).call();
 
                     // push changes
                     gitActionContext.command(Git::push).call();
@@ -349,12 +386,10 @@ public class PatchService {
         }).doOnSubscribe(x -> executionContext.publish("Applying changes"));
     }
 
-    private String getCommitMessage(Patch patch) {
+    private String getDefaultCommitMessage(Patch patch) {
         PatchMetaData metaData = patch.getMetaData();
-        String prefix = metaData.getCommitPrefix().map(p -> p + " ").orElse("");
-        String defaultCommitMessage = prefix + metaData.getDescription();
 
-        return metaData.getCommitMessage().orElse(defaultCommitMessage);
+        return "Applying patch \"%s\": %s".formatted(metaData.getId(), metaData.getDescription());
     }
 
     private void applyOperationsToFileSystem(List<ProjectFileOperation> operations) {
@@ -428,9 +463,8 @@ public class PatchService {
     private Mono<? extends PatchOperationResultDetail> makeSourceCodeChanges(PatchExecutionContext executionContext) {
 
         return Mono.fromSupplier(() -> {
-                    PatchContextImpl patchContext = new PatchContextImpl(
-                            projectService.require(executionContext),
-                            workingCopyService.require(executionContext));
+                    Patch patch = executionContext.getPatch();
+
                     WorkingCopy workingCopy = executionContext.getWorkingCopy();
 
                     // switch to target branch
@@ -440,9 +474,9 @@ public class PatchService {
                     });
 
                     // execute patch
-                    executionContext.getPatch().execute(patchContext);
+                    patch.execute(executionContext.getPatchContext());
 
-                    List<ProjectFileOperation> operations = patchContext.getOperations();
+                    List<ProjectFileOperation> operations = executionContext.getPatchContext().getOperations();
                     if (operations.isEmpty()) {
                         return PatchExecutionResult.NoopResultDetail.builder().build();
                     } else {
@@ -501,7 +535,7 @@ public class PatchService {
     }
 
 
-    private String getPatchBranch(Patch patch) {
+    private String getDefaultPatchBranch(Patch patch) {
         String sanitizedPatchId = patch.getMetaData().getId().replaceAll("[^a-zA-Z0-9._/-]", "_");
         String defaultBranchName = "project-maintainer/" + sanitizedPatchId;
         return patch.getMetaData().getBranchName().orElse(defaultBranchName);
@@ -545,9 +579,14 @@ public class PatchService {
 
     @PostConstruct
     void init() {
-        ServiceLoader.load(Patch.class).stream()
-                .map(ServiceLoader.Provider::get)
-                .forEach(this.patches::add);
+        try {
+            ServiceLoader.load(Patch.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .forEach(this.patches::add);
+        } catch (ServiceConfigurationError e) {
+            log.error("Unable to load patches via ServiceLoader API", e);
+            // TODO [Patching] unclear in what the application here is now
+        }
     }
 
 }

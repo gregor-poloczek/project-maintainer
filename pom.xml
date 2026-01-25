@@ -45,12 +45,11 @@
     </modules>
 
     <properties>
-        <vaadin.version>24.7.14</vaadin.version>
+        <vaadin.version>24.9.9</vaadin.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <spring-boot.version>3.5.10</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <google-auto-service.version>1.1.1</google-auto-service.version>
         <lucene.version>8.10.1</lucene.version>
     </properties>
 
@@ -186,13 +185,6 @@
                 <version>3.9.12</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.google.auto.service</groupId>
-                <artifactId>auto-service-annotations</artifactId>
-                <version>${google-auto-service.version}</version>
-            </dependency>
-
-
             <!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
             <dependency>
                 <groupId>org.kohsuke</groupId>
@@ -220,11 +212,6 @@
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                             <version>1.18.30</version>
-                        </path>
-                        <path>
-                            <groupId>com.google.auto.service</groupId>
-                            <artifactId>auto-service</artifactId>
-                            <version>${google-auto-service.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
