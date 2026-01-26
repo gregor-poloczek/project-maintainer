@@ -8,38 +8,49 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PatchParameterArgumentsImpl implements PatchParameterArguments {
 
     List<PatchParameter> parameters;
-    List<PatchParameterArgumentImpl<Object>> arguments;
+    Collection<PatchParameterArgument<?>> arguments;
 
     @Override
     public PatchParameterArgument<String> getString(String parameterId) {
-        PatchParameter patchParameter = getPatchParameter(parameterId);
-        return getPatchParameterArgument(patchParameter)
-                .map(s -> (PatchParameterArgument<String>) s)
-                .orElseGet(() -> new PatchParameterArgumentImpl<>(patchParameter, null));
+        return (PatchParameterArgument<String>) getPatchParameterArgument(parameterId);
+    }
+
+    @Override
+    public PatchParameterArgument<Integer> getInteger(String parameterId) {
+        return (PatchParameterArgument<Integer>) getPatchParameterArgument(parameterId);
+    }
+
+    @Override
+    public PatchParameterArgument<Boolean> getBoolean(String parameterId) {
+        return (PatchParameterArgument<Boolean>) getPatchParameterArgument(parameterId);
     }
 
     @Override
     public PatchParameterArgument<List<PatchParameterFile>> getFiles(String parameterId) {
-        PatchParameter patchParameter = getPatchParameter(parameterId);
-        return getPatchParameterArgument(patchParameter)
-                .map(s -> (PatchParameterArgument<List<PatchParameterFile>>) s)
-                .orElseGet(() -> new PatchParameterArgumentImpl<>(patchParameter, null));
+        return (PatchParameterArgument<List<PatchParameterFile>>) getPatchParameterArgument(parameterId);
     }
 
-    private @org.jspecify.annotations.NonNull PatchParameter getPatchParameter(String parameterId) {
+    @Override
+    public List<PatchParameterArgument<Object>> getAll() {
+        return this.arguments.stream().map(a -> (PatchParameterArgument<Object>) a).toList();
+    }
+
+    private PatchParameter getPatchParameter(String parameterId) {
         return parameters.stream().filter(pP -> pP.getId().equals(parameterId)).findFirst().orElseThrow();
     }
 
-    private Optional<? extends PatchParameterArgument<?>> getPatchParameterArgument(PatchParameter parameter) {
-        return this.arguments.stream().filter(p -> p.getParameter().getId().equals(parameter.getId())).findFirst();
+    private PatchParameterArgument<?> getPatchParameterArgument(String parameterId) {
+        PatchParameter parameter = getPatchParameter(parameterId);
+        return this.arguments.stream().filter(p -> p.getParameter().getId().equals(parameter.getId()))
+                .findFirst().orElse(new PatchParameterArgumentImpl<>(parameter, null));
     }
 
 }

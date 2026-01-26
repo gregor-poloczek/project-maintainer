@@ -4,22 +4,17 @@ import static io.github.gregorpoloczek.projectmaintainer.ui.common.composable.Co
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.JsModule;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -34,8 +29,6 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.WellKnownPatchParameters;
-import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
@@ -57,15 +50,11 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.Ha
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
-import io.github.gregorpoloczek.projectmaintainer.ui.views.patching.components.FilesUploadParameterComponent;
 import org.apache.commons.lang3.BooleanUtils;
-import org.jspecify.annotations.NonNull;
 import reactor.core.Disposable;
 import reactor.core.Disposable.Swap;
 import reactor.core.Disposables;
@@ -82,7 +71,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     private final transient PatchService patchService;
     private final ProjectProgressBar projectProgressBar;
     private final ComposableFilterSearch<FQPN, ProjectPatchItem> search;
-    private final FormLayout parametersLayout;
+    private final PatchParameterArgumentsComponent patchParameterArgumentsComponent;
     private String workspaceId;
     private transient ComposableHolder<FQPN, ProjectPatchItem> items = ComposableHolder.emptyHolder();
     private final Grid<ProjectPatchItem> grid;
@@ -92,7 +81,6 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
 
     private final transient Swap currentOperation = Disposables.swap();
-    private Binder<Map<String, Object>> parametersBinder;
 
 
     public PatchesView(
@@ -110,9 +98,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
         this.projectProgressBar = new ProjectProgressBar();
         this.projectProgressBar.setWidthFull();
-        this.parametersLayout = new FormLayout();
-        this.parametersLayout.setAutoResponsive(true);
-        this.parametersBinder = new Binder<>();
+        this.patchParameterArgumentsComponent = new PatchParameterArgumentsComponent();
 
         search = new ComposableFilterSearch<>(this.dataProvider);
 
@@ -151,7 +137,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
                 hideNoOpCheckbox);
         horizontalLayout.setAlignItems(Alignment.CENTER);
         this.add(horizontalLayout,
-                this.parametersLayout,
+                this.patchParameterArgumentsComponent,
                 this.menuBar,
                 this.grid,
                 this.projectProgressBar
@@ -170,38 +156,9 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         search.refresh();
 
         if (value != null) {
-            this.buildParameterLayout(value);
+            this.patchParameterArgumentsComponent.setParameters(value.getPatchParameters());
         }
 
-    }
-
-    private void buildParameterLayout(PatchMetaData value) {
-        this.parametersLayout.removeAll();
-        this.parametersBinder = new Binder<>();
-        this.parametersBinder.setBean(new LinkedHashMap<>());
-
-        this.parametersLayout.addFormRow(buildParameterComponent(WellKnownPatchParameters.BRANCH));
-        for (PatchParameter patchParameter : value.getPatchParameters()) {
-            this.parametersLayout.addFormRow(buildParameterComponent(patchParameter));
-        }
-    }
-
-    private @NonNull Component buildParameterComponent(PatchParameter patchParameter) {
-        HasValue c = switch (patchParameter.getType()) {
-            case STRING -> {
-                TextField r = new TextField(patchParameter.getName().orElse(patchParameter.getId()));
-                patchParameter.getDescription().ifPresent(r::setTooltipText);
-                yield r;
-            }
-            case FILES -> new FilesUploadParameterComponent(patchParameter);
-            default -> throw new IllegalStateException(patchParameter.getType().toString());
-        };
-        var builder = parametersBinder.forField(c);
-        if (patchParameter.isRequired()) {
-            builder = builder.asRequired();
-        }
-        builder.bind(m -> ((Map<String, Object>) m).get(patchParameter.getId()), (m, v) -> ((Map<String, Object>) m).put(patchParameter.getId(), v));
-        return (Component) c;
     }
 
     private Grid<ProjectPatchItem> createGrid() {
@@ -250,13 +207,13 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
                 .sorted().toList();
         projectProgressBar.start(relevantItems, label);
 
-        // TODO alle betroffenen projekte zählen und anzeigen
+        // TODO [Patching] alle betroffenen projekte zählen und anzeigen
 
         Disposable subscription = Flux.fromIterable(relevantItems)
                 .doOnNext(this::clearItem)
                 .flatMap(item ->
                         operation.apply(item)
-                                // TODO broken package is not visible in view
+                                // TODO [Patching] broken package is not visible in view
                                 .onErrorComplete()
                                 .subscribeOn(Schedulers.boundedElastic()))
                 .doOnSubscribe(x -> VaadinUtils.access(this, PatchesView::onBeforeOperation))
@@ -268,20 +225,26 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void onStopClick(ClickEvent<MenuItem> event) {
-        Map<String, Object> parameters = this.parametersBinder.getBean();
-        this.onOperationClick(item -> this.patchService.stopPatch(item, this.patchesSelection.getValue().getId(), parameters),
+        this.onOperationClick(item -> this.patchService.stopPatch(
+                        item,
+                        this.patchesSelection.getValue().getId(),
+                        this.patchParameterArgumentsComponent.getValues().values()),
                 "Stopping patch process ...");
     }
 
     private void onPreviewClick(ClickEvent<MenuItem> event) {
-        Map<String, Object> parameters = this.parametersBinder.getBean();
-        this.onOperationClick(item -> this.patchService.previewPatch(item, this.patchesSelection.getValue().getId(), parameters),
+        this.onOperationClick(item -> this.patchService.previewPatch(
+                        item,
+                        this.patchesSelection.getValue().getId(),
+                        this.patchParameterArgumentsComponent.getValues().values()),
                 "Previewing patch ...");
     }
 
     private void onApplyClick(ClickEvent<MenuItem> event) {
-        Map<String, Object> parameters = this.parametersBinder.getBean();
-        this.onOperationClick(item -> this.patchService.applyPatch(item, this.patchesSelection.getValue().getId(), parameters),
+        this.onOperationClick(item -> this.patchService.applyPatch(
+                        item,
+                        this.patchesSelection.getValue().getId(),
+                        this.patchParameterArgumentsComponent.getValues().values()),
                 "Applying patch ...");
     }
 

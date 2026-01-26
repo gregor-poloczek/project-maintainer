@@ -28,4 +28,8 @@ public class PatchParameterArgumentImpl<T> implements PatchParameterArgument<T> 
         return Optional.ofNullable(value).orElseThrow(() -> new IllegalStateException("No value defined for parameter \"%s\".".formatted(this.parameter.getId())));
     }
 
+    @Override
+    public String toString() {
+        return "PatchParameter[id=%s, type=%s, value=%s]".formatted(this.parameter.getId(), this.parameter.getType(), this.value);
+    }
 }

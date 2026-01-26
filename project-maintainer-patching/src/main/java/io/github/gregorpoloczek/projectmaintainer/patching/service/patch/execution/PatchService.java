@@ -2,7 +2,6 @@ package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execut
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toMap;
 
 import com.github.difflib.DiffUtils;
 import com.github.difflib.UnifiedDiffUtils;
@@ -14,7 +13,6 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentImpl;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentsImpl;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.WellKnownPatchParameters;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch;
@@ -27,6 +25,7 @@ import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definit
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult.PreviewGeneratedResultDetail;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArguments;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.git.BranchState;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
@@ -38,9 +37,9 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
@@ -54,6 +53,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.transport.RefSpec;
 import org.springframework.stereotype.Service;
@@ -79,19 +79,19 @@ public class PatchService {
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> applyPatch(
-            ProjectRelatable projectRelatable, String id, Map<String, Object> parameters) {
+            ProjectRelatable projectRelatable, String id, Collection<PatchParameterArgument<?>> parameters) {
         return usePatch(projectRelatable, id, parameters, false);
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> previewPatch(ProjectRelatable projectRelatable,
                                                                              String id,
-                                                                             Map<String, Object> parameters) {
+                                                                             Collection<PatchParameterArgument<?>> parameters) {
         return usePatch(projectRelatable, id, parameters, true);
     }
 
 
     public Flux<ProjectOperationProgress<PatchStopResult>> stopPatch(ProjectRelatable projectRelatable,
-                                                                     String id, Map<String, Object> rawArguments) {
+                                                                     String id, Collection<PatchParameterArgument<?>> rawArguments) {
         Patch patch = requirePatch(id);
 
         PatchParameterArgumentsImpl arguments = buildArguments(rawArguments, patch);
@@ -115,7 +115,7 @@ public class PatchService {
             PatchStopContext stopContext = PatchStopContext.builder()
                     .patch(patch)
                     .workingCopy(workingCopy)
-                    .patchBranch(arguments.getString(WellKnownPatchParameters.BRANCH).getValue().orElse(getDefaultPatchBranch(patch)))
+                    .patchBranch(getPatchBranch(arguments, patch))
                     .baseBranch(defaultBranch)
                     .progressSink(progressSink)
                     .defaultBranch(defaultBranch)
@@ -136,6 +136,12 @@ public class PatchService {
                     });
 
         });
+    }
+
+    private String getPatchBranch(PatchParameterArguments arguments, Patch patch) {
+        return arguments.getString(WellKnownPatchParameters.BRANCH).getValue()
+                .filter(StringUtils::isNotBlank)
+                .orElseGet(() -> getDefaultPatchBranch(patch));
     }
 
     private Mono<? extends PatchOperationResultDetail> deleteRemoteBranch(PatchStopContext stopContext,
@@ -194,7 +200,7 @@ public class PatchService {
     }
 
     private Flux<ProjectOperationProgress<PatchExecutionResult>> usePatch(ProjectRelatable projectRelatable,
-                                                                          String id, Map<String, Object> rawArguments, boolean previewOnly) {
+                                                                          String id, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
         Patch patch = this.requirePatch(id);
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
@@ -221,8 +227,6 @@ public class PatchService {
                     patchContext.pullRequestTitle(getDefaultPullRequestTitle(patch));
                     patchContext.pullRequestCommitMessage(getDefaultCommitMessage(patch));
 
-                    PatchParameterArgument<String> branch = patchContext.arguments().getString(WellKnownPatchParameters.BRANCH);
-
                     PatchExecutionContext executionContext = PatchExecutionContext.builder()
                             .workingCopy(workingCopy)
                             .arguments(patchContext.getArguments())
@@ -230,7 +234,7 @@ public class PatchService {
                             .patch(patch)
                             .defaultBranch(defaultBranch)
                             .baseBranch(defaultBranch)
-                            .patchBranch(branch.getValue().orElse(getDefaultPatchBranch(patch)))
+                            .patchBranch(getPatchBranch(patchContext.arguments(), patch))
                             .patchContext(patchContext)
                             .build();
 
@@ -282,14 +286,11 @@ public class PatchService {
                         .build()).concatWith(Mono.error(t)));
     }
 
-    private static PatchParameterArgumentsImpl buildArguments(Map<String, Object> rawArguments, Patch patch) {
+    private static PatchParameterArgumentsImpl buildArguments(Collection<PatchParameterArgument<?>> arguments, Patch patch) {
         // possible parameters are parameters of the patch, on well known parameters
         List<PatchParameter> parameters = Stream.concat(
                 patch.getMetaData().getPatchParameters().stream(),
                 Stream.of(WellKnownPatchParameters.BRANCH)).toList();
-
-        List<PatchParameterArgumentImpl<Object>> arguments = parameters.stream()
-                .map(p -> new PatchParameterArgumentImpl<>(p, rawArguments.get(p.getId()))).toList();
 
         return new PatchParameterArgumentsImpl(parameters, arguments);
     }
@@ -297,6 +298,7 @@ public class PatchService {
 
     private Mono<? extends PatchOperationResultDetail> createPullRequest(PatchExecutionContext executionContext,
                                                                          RemoteBranch remoteBranch) {
+        // TODO [Patching] title needs to be limited in size
         PullRequestCreation pullRequestCreation = PullRequestCreation.builder()
                 .title(executionContext.getPatchContext().getPullRequestTitle())
                 .sourceBranchName(executionContext.getPatchBranch())
@@ -537,8 +539,7 @@ public class PatchService {
 
     private String getDefaultPatchBranch(Patch patch) {
         String sanitizedPatchId = patch.getMetaData().getId().replaceAll("[^a-zA-Z0-9._/-]", "_");
-        String defaultBranchName = "project-maintainer/" + sanitizedPatchId;
-        return patch.getMetaData().getBranchName().orElse(defaultBranchName);
+        return "project-maintainer/%s".formatted(sanitizedPatchId);
     }
 
 

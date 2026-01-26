@@ -7,5 +7,8 @@ public interface PatchParameterArgument<T> {
 
     Optional<T> getValue();
 
-    T requireValue();
+    default T requireValue() {
+        return this.getValue().orElseThrow(() -> new IllegalStateException("No value defined for \"%s\".".formatted(this.getParameter().getId())));
+    }
+
 }

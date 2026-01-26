@@ -4,11 +4,30 @@ import java.util.List;
 
 public interface PatchParameterArguments {
 
+    PatchParameterArgument<Integer> getInteger(String parameterId);
+
+    PatchParameterArgument<Boolean> getBoolean(String parameterId);
+
     PatchParameterArgument<String> getString(String parameterId);
+
+    PatchParameterArgument<List<PatchParameterFile>> getFiles(String id);
+
+
+    default PatchParameterArgument<Integer> getInteger(PatchParameter parameter) {
+        return getInteger(parameter.getId());
+    }
+
+    default PatchParameterArgument<Boolean> getBoolean(PatchParameter parameter) {
+        return getBoolean(parameter.getId());
+    }
 
     default PatchParameterArgument<String> getString(PatchParameter parameter) {
         return getString(parameter.getId());
     }
 
-    PatchParameterArgument<List<PatchParameterFile>> getFiles(String id);
+    default PatchParameterArgument<List<PatchParameterFile>> getFiles(PatchParameter parameter) {
+        return getFiles(parameter.getId());
+    }
+
+    List<PatchParameterArgument<Object>> getAll();
 }
