@@ -103,12 +103,12 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
 
         this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
 
-
         this.reportConfig = projectReportGeneratorService.getProjectReportConfigs().stream()
                 .filter(r -> r.getId().equals(reportId))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Report " + reportId + " is unknown."));
 
+        this.header.setWorkspaceId(this.workspaceId);
         this.header.setTitle(reportConfig.getName());
         this.header.setSelectedReport(reportConfig);
 
