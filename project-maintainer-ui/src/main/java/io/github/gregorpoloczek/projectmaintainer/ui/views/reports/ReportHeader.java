@@ -12,6 +12,7 @@ import io.github.gregorpoloczek.projectmaintainer.reporting.config.ReportConfig;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ReportHeader extends FlexLayout {
 
@@ -22,7 +23,7 @@ public class ReportHeader extends FlexLayout {
         this.title.setText(title);
     }
 
-    public ReportHeader(List<? extends ReportConfig> reportConfigs) {
+    public ReportHeader(String workspaceId, List<? extends ReportConfig> reportConfigs) {
         this.title = new H2("");
         this.title.getStyle().setWhiteSpace(WhiteSpace.NOWRAP);
         comboBox = new ComboBox<>();
@@ -34,7 +35,9 @@ public class ReportHeader extends FlexLayout {
                             if (e.getValue() == null) {
                                 ui.navigate(ReportsView.class);
                             } else {
-                                ui.navigate(ReportView.class, new RouteParameters("reportId", e.getValue().getId()));
+                                ui.navigate(ReportView.class, new RouteParameters(
+                                        Map.of("workspaceId", workspaceId,
+                                                "reportId", e.getValue().getId())));
                             }
                         }));
         this.setJustifyContentMode(JustifyContentMode.BETWEEN);

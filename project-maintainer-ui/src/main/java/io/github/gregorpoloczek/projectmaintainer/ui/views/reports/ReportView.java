@@ -79,7 +79,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
             ImageResolverService imageResolverService, ProjectFullTextSearchService projectFullTextSearchService) {
         this.projectReportGeneratorService = reportGeneratorService;
         this.imageResolverService = imageResolverService;
-        this.header = new ReportHeader(reportGeneratorService.getProjectReportConfigs());
+        this.header = new ReportHeader(this.workspaceId, reportGeneratorService.getProjectReportConfigs());
 
         this.search = new ComposableFilterSearch<>(this.dataProvider);
         this.progressBar = new LabeledProgressBar();
