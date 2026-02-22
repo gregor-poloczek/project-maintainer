@@ -29,7 +29,11 @@ public class HasProjectFilterComponent<K, T extends AbstractComposable<K, T>> ex
             }
             Project project = item.requireTrait(HasProject.class).getProject();
             // match any segment of th fqpn
-            return project.getFQPN().getSegments().stream()
+
+            return project.getFQPN().getSegments()
+                    .stream()
+                    .filter(segment -> !segment.equals(project.getWorkspaceId()))
+                    .filter(segment -> !segment.equals(project.getConnectionId()))
                     .anyMatch(segment -> segment.toLowerCase().contains(value.toLowerCase()));
         });
         textField.addValueChangeListener(x -> handle.refresh());
