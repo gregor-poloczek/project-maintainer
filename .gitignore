@@ -64,3 +64,4 @@ project-maintainer-ui/frontend/
 /TODO.md
 /project-maintainer-ui/src/main/bundles/dev.bundle
 /project-maintainer-ui/src/main/bundles/prod.bundle
+/project-maintainer-reporting/src/main/resources/META-INF/services/io.github.gregorpoloczek.projectmaintainer.reporting.spi.ReportDefinitionProvider

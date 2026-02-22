@@ -27,6 +27,7 @@ import io.github.gregorpoloczek.projectmaintainer.reporting.common.ReportCellBoo
 import io.github.gregorpoloczek.projectmaintainer.reporting.common.ReportCellErrorValue;
 import io.github.gregorpoloczek.projectmaintainer.reporting.common.ReportCellStringValue;
 import io.github.gregorpoloczek.projectmaintainer.reporting.common.ReportCellValue;
+import io.github.gregorpoloczek.projectmaintainer.reporting.spi.ReportDefinitionProvider;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.ConstraintViolation;
@@ -41,6 +42,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -107,6 +110,18 @@ public class ReportGeneratorService {
                 throw new UncheckedIOException(e);
             }
         }
+
+        try {
+            ServiceLoader.load(ReportDefinitionProvider.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .map(ReportDefinitionProvider::create)
+                    .flatMap(List::stream)
+                    .forEach(reportConfig -> reportConfigs.put(reportConfig.getId(), reportConfig));
+        } catch (ServiceConfigurationError e) {
+            log.error("Unable to load ReportDefinitionProvider via ServiceLoader API", e);
+            // TODO [Reporting] unclear in what the application here is now
+        }
+
     }
 
     public List<ProjectReportConfig> getProjectReportConfigs() {
