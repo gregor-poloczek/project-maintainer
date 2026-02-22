@@ -62,3 +62,5 @@ project-maintainer-ui/frontend/
 /src/main/frontend/
 /project-maintainer-patching/src/main/resources/META-INF/services/io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch
 /TODO.md
+/project-maintainer-ui/src/main/bundles/dev.bundle
+/project-maintainer-ui/src/main/bundles/prod.bundle
