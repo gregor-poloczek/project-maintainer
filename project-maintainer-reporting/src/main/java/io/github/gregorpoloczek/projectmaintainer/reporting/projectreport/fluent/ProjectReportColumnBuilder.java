@@ -17,7 +17,8 @@ public class ProjectReportColumnBuilder {
     }
 
     public ProjectReportColumnBuilder labelPresence(Consumer<LabelMatcherBuilder> builderConsumer) {
-        throw new NotImplementedException("");
+        builderConsumer.accept(new LabelMatcherBuilder(config));
+        return this;
     }
 
     public ProjectReportColumnBuilder name(String name) {

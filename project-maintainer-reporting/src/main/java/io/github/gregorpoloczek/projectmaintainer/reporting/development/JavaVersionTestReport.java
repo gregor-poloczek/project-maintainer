@@ -18,7 +18,8 @@ public class JavaVersionTestReport implements ReportDefinitionProvider {
                 .column(c -> c
                         .name("Java Version")
                         .textAlignment(ColumnTextAlignment.CENTER)
-                        .labelBase(Label.fromString("lang:java")))
+                        .labelBase(Label.fromString("lang:java"))
+                )
                 .build()
         );
     }

@@ -1,15 +1,17 @@
 package io.github.gregorpoloczek.projectmaintainer.reporting.projectreport.fluent;
 
 import io.github.gregorpoloczek.projectmaintainer.analysis.service.label.Label;
-import org.intellij.lang.annotations.Language;
+import io.github.gregorpoloczek.projectmaintainer.reporting.config.ColumnConfig;
+import lombok.RequiredArgsConstructor;
 
+@RequiredArgsConstructor
 public class LabelMatcherBuilder {
 
-    public LabelMatcherBuilder exact(Label label) {
-        return this;
-    }
+    final ColumnConfig columnConfig;
 
-    public LabelMatcherBuilder withPattern(@Language("regexp") String regexp) {
+
+    public LabelMatcherBuilder exact(Label label) {
+        columnConfig.setLabelPresence(label.getValue());
         return this;
     }
 }
