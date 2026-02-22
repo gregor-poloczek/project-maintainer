@@ -6,8 +6,9 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import io.github.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import jakarta.annotation.PostConstruct;
-import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
 
@@ -15,17 +16,16 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
-import java.util.Optional;
 
+
+@RequiredArgsConstructor
 @Component
 public class EncryptionService {
     private SecretKeySpec secretKey;
+    private final ApplicationProperties applicationProperties;
 
     public class SecretStringSerializer extends JsonSerializer<SecretString> {
 
@@ -45,27 +45,16 @@ public class EncryptionService {
     @SneakyThrows({NoSuchAlgorithmException.class})
     @PostConstruct
     void init() {
-        String deviceData = generateDeviceData();
+        String encryptionMasterKey = applicationProperties.getEncryptionMasterKey();
 
         MessageDigest md = MessageDigest.getInstance("SHA-256");
-        byte[] deviceHash = md.digest(deviceData.getBytes(StandardCharsets.UTF_8));
+        byte[] deviceHash = md.digest(encryptionMasterKey.getBytes(StandardCharsets.UTF_8));
 
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
         byte[] keyBytes = sha.digest(deviceHash);
         this.secretKey = new SecretKeySpec(keyBytes, "AES");
     }
 
-    @SneakyThrows({IOException.class})
-    private static @NonNull String generateDeviceData() {
-        // determine inode from home directory (if possible)
-        String iNodeData = Optional.ofNullable(Files.readAttributes(Paths.get(System.getProperty("user.home")), BasicFileAttributes.class).fileKey())
-                .map(Object::toString)
-                .orElse("N/A");
-
-        return System.getProperty("os.name") + ":" +
-                System.getProperty("os.arch") + ":" +
-                System.getProperty("user.name") + ":" + iNodeData;
-    }
 
     @SneakyThrows
     public String encrypt(String value) {

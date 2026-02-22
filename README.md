@@ -9,9 +9,9 @@ server, though technically possible, is strongly discouraged as multiple users a
 1. This application stores credentials on your machine only, and does not send them to any external location
    apart from when they are needed for authentication purposes (e.g. when accessing Git repositories or APIs such as
    Github).
-2. Your credentials will be encrypted before stored on your disk. However, these can be easily decrypted, if someone has
-   access to your filesystem and has knowledge of the source code of this application. A better encryption policy is
-   planned, but has not been implemented yet.
+2. Your credentials will be encrypted automatically before stored on your disk. However, these can be easily decrypted,
+   if someone has access to your filesystem and has knowledge of the source code of this application. See bellow on how
+   to create custom encryption master key.
 3. This application does not send any cloned repository content anywhere. Working copies and their content remain on
    your machine.
 4. This application does not **automatically** perform any manipulation on source code, nor does it
@@ -27,6 +27,20 @@ server, though technically possible, is strongly discouraged as multiple users a
 ## Configuration
 
 The application needs some setup work to be done, before it can be properly used.
+
+### Encryption master key
+
+To setup up an custom encryption master key you can:
+
+1. Start the application with either an spring-profile-based YAML file (e.g. ``application-never-commit.yml``)
+   containing:
+   ```yaml
+   project-maintainer:
+     encryption-master-key: 'your-16-characters-wide-master-key'
+   ```
+   Never commit this file.
+2. Start the application with the environment variable:
+   ``PROJECTMAINTAINER_ENCRYPTIONMASTERKEY=your-16-characters-wide-master-key``
 
 ### Definition of project/repository locations
 
