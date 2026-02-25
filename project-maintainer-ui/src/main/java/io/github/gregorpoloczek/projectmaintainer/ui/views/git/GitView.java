@@ -100,10 +100,10 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
         result.setDataProvider(this.dataProvider);
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
-        result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
+        result.addColumn(ProjectNameComponent.getRenderer()).setResizable(true).setHeader("Name");
         result.addColumn(ProjectWebsiteLinkComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
-        result.addColumn(ProjectDescriptionComponent.getRenderer()).setHeader("Description");
-        result.addColumn(WorkingCopyStateComponent.getRenderer()).setHeader("Working copy");
+        result.addColumn(ProjectDescriptionComponent.getRenderer()).setResizable(true).setHeader("Description");
+        result.addColumn(WorkingCopyStateComponent.getRenderer()).setResizable(true).setHeader("Working copy");
         result.addColumn(OperationProgressComponent.getRenderer());
         return result;
     }
