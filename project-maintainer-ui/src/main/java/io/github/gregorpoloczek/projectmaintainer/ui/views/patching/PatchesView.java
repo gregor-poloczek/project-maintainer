@@ -9,6 +9,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.dependency.JsModule;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
@@ -98,7 +99,11 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
         this.projectProgressBar = new ProjectProgressBar();
         this.projectProgressBar.setWidthFull();
+
         this.patchParameterArgumentsComponent = new PatchParameterArgumentsComponent();
+
+        Details details = new Details("Parameters", this.patchParameterArgumentsComponent);
+        details.setOpened(true);
 
         search = new ComposableFilterSearch<>(this.dataProvider);
 
@@ -137,7 +142,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
                 hideNoOpCheckbox);
         horizontalLayout.setAlignItems(Alignment.CENTER);
         this.add(horizontalLayout,
-                this.patchParameterArgumentsComponent,
+                details,
                 this.menuBar,
                 this.grid,
                 this.projectProgressBar
