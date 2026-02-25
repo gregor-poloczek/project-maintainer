@@ -28,18 +28,6 @@ public class ApplicationProperties {
 
     @NotEmpty
     @Size(min = 16, max = 256)
-    String encryptionMasterKey = generateDeviceData();
-
-    @SneakyThrows({IOException.class})
-    private static @NonNull String generateDeviceData() {
-        // determine inode from home directory (if possible)
-        String iNodeData = Optional.ofNullable(Files.readAttributes(Paths.get(System.getProperty("user.home")), BasicFileAttributes.class).fileKey())
-                .map(Object::toString)
-                .orElse("N/A");
-
-        return System.getProperty("os.name") + ":" +
-                System.getProperty("os.arch") + ":" +
-                System.getProperty("user.name") + ":" + iNodeData;
-    }
+    String encryptionMasterKey;
 
 }
