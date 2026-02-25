@@ -1,23 +1,34 @@
 package io.github.gregorpoloczek.projectmaintainer.analysis.service.fulltext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.events.ProjectDeletedEvent;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.BelongsToWorkspace;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.git.Commit;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.ProjectDetachedEvent;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.ProjectFileLocationImpl;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -40,13 +51,16 @@ import org.apache.lucene.search.RegexpQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectFullTextSearchService {
 
 
+    private final ProjectService projectService;
     private final WorkingCopyService workingCopyService;
 
     public void index(ProjectRelatable projectRelatable, Collection<? extends ProjectFileLocation> locations) {
@@ -78,11 +92,11 @@ public class ProjectFullTextSearchService {
 
         boolean isUpToDate = false;
         try {
-            Path stateJsonFile = getProjectPath(workingCopy).resolve("state.json");
+            Path stateJsonFile = calculateLuceneContentProjectPath(workingCopy).resolve("state.json");
             if (stateJsonFile.toFile().exists()) {
                 Map<String, Object> parsed = objectMapper.readValue(stateJsonFile.toFile(), Map.class);
                 String lastLatestCommitHash = (String) parsed.get("latestCommitHash");
-                File indexDirectory = getProjectPath(workingCopy).resolve("index").toFile();
+                File indexDirectory = calculateLuceneContentProjectPath(workingCopy).resolve("index").toFile();
 
                 boolean hashMissMatch = !lastLatestCommitHash.equals(currentLatestCommitHash);
                 if (hashMissMatch && indexDirectory.exists()) {
@@ -118,7 +132,7 @@ public class ProjectFullTextSearchService {
 
 
     public List<ProjectFileLocation> search(ProjectRelatable projectRelatable, String fileNameQueryString,
-            String contentQueryString) {
+                                            String contentQueryString) {
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
 
         try (IndexReader reader = this.createReader(workingCopy)) {
@@ -173,20 +187,23 @@ public class ProjectFullTextSearchService {
 
     private FSDirectory getIndexDirectory(WorkingCopy workingCopy) {
         try {
-            Path path = getProjectPath(workingCopy).resolve("index");
+            Path path = calculateLuceneContentProjectPath(workingCopy).resolve("index");
             return FSDirectory.open(path);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private static Path getProjectPath(WorkingCopy workingCopy) {
-        return Paths.get("./.lucene/" + workingCopy.getFQPN().toString().replaceAll("::", "/"));
+    private @NonNull Path calculateLuceneContentProjectPath(ProjectRelatable projectRelatable) {
+        Workspace workspace = projectService.require(projectRelatable).requireFacet(BelongsToWorkspace.class).getWorkspace();
+        return workspace.getDirectory()
+                .resolve("lucene-cache")
+                .resolve(Path.of(projectRelatable.getFQPN().toString().replaceAll("::", "/")));
     }
 
 
     private List<ProjectFileLocation> toProjectFileLocations(WorkingCopy workingCopy, IndexSearcher searcher,
-            TopDocs results)
+                                                             TopDocs results)
             throws IOException {
         ScoreDoc[] hits = results.scoreDocs;
 
@@ -203,6 +220,26 @@ public class ProjectFullTextSearchService {
         File file = workingCopy.getDirectory().toPath().resolve(Path.of(doc.get("path"))).toFile();
         // TODO nicht hier erzeugen
         return ProjectFileLocationImpl.of(workingCopy, file);
+    }
+
+    @SneakyThrows(IOException.class)
+    @EventListener
+    void on(ProjectDeletedEvent event) {
+        deletingLuceneDirectory(event.getId());
+    }
+
+    @SneakyThrows(IOException.class)
+    @EventListener
+    void on(ProjectDetachedEvent event) {
+        deletingLuceneDirectory(event.getId());
+    }
+
+    private void deletingLuceneDirectory(FQPN fqpn) throws IOException {
+        Path path = calculateLuceneContentProjectPath(fqpn);
+        log.info("Deleting lucene directory for project {} at {}", fqpn, path);
+        if (Files.exists(path)) {
+            FileUtils.deleteDirectory(path.toFile());
+        }
     }
 
 }

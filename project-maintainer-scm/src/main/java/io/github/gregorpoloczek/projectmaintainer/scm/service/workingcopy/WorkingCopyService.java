@@ -36,6 +36,7 @@ import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -45,6 +46,7 @@ import reactor.core.publisher.Flux;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WorkingCopyService {
+    ApplicationEventPublisher eventPublisher;
 
     GitService gitService;
     ProjectService projectService;
@@ -120,6 +122,8 @@ public class WorkingCopyService {
                             .progressTotal(1)
                             .result(null)
                             .build());
+
+                    eventPublisher.publishEvent(new ProjectDetachedEvent(project));
                     sink.complete();
                 } catch (Exception e) {
                     sink.next(ProjectOperationProgress.<Void>builder()
