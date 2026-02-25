@@ -8,6 +8,7 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.Composabl
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasIcon;
 
 import java.util.Base64;
+import java.util.Locale;
 import java.util.Optional;
 
 public class IconComponent extends Image {
@@ -29,7 +30,7 @@ public class IconComponent extends Image {
         Optional<ImageResolverService.Image> image = composable.requireTrait(HasIcon.class).getIcon();
 
         // "blurring"
-        this.getStyle().set("filter", "grayscale(%f)".formatted(hasIcon.isBlurred() ? 1.0 : 0.0));
+        this.getStyle().set("filter", String.format(Locale.US, "grayscale(%.1f)", hasIcon.isBlurred() ? 1.0 : 0.0));
 
         String src = image.map(i -> "data:" + i.getFormat().getMimetype() + ";base64," + Base64.getEncoder()
                 .encodeToString(i.getBytes())).orElse("");
