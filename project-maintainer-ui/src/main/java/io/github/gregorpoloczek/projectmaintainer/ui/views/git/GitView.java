@@ -9,6 +9,7 @@ import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
+import com.vaadin.flow.component.markdown.Markdown;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -51,6 +52,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import org.intellij.lang.annotations.Language;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -59,6 +61,12 @@ import reactor.core.scheduler.Schedulers;
 @Route(value = "/workspace/:workspaceId/git", layout = MainLayout.class)
 public class GitView extends VerticalLayout implements BeforeEnterObserver {
 
+    public static final @Language
+            ("markdown") String DOCUMENTATION = """
+            In order to maintain projects, they need to be attached (cloned) first. To remove them from maintenance
+            feature detach them. Some features do not automatically pull the latest changes from the origin, so you may
+            need to pull the latest changes via the *Pull* button.
+            """;
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
@@ -86,10 +94,15 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
         this.grid = createGrid();
 
         this.menuBar = createMenuBar();
-        this.add(new HorizontalLayout(
-                new HasWorkingCopyFilterComponent(search),
-                new HasProjectFilterComponent<>(search)
-        ), menuBar, grid, this.projectProgressBar);
+        VerticalLayout controlElements = new VerticalLayout(
+                new HorizontalLayout(
+                        new HasWorkingCopyFilterComponent(search),
+                        new HasProjectFilterComponent<>(search)
+                ), menuBar);
+        controlElements.setPadding(false);
+        HorizontalLayout top = new HorizontalLayout(controlElements, new Markdown(DOCUMENTATION));
+        top.setPadding(false);
+        this.add(top, grid, this.projectProgressBar);
         this.setSizeFull();
         this.grid.setSizeFull();
     }
