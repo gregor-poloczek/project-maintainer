@@ -34,6 +34,7 @@ import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
@@ -206,7 +207,11 @@ public class WorkingCopyService {
         try (Git git = Git.open(workingCopyDirectoryPath.toFile())) {
             String url = git.getRepository().getConfig().getString("remote", "origin", "url");
             List<RevCommit> revCommits = new ArrayList<>();
-            git.log().setMaxCount(1).call().forEach(revCommits::add);
+            try {
+                git.log().setMaxCount(1).call().forEach(revCommits::add);
+            } catch (NoHeadException e) {
+                log.warn("No header found for {}, repository possibly completely empty.", projectRelatable.getFQPN());
+            }
             String currentBranch = git.getRepository().getBranch();
 
             WorkingCopyImpl workingCopy = WorkingCopyImpl.builder()
