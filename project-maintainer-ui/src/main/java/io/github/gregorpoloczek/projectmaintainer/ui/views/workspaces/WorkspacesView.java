@@ -86,10 +86,10 @@ public class WorkspacesView extends VerticalLayout {
             }
             return new Span("%d / %d".formatted(i.getAttachedProjects(), i.getTotalProjects()));
         })).setHeader("Projects").setTooltipGenerator(i -> "%d of available %d projects attached".formatted(i.getAttachedProjects(), i.getTotalProjects()));
-        result.addColumn(new ComponentRenderer<>(i -> new Button(VaadinIcon.FOLDER_OPEN.create(), e -> openWorkspace(i.id))))
+        result.addColumn(new ComponentRenderer<>(i -> new Button("Use", VaadinIcon.FOLDER_OPEN.create(), e -> openWorkspace(i.id))))
                 .setTooltipGenerator(i -> "Switch to workspace \"%s\"".formatted(i.getName()))
                 .setFlexGrow(0)
-                .setWidth("80px");
+                .setWidth("120px");
 
         return result;
     }
