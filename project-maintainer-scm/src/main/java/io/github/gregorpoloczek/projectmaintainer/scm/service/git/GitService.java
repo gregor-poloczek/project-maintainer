@@ -98,7 +98,7 @@ public class GitService {
     }
 
     public Flux<ProjectOperationProgress<CloneResult>> clone(@NonNull final WorkingCopy workingCopy) {
-        return Flux.create(sink -> {
+        return Flux.<ProjectOperationProgress<CloneResult>>create(sink -> {
             sink.next(ProjectOperationProgress.<CloneResult>builder()
                     .fqpn(workingCopy.getFQPN())
                     .state(State.SCHEDULED)
@@ -148,7 +148,11 @@ public class GitService {
                     .result(cloneResult)
                     .build());
             sink.complete();
-        });
+        }).onErrorResume(t -> Flux.just(ProjectOperationProgress.<CloneResult>builder()
+                .fqpn(workingCopy.getFQPN())
+                .state(State.FAILED)
+                .throwable(t)
+                .build()).concatWith(Mono.error(t)));
     }
 
     private Optional<Commit> getLatestCommitHash(@NonNull final WorkingCopy workingCopy) {
