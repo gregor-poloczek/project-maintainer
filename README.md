@@ -9,9 +9,8 @@ server, though technically possible, is strongly discouraged as multiple users a
 1. This application stores credentials on your machine only, and does not send them to any external location
    apart from when they are needed for authentication purposes (e.g. when accessing Git repositories or APIs such as
    Github).
-2. Your credentials will be encrypted automatically before stored on your disk. However, these can be easily decrypted,
-   if someone has access to your filesystem and has knowledge of the source code of this application. See bellow on how
-   to create custom encryption master key.
+2. Your credentials will be encrypted automatically before stored on your disk. This encryption requires you to setup an
+   *encryption master key*, See bellow on how to create custom encryption master key.
 3. This application does not send any cloned repository content anywhere. Working copies and their content remain on
    your machine.
 4. This application does not **automatically** perform any manipulation on source code, nor does it
@@ -63,8 +62,8 @@ projects are detached. Manual operations in this directory are discouraged.
 
 ### Where are my credentials stored?
 
-Credentials are stored for later reuse when interacting with Bitbucket, Github and alike. These credentials belong to a
-created workspace, and are located in `~/.project-maintainer/workspace/{worksapceId}/workspace.yml` file. The
+Credentials are stored for later reuse for when interacting with Bitbucket, Github and alike. These credentials belong
+to a created workspace, and are located in an `~/.project-maintainer/workspace/{workspaceId}/workspace.yml` file. The
 credentials are encrypted at rest using an encryption master key (see above on how to set one up).
 
 At some point in time, the encryption of the credentials may change, causing the previously stored credentials
