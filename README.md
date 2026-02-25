@@ -53,6 +53,25 @@ To setup up an custom encryption master key you can:
 6. Go to the projects view in the menu to on the left side
 7. Select the projects you are interested in, and press *attach*.
 
+## FAQ
+
+### Where are the clone repositories stored?
+
+All data is stored in your home directory located at `~/.project-maintainer/`. Each workspace has its own
+subdirectory containing various subfolders depending on the use case. This data is automatically cleaned up when
+projects are detached. Manual operations in this directory are discouraged.
+
+### Where are my credentials stored?
+
+Credentials are stored for later reuse when interacting with Bitbucket, Github and alike. These credentials belong to a
+created workspace, and are located in `~/.project-maintainer/workspace/{worksapceId}/workspace.yml` file. The
+credentials are encrypted at rest using an encryption master key (see above on how to set one up).
+
+At some point in time, the encryption of the credentials may change, causing the previously stored credentials
+becoming unreadable. When this situation eventually arises, they will need be be re-configured via the ui, in order to
+resume usage. It is therefore well advised, to store the credentials in some password manager, in order to keep track
+of them and have them ready, when need be. **Project-maintainer is not replacement for a genuine password manager**.
+
 ## License
 
 This software uses [custom Source Available License (SAL)](/LICENSE-1.0.md).
