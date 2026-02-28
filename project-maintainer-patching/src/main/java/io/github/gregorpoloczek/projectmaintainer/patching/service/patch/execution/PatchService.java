@@ -44,9 +44,12 @@ import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -79,22 +82,49 @@ public class PatchService {
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> applyPatch(
-            ProjectRelatable projectRelatable, String id, Collection<PatchParameterArgument<?>> parameters) {
-        return usePatch(projectRelatable, id, parameters, false);
+            ProjectRelatable projectRelatable,
+            String patchId,
+            Iterable<PatchParameterArgument<?>> inputArguments) {
+        Patch patch = this.requirePatch(patchId);
+
+        Collection<PatchParameterArgument<?>> actualArguments =
+                StreamSupport.stream(inputArguments.spliterator(), false).toList();
+
+
+        this.validateParameters(patch, actualArguments);
+        return this.usePatch(projectRelatable, patch, actualArguments, false);
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> previewPatch(ProjectRelatable projectRelatable,
-                                                                             String id,
-                                                                             Collection<PatchParameterArgument<?>> parameters) {
-        return usePatch(projectRelatable, id, parameters, true);
+                                                                             String patchId,
+                                                                             Iterable<PatchParameterArgument<?>> inputArguments) {
+        Patch patch = this.requirePatch(patchId);
+
+        Collection<PatchParameterArgument<?>> actualArguments =
+                StreamSupport.stream(inputArguments.spliterator(), false).toList();
+
+        this.validateParameters(patch, actualArguments);
+        return this.usePatch(projectRelatable, patch, actualArguments, true);
+    }
+
+    private void validateParameters(Patch patch, Collection<PatchParameterArgument<?>> arguments) {
+        for (PatchParameter definedParameter : patch.getMetaData().getPatchParameters()) {
+            if (arguments.stream().noneMatch(p -> p.getParameter().getId().equals(definedParameter.getId()))) {
+                throw new IllegalArgumentException("No argument passed for parameter \"%s\".".formatted(definedParameter.getId()));
+            }
+        }
     }
 
 
     public Flux<ProjectOperationProgress<PatchStopResult>> stopPatch(ProjectRelatable projectRelatable,
-                                                                     String id, Collection<PatchParameterArgument<?>> rawArguments) {
+                                                                     String id,
+                                                                     Iterable<PatchParameterArgument<?>> inputArguments) {
         Patch patch = requirePatch(id);
+        Collection<PatchParameterArgument<?>> actualArguments =
+                StreamSupport.stream(inputArguments.spliterator(), false).toList();
+        this.validateParameters(patch, actualArguments);
 
-        PatchParameterArgumentsImpl arguments = buildArguments(rawArguments, patch);
+        PatchParameterArgumentsImpl arguments = buildArguments(actualArguments, patch);
 
 
         return Flux.create(sink -> {
@@ -200,8 +230,7 @@ public class PatchService {
     }
 
     private Flux<ProjectOperationProgress<PatchExecutionResult>> usePatch(ProjectRelatable projectRelatable,
-                                                                          String id, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
-        Patch patch = this.requirePatch(id);
+                                                                          Patch patch, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
 
@@ -255,7 +284,7 @@ public class PatchService {
                                     return this.createBranchWithChanges(executionContext, (PreviewGeneratedResultDetail) detail)
                                             .flatMap(remoteBranch -> this.createPullRequest(executionContext, remoteBranch));
                                 } else {
-                                    log.info("Patch {} in {} is a dry run, not applying changes", id, fqpn);
+                                    log.info("Patch {} in {} is a dry run, not applying changes", patch.getMetaData().getId(), fqpn);
                                     return Mono.just(detail);
                                 }
                             })
@@ -309,6 +338,7 @@ public class PatchService {
                 .map(pR ->
                         PatchExecutionResult.AppliedResultDetail.builder()
                                 .remoteBranch(remoteBranch)
+                                .commitMessage(executionContext.getPatchContext().getPullRequestCommitMessage())
                                 .pullRequest(pR)
                                 .build())
                 .doOnSubscribe(x -> executionContext.publish("Creating pull request"));
@@ -543,11 +573,11 @@ public class PatchService {
     }
 
 
-    private Patch requirePatch(String id) {
+    private Patch requirePatch(String patchId) {
         return patches.stream()
-                .filter(p -> p.getMetaData().getId().equals(id))
+                .filter(p -> p.getMetaData().getId().equals(patchId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Patch not found"));
+                .orElseThrow(() -> new IllegalStateException("Patch \"%s\" not found.".formatted(patchId)));
     }
 
     private String toUnifiedDiff(ProjectFileOperation operation) {
@@ -586,8 +616,11 @@ public class PatchService {
                     .forEach(this.patches::add);
         } catch (ServiceConfigurationError e) {
             log.error("Unable to load patches via ServiceLoader API", e);
-            // TODO [Patching] unclear in what the application here is now
+            // TODO [Patching] unclear in what state the application here is now
         }
     }
 
+    public @NotNull PatchMetaData getPatchMetaData(String patchId) {
+        return this.requirePatch(patchId).getMetaData();
+    }
 }

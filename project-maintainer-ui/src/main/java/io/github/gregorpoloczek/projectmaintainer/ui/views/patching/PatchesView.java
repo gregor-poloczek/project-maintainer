@@ -277,7 +277,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         }
 
         this.items = projectService.findAllByWorkspaceId(this.workspaceId).stream()
-                .filter(workingCopyService::hasWorkspace)
+                .filter(workingCopyService::isAttached)
                 .map(this::toProjectItem)
                 .collect(toComposableHolder());
 

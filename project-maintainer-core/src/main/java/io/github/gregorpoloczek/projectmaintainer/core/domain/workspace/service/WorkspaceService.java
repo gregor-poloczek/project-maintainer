@@ -68,7 +68,7 @@ public class WorkspaceService {
 
 
     public List<Workspace> findWorkspaces() {
-        return Collections.unmodifiableList(this.workspaces);
+        return Collections.unmodifiableList(new ArrayList<>(this.workspaces));
     }
 
     public Optional<Workspace> findWorkspace(String id) {
@@ -194,10 +194,11 @@ public class WorkspaceService {
             FileUtils.deleteDirectory(workspaceDirectory.toFile());
         }
 
+        this.applicationEventPublisher.publishEvent(new WorkspaceDeletedEvent(workspace));
+
         this.workspaces.removeIf(w -> w.getId().equals(workspace.getId()));
         log.info("Deleted workspace {}", workspace);
 
-        this.applicationEventPublisher.publishEvent(new WorkspaceDeletedEvent(workspace));
     }
 
     private Path toWorkspaceDirectory(Workspace workspace) {
@@ -254,7 +255,7 @@ public class WorkspaceService {
     }
 
 
-    public Flux<OperationProgress<Object>> discoverProjects(Workspace workspace) {
+    public Flux<OperationProgress<?>> discoverProjects(Workspace workspace) {
         return Flux.create(sink -> {
             // TODO [Workspaces] die sync von den patches wieder verwenden
             GenericOperationProgress.GenericOperationProgressBuilder<Object> progress =

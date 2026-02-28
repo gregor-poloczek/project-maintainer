@@ -130,7 +130,7 @@ public class ReportGeneratorService {
 
         List<Project> projects = projectService.findAllByWorkspaceId(workspaceId)
                 .stream()
-                .filter(workingCopyService::hasWorkspace).toList();
+                .filter(workingCopyService::isAttached).toList();
 
         ProjectReport report = this.buildReport((ProjectReportConfig) reportConfig);
 

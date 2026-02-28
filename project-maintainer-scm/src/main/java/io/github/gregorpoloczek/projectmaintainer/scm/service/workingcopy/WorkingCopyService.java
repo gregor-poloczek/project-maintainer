@@ -52,7 +52,7 @@ public class WorkingCopyService {
     ProjectService projectService;
     WorkingCopyRepository workingCopyRepository;
 
-    public Flux<ProjectOperationProgress<Void>> cloneProject(@NonNull ProjectRelatable projectRelatable) {
+    public Flux<ProjectOperationProgress<Void>> attachProject(@NonNull ProjectRelatable projectRelatable) {
         final Project project = this.projectService.require(projectRelatable);
         final WorkingCopy workingCopy =
                 this.createNew(project.getMetaData().getFQPN(), project.getURI());
@@ -103,7 +103,7 @@ public class WorkingCopyService {
                 .build();
     }
 
-    public Flux<ProjectOperationProgress<Void>> wipeProject(@NonNull final ProjectRelatable projectRelatable) {
+    public Flux<ProjectOperationProgress<Void>> detachProject(@NonNull final ProjectRelatable projectRelatable) {
         final Project project = this.projectService.require(projectRelatable);
         return Flux.create(sink -> {
             sink.next(ProjectOperationProgress.<Void>builder()
@@ -176,7 +176,7 @@ public class WorkingCopyService {
         return workingCopyRepository.find(identifiesProject);
     }
 
-    public boolean hasWorkspace(@NonNull ProjectRelatable identifiesProject) {
+    public boolean isAttached(@NonNull ProjectRelatable identifiesProject) {
         return this.find(identifiesProject).isPresent();
     }
 
@@ -234,11 +234,11 @@ public class WorkingCopyService {
     }
 
 
-    public WorkingCopy createNew(final FQPN fqpn, final URI uri) {
-        File directory = calculateWorkingCopyDirectory(fqpn).toFile();
+    public WorkingCopy createNew(final ProjectRelatable projectRelatable, final URI uri) {
+        File directory = calculateWorkingCopyDirectory(projectRelatable).toFile();
 
         return WorkingCopyImpl.builder()
-                .fqpn(fqpn)
+                .fqpn(projectRelatable.getFQPN())
                 .directory(directory)
                 .uri(uri)
                 .build();

@@ -93,8 +93,8 @@ public class ProjectService {
         this.projectRepository.find(fqpn)
                 .ifPresent(p -> {
                     log.info("Deleting project \"{}\".", fqpn);
-                    this.projectRepository.delete(p);
                     this.eventPublisher.publishEvent(new ProjectDeletedEvent(p));
+                    this.projectRepository.delete(p);
                     log.info("Project \"{}\" has been deleted.", fqpn);
                 });
     }

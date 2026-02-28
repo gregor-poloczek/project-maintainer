@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Singular;
 import lombok.experimental.FieldDefaults;
 
 @Builder
@@ -28,6 +29,13 @@ public class PatchMetaData {
 
     @Builder.Default
     List<PatchParameter> patchParameters = new ArrayList<>();
+
+    public PatchParameter requirePatchParameter(String id) {
+        return this.patchParameters.stream()
+                .filter(p -> p.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No patch parameter with id \"%s\" is defined.".formatted(id)));
+    }
 
     @Deprecated
     public Optional<String> getBranchName() {
