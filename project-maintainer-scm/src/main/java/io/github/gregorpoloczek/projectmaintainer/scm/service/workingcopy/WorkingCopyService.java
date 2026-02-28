@@ -234,11 +234,11 @@ public class WorkingCopyService {
     }
 
 
-    public WorkingCopy createNew(final FQPN fqpn, final URI uri) {
-        File directory = calculateWorkingCopyDirectory(fqpn).toFile();
+    public WorkingCopy createNew(final ProjectRelatable projectRelatable, final URI uri) {
+        File directory = calculateWorkingCopyDirectory(projectRelatable).toFile();
 
         return WorkingCopyImpl.builder()
-                .fqpn(fqpn)
+                .fqpn(projectRelatable.getFQPN())
                 .directory(directory)
                 .uri(uri)
                 .build();

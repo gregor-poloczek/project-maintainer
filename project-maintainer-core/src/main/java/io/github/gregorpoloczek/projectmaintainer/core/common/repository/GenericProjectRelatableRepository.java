@@ -20,8 +20,7 @@ public class GenericProjectRelatableRepository<T> implements ProjectRelatableRep
 
     @Override
     public T require(ProjectRelatable projectRelatable) {
-        // TODO better exception
-        return this.find(projectRelatable).orElseThrow(IllegalStateException::new);
+        return this.find(projectRelatable).orElseThrow(() -> new IllegalStateException("Unable to find data for %s".formatted(projectRelatable.getFQPN())));
     }
 
     @Override

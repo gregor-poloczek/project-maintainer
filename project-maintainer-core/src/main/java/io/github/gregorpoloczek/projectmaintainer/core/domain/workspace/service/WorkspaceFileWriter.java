@@ -62,7 +62,7 @@ public class WorkspaceFileWriter {
     private WorkspaceFileV1.ProjectConnectionV1 fromConnectionToYaml(ProjectConnection projectConnection) {
         return this.projectConnectionAdapters.stream().filter(a -> a.supports(projectConnection)).findFirst()
                 .map(a -> (ProjectConnectionAdapter<ProjectConnection>) a)
-                .orElseThrow(() -> new IllegalStateException("Unexpected connection type: " + projectConnection.getClass().getName()))
+                .orElseThrow(() -> new IllegalStateException("Unknown connection type: " + projectConnection.getType()))
                 .convert(workspaceFileObjectMapper, projectConnection);
     }
 

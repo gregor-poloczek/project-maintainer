@@ -200,8 +200,8 @@ public class PatchService {
     }
 
     private Flux<ProjectOperationProgress<PatchExecutionResult>> usePatch(ProjectRelatable projectRelatable,
-                                                                          String id, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
-        Patch patch = this.requirePatch(id);
+                                                                          String patchId, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
+        Patch patch = this.requirePatch(patchId);
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
 
@@ -255,7 +255,7 @@ public class PatchService {
                                     return this.createBranchWithChanges(executionContext, (PreviewGeneratedResultDetail) detail)
                                             .flatMap(remoteBranch -> this.createPullRequest(executionContext, remoteBranch));
                                 } else {
-                                    log.info("Patch {} in {} is a dry run, not applying changes", id, fqpn);
+                                    log.info("Patch {} in {} is a dry run, not applying changes", patchId, fqpn);
                                     return Mono.just(detail);
                                 }
                             })
