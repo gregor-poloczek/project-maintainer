@@ -255,7 +255,7 @@ public class WorkspaceService {
     }
 
 
-    public Flux<OperationProgress<Object>> discoverProjects(Workspace workspace) {
+    public Flux<OperationProgress<?>> discoverProjects(Workspace workspace) {
         return Flux.create(sink -> {
             // TODO [Workspaces] die sync von den patches wieder verwenden
             GenericOperationProgress.GenericOperationProgressBuilder<Object> progress =

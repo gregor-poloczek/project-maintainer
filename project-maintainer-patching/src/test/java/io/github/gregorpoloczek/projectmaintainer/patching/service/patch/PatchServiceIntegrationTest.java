@@ -10,14 +10,17 @@ import io.github.gregorpoloczek.projectmaintainer.patching.common.EmptyTestPatch
 import io.github.gregorpoloczek.projectmaintainer.patching.common.IntegrationTestFileSystemProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.TestApplication;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResultDetail;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import lombok.SneakyThrows;
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,43 +61,88 @@ public class PatchServiceIntegrationTest {
     @Autowired
     private ProjectService projectService;
 
+    private Path repository1;
+
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
         registry.add("project-maintainer.workspaces-directory", () -> workspacesDirectory.toString());
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws IOException {
+        FileUtils.deleteDirectory(this.repository1.toFile());
         for (Workspace workspace : workspaceService.findWorkspaces()) {
             workspaceService.deleteWorkspace(workspace);
         }
+    }
 
+    @BeforeEach
+    void setUp() {
+        this.repository1 = this.createEmptyRemoteRepository("repository-1");
     }
 
     @Test
     void testPreviewWithEmptyPatch() {
-        Path repository1 = this.createEmptyRemoteRepository("repository-1");
+        Project project = createWorkspaceWithSingleRepository();
 
+        // create a preview
+        ProjectOperationProgress<PatchExecutionResult> previewProgress =
+                Objects.requireNonNull(patchService.previewPatch(project, EmptyTestPatch.ID, List.of()).blockLast());
+
+        assertThat(previewProgress.getState()).isEqualTo(OperationProgress.State.DONE);
+
+        PatchOperationResultDetail detail =
+                previewProgress.getResult()
+                        .map(PatchExecutionResult::getDetail)
+                        .map(PatchExecutionResult.NoopResultDetail.class::cast)
+                        .orElseThrow();
+        assertThat(detail.getName()).isEqualTo("No-Op");
+        assertThat(detail.getDescription()).isEqualTo("Patch did not change any files.");
+
+    }
+
+    @Test
+    void testApplyWithEmptyPatch() {
+        Project project = createWorkspaceWithSingleRepository();
+
+        // apply patch (which does nothing)
+        ProjectOperationProgress<PatchExecutionResult> applyProgress =
+                Objects.requireNonNull(patchService.applyPatch(project, EmptyTestPatch.ID, List.of()).blockLast());
+
+        assertThat(applyProgress.getState()).isEqualTo(OperationProgress.State.DONE);
+
+        PatchOperationResultDetail detail =
+                applyProgress.getResult()
+                        .map(PatchExecutionResult::getDetail)
+                        .map(PatchExecutionResult.NoopResultDetail.class::cast)
+                        .orElseThrow();
+        assertThat(detail.getName()).isEqualTo("No-Op");
+        assertThat(detail.getDescription()).isEqualTo("Patch did not change any files.");
+    }
+
+    private @NonNull Project createWorkspaceWithSingleRepository() {
+        // create workspace and discover all projects
         Workspace workspace = workspaceService.createWorkspace(PatchServiceIntegrationTest.class.getSimpleName());
 
-        workspaceService.updateConnections(workspace,
+        workspace = workspaceService.updateConnections(workspace,
                 List.of(IntegrationTestFileSystemProjectConnection.builder()
-                        .id("connection-1")
                         .remoteRepository(repository1)
                         .build()));
 
-        workspaceService.discoverProjects(workspace).blockLast();
+        OperationProgress<?> discoveryProgress =
+                Objects.requireNonNull(workspaceService.discoverProjects(workspace).blockLast());
+        assertThat(discoveryProgress.getState()).isEqualTo(OperationProgress.State.DONE);
 
+        // determine project
         List<Project> projects = projectService.findAllByWorkspaceId(workspace.getId());
         assertThat(projects).hasSize(1);
         Project project = projects.getFirst();
 
-        workingCopyService.cloneProject(project).blockLast();
-
-        ProjectOperationProgress<PatchExecutionResult> progress =
-                Objects.requireNonNull(patchService.previewPatch(project, EmptyTestPatch.ID, List.of()).blockLast());
-
-        assertThat(progress.getState()).isEqualTo(OperationProgress.State.DONE);
+        // attach project
+        ProjectOperationProgress<Void> attachProgress =
+                Objects.requireNonNull(workingCopyService.attachProject(project).blockLast());
+        assertThat(attachProgress.getState()).isEqualTo(OperationProgress.State.DONE);
+        return project;
     }
 
     @SneakyThrows({IOException.class, GitAPIException.class})

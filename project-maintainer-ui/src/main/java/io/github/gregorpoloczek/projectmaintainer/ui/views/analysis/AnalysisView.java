@@ -103,7 +103,7 @@ public class AnalysisView extends VerticalLayout implements BeforeEnterObserver 
         List<Project> projects = this.projectService.findAllByWorkspaceId(this.workspaceId);
 
         this.items = projects.stream()
-                .filter(workingCopyService::hasWorkspace)
+                .filter(workingCopyService::isAttached)
                 .map(this::toItem).collect(toComposableHolder());
         this.dataProvider.getItems().clear();
         this.dataProvider.getItems().addAll(items.getAll());

@@ -11,9 +11,9 @@ import lombok.Singular;
 import lombok.experimental.FieldDefaults;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Builder
 @RequiredArgsConstructor
@@ -24,7 +24,8 @@ public class IntegrationTestFileSystemProjectConnection implements ProjectConnec
 
     @NonNull
     @Getter
-    String id;
+    @Builder.Default
+    String id = UUID.randomUUID().toString();
 
     @Singular
     @Getter

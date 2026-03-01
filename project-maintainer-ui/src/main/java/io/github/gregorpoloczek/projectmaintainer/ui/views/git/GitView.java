@@ -159,21 +159,21 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
 
     private void onDetachClick(ClickEvent<MenuItem> event) {
         this.onOperationClick(
-                this.workingCopyService::hasWorkspace,
-                this.workingCopyService::wipeProject,
+                this.workingCopyService::isAttached,
+                this.workingCopyService::detachProject,
                 "Detaching projects ...");
     }
 
     private void onAttachClick(ClickEvent<MenuItem> event) {
         this.onOperationClick(
-                not(this.workingCopyService::hasWorkspace),
-                this.workingCopyService::cloneProject,
+                not(this.workingCopyService::isAttached),
+                this.workingCopyService::attachProject,
                 "Attaching projects ...");
     }
 
     private void onPullClick(ClickEvent<MenuItem> event) {
         this.onOperationClick(
-                this.workingCopyService::hasWorkspace,
+                this.workingCopyService::isAttached,
                 this.workingCopyService::pullProject,
                 "Pulling projects ...");
     }
