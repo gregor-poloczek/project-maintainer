@@ -1,1 +1,2 @@
-io.github.gregorpoloczek.projectmaintainer.patching.common.EmptyTestPatch
+io.github.gregorpoloczek.projectmaintainer.patching.common.NoOpTestPatch
+io.github.gregorpoloczek.projectmaintainer.patching.common.MultipurposeTestPatch

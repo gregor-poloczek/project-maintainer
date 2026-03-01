@@ -6,7 +6,7 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
-import io.github.gregorpoloczek.projectmaintainer.patching.common.EmptyTestPatch;
+import io.github.gregorpoloczek.projectmaintainer.patching.common.NoOpTestPatch;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.IntegrationTestFileSystemProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.TestApplication;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
@@ -81,13 +81,31 @@ public class PatchServiceIntegrationTest {
         this.repository1 = this.createEmptyRemoteRepository("repository-1");
     }
 
+    // TODO preview - add file
+    // TODO preview - edit file
+    // TODO preview - delete file
+
+    // TODO apply - branch already exists
+    // TODO apply - pr already exists
+
+    // TODO apply - add file
+    // TODO apply - edit file
+    // TODO apply - delete file
+
+    // TODO stop - branch exists
+    // TODO stop - branch + pr exists
+    // TODO stop - branch does not exist
+
+    // TODO branch name calculation (default + override)
+    // TODO pr title calculation (default + override)
+
     @Test
     void testPreviewWithEmptyPatch() {
         Project project = createWorkspaceWithSingleRepository();
 
         // create a preview
         ProjectOperationProgress<PatchExecutionResult> previewProgress =
-                Objects.requireNonNull(patchService.previewPatch(project, EmptyTestPatch.ID, List.of()).blockLast());
+                Objects.requireNonNull(patchService.previewPatch(project, NoOpTestPatch.ID, List.of()).blockLast());
 
         assertThat(previewProgress.getState()).isEqualTo(OperationProgress.State.DONE);
 
@@ -98,7 +116,6 @@ public class PatchServiceIntegrationTest {
                         .orElseThrow();
         assertThat(detail.getName()).isEqualTo("No-Op");
         assertThat(detail.getDescription()).isEqualTo("Patch did not change any files.");
-
     }
 
     @Test
@@ -107,7 +124,7 @@ public class PatchServiceIntegrationTest {
 
         // apply patch (which does nothing)
         ProjectOperationProgress<PatchExecutionResult> applyProgress =
-                Objects.requireNonNull(patchService.applyPatch(project, EmptyTestPatch.ID, List.of()).blockLast());
+                Objects.requireNonNull(patchService.applyPatch(project, NoOpTestPatch.ID, List.of()).blockLast());
 
         assertThat(applyProgress.getState()).isEqualTo(OperationProgress.State.DONE);
 

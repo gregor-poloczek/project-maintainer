@@ -6,8 +6,8 @@ import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patc
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class EmptyTestPatch implements Patch {
-    public static final String ID = EmptyTestPatch.class.getSimpleName();
+public class NoOpTestPatch implements Patch {
+    public static final String ID = NoOpTestPatch.class.getSimpleName();
 
     @Override
     public PatchMetaData getMetaData() {

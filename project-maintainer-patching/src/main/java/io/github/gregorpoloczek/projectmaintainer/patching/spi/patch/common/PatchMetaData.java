@@ -10,6 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Singular;
 import lombok.experimental.FieldDefaults;
 
 @Builder
@@ -26,6 +27,7 @@ public class PatchMetaData {
     String commitMessage;
     String branchName;
 
+    @Singular
     @Builder.Default
     List<PatchParameter> patchParameters = new ArrayList<>();
 
