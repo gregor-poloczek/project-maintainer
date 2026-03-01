@@ -47,6 +47,7 @@ import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -79,14 +80,28 @@ public class PatchService {
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> applyPatch(
-            ProjectRelatable projectRelatable, String id, Collection<PatchParameterArgument<?>> parameters) {
-        return usePatch(projectRelatable, id, parameters, false);
+            ProjectRelatable projectRelatable, String patchId, Collection<PatchParameterArgument<?>> parameters) {
+        Patch patch = this.requirePatch(patchId);
+        this.validateParameters(patch, parameters);
+        return this.usePatch(projectRelatable, patch, parameters, false);
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> previewPatch(ProjectRelatable projectRelatable,
-                                                                             String id,
+                                                                             String patchId,
                                                                              Collection<PatchParameterArgument<?>> parameters) {
-        return usePatch(projectRelatable, id, parameters, true);
+        Patch patch = this.requirePatch(patchId);
+
+        this.validateParameters(patch, parameters);
+        return this.usePatch(projectRelatable, patch, parameters, true);
+    }
+
+    private void validateParameters(Patch patch, Collection<PatchParameterArgument<?>> arguments) {
+        for (PatchParameter definedParameter : patch.getMetaData().getPatchParameters()) {
+            if (arguments.stream().noneMatch(p -> p.getParameter().getId().equals(definedParameter.getId()))) {
+                throw new IllegalArgumentException("No argument passed for parameter \"%s\".".formatted(definedParameter.getId()));
+            }
+        }
+
     }
 
 
@@ -200,8 +215,7 @@ public class PatchService {
     }
 
     private Flux<ProjectOperationProgress<PatchExecutionResult>> usePatch(ProjectRelatable projectRelatable,
-                                                                          String patchId, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
-        Patch patch = this.requirePatch(patchId);
+                                                                          Patch patch, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
 
@@ -255,7 +269,7 @@ public class PatchService {
                                     return this.createBranchWithChanges(executionContext, (PreviewGeneratedResultDetail) detail)
                                             .flatMap(remoteBranch -> this.createPullRequest(executionContext, remoteBranch));
                                 } else {
-                                    log.info("Patch {} in {} is a dry run, not applying changes", patchId, fqpn);
+                                    log.info("Patch {} in {} is a dry run, not applying changes", patch.getMetaData().getId(), fqpn);
                                     return Mono.just(detail);
                                 }
                             })
@@ -590,4 +604,7 @@ public class PatchService {
         }
     }
 
+    public @NotNull PatchMetaData getPatchMetaData(String patchId) {
+        return this.requirePatch(patchId).getMetaData();
+    }
 }

@@ -7,6 +7,8 @@ import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterType;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Slf4j
 public class MultipurposeTestPatch implements Patch {
     public static final String ID = MultipurposeTestPatch.class.getSimpleName();
@@ -21,21 +23,22 @@ public class MultipurposeTestPatch implements Patch {
     public PatchMetaData getMetaData() {
         return PatchMetaData.builder()
                 .id(ID)
-                .patchParameter(PatchParameter.builder()
-                        .id(Parameters.ADD_FILENAME)
-                        .required(false)
-                        .type(PatchParameterType.STRING)
-                        .build())
-                .patchParameter(PatchParameter.builder()
-                        .id(Parameters.EDIT_FILENAME)
-                        .required(false)
-                        .type(PatchParameterType.STRING)
-                        .build())
-                .patchParameter(PatchParameter.builder()
-                        .id(Parameters.DELETE_FILENAME)
-                        .required(false)
-                        .type(PatchParameterType.STRING)
-                        .build())
+                .patchParameters(List.of(
+                        PatchParameter.builder()
+                                .id(Parameters.ADD_FILENAME)
+                                .required(false)
+                                .type(PatchParameterType.STRING)
+                                .build(),
+                        PatchParameter.builder()
+                                .id(Parameters.EDIT_FILENAME)
+                                .required(false)
+                                .type(PatchParameterType.STRING)
+                                .build(),
+                        PatchParameter.builder()
+                                .id(Parameters.DELETE_FILENAME)
+                                .required(false)
+                                .type(PatchParameterType.STRING)
+                                .build()))
                 .description(ID)
                 .build();
     }

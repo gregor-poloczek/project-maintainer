@@ -6,16 +6,19 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
+import io.github.gregorpoloczek.projectmaintainer.patching.common.MultipurposeTestPatch;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.NoOpTestPatch;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.IntegrationTestFileSystemProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.TestApplication;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResultDetail;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentImpl;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jspecify.annotations.NonNull;
@@ -29,7 +32,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -109,13 +114,53 @@ public class PatchServiceIntegrationTest {
 
         assertThat(previewProgress.getState()).isEqualTo(OperationProgress.State.DONE);
 
-        PatchOperationResultDetail detail =
+        assertThat(previewProgress.getResult()
+                .map(PatchExecutionResult::getDetail)
+                .map(PatchExecutionResult.NoopResultDetail.class::cast)
+        ).isPresent().get().satisfies(detail -> {
+            assertThat(detail.getName()).isEqualTo("No-Op");
+            assertThat(detail.getDescription()).isEqualTo("Patch did not change any files.");
+        });
+    }
+
+    @Test
+    void testPreviewWithFileManipulationPatch() {
+        Project project = createWorkspaceWithSingleRepository();
+
+        List<PatchParameterArgument<?>> arguments = List.of(
+                this.toArgument(MultipurposeTestPatch.ID, MultipurposeTestPatch.Parameters.ADD_FILENAME, "file.txt"),
+                this.toArgument(MultipurposeTestPatch.ID, MultipurposeTestPatch.Parameters.EDIT_FILENAME, "two.txt"),
+                this.toArgument(MultipurposeTestPatch.ID, MultipurposeTestPatch.Parameters.DELETE_FILENAME, "three.txt")
+        );
+
+        ProjectOperationProgress<PatchExecutionResult> previewProgress =
+                Objects.requireNonNull(patchService.previewPatch(project, MultipurposeTestPatch.ID, arguments).blockLast());
+
+        assertThat(previewProgress.getState()).isEqualTo(OperationProgress.State.DONE);
+
+        PatchExecutionResult.PreviewGeneratedResultDetail detail =
                 previewProgress.getResult()
                         .map(PatchExecutionResult::getDetail)
-                        .map(PatchExecutionResult.NoopResultDetail.class::cast)
+                        .map(PatchExecutionResult.PreviewGeneratedResultDetail.class::cast)
                         .orElseThrow();
-        assertThat(detail.getName()).isEqualTo("No-Op");
-        assertThat(detail.getDescription()).isEqualTo("Patch did not change any files.");
+        assertThat(detail.getName()).isEqualTo("Preview Generated");
+        assertThat(detail.getDescription()).isEqualTo("Preview of all projected changes generated.");
+
+        // TODO unified diff for edit and delete
+        assertThat(detail.getUnifiedDiff())
+                .contains("--- /dev/null\n+++ file.txt\n@@ -0,0 +1,1 @@\n+My-Content");
+    }
+
+    private @NonNull <T> PatchParameterArgumentImpl<T> toArgument(String patchId, String parameterId, T value) {
+        return new PatchParameterArgumentImpl(
+                patchService.getPatchMetaData(patchId)
+                        .requirePatchParameter(parameterId), value);
+    }
+
+    private @NonNull <T> PatchParameterArgumentImpl<T> toArgument(String patchId, String parameterId, Class<T> clazz) {
+        return new PatchParameterArgumentImpl<T>(
+                patchService.getPatchMetaData(patchId)
+                        .requirePatchParameter(parameterId), null);
     }
 
     @Test
@@ -128,13 +173,13 @@ public class PatchServiceIntegrationTest {
 
         assertThat(applyProgress.getState()).isEqualTo(OperationProgress.State.DONE);
 
-        PatchOperationResultDetail detail =
-                applyProgress.getResult()
-                        .map(PatchExecutionResult::getDetail)
-                        .map(PatchExecutionResult.NoopResultDetail.class::cast)
-                        .orElseThrow();
-        assertThat(detail.getName()).isEqualTo("No-Op");
-        assertThat(detail.getDescription()).isEqualTo("Patch did not change any files.");
+        assertThat(applyProgress.getResult()
+                .map(PatchExecutionResult::getDetail)
+                .map(PatchExecutionResult.NoopResultDetail.class::cast)
+        ).isPresent().get().satisfies(detail -> {
+            assertThat(detail.getName()).isEqualTo("No-Op");
+            assertThat(detail.getDescription()).isEqualTo("Patch did not change any files.");
+        });
     }
 
     private @NonNull Project createWorkspaceWithSingleRepository() {
@@ -171,11 +216,23 @@ public class PatchServiceIntegrationTest {
                 .setDirectory(result.toFile())
                 .call()) {
             Path readme = result.resolve("README.md");
-            Files.createFile(readme);
+            createFile(readme, "# Some Project");
+
+            createFile(result.resolve("one.txt"), "# One");
+            createFile(result.resolve("two.txt"), "# Two");
+            createFile(result.resolve("three.txt"), "# Three");
 
             git.add().addFilepattern(".").call();
             git.commit().setMessage("Initial commit").call();
             return result;
+        }
+    }
+
+    @SneakyThrows({IOException.class})
+    private static void createFile(Path result, String content) {
+        Files.createFile(result);
+        try (FileOutputStream fos = new FileOutputStream(result.toFile())) {
+            IOUtils.write(content, fos, StandardCharsets.UTF_8);
         }
     }
 }
