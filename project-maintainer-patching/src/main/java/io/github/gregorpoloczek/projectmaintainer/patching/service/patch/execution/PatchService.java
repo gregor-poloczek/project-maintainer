@@ -44,7 +44,9 @@ import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.SortedSet;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.NotNull;
@@ -80,19 +82,25 @@ public class PatchService {
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> applyPatch(
-            ProjectRelatable projectRelatable, String patchId, Collection<PatchParameterArgument<?>> parameters) {
+            ProjectRelatable projectRelatable, String patchId, Iterable<PatchParameterArgument<?>> parameters) {
         Patch patch = this.requirePatch(patchId);
-        this.validateParameters(patch, parameters);
-        return this.usePatch(projectRelatable, patch, parameters, false);
+        Collection<PatchParameterArgument<?>> actualParameters =
+                StreamSupport.stream(parameters.spliterator(), false).toList();
+
+
+        this.validateParameters(patch, actualParameters);
+        return this.usePatch(projectRelatable, patch, actualParameters, false);
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> previewPatch(ProjectRelatable projectRelatable,
                                                                              String patchId,
-                                                                             Collection<PatchParameterArgument<?>> parameters) {
+                                                                             Iterable<PatchParameterArgument<?>> parameters) {
         Patch patch = this.requirePatch(patchId);
+        Collection<PatchParameterArgument<?>> actualParameters =
+                StreamSupport.stream(parameters.spliterator(), false).toList();
 
-        this.validateParameters(patch, parameters);
-        return this.usePatch(projectRelatable, patch, parameters, true);
+        this.validateParameters(patch, actualParameters);
+        return this.usePatch(projectRelatable, patch, actualParameters, true);
     }
 
     private void validateParameters(Patch patch, Collection<PatchParameterArgument<?>> arguments) {
@@ -101,7 +109,6 @@ public class PatchService {
                 throw new IllegalArgumentException("No argument passed for parameter \"%s\".".formatted(definedParameter.getId()));
             }
         }
-
     }
 
 

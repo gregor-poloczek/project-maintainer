@@ -1,4 +1,4 @@
-package io.github.gregorpoloczek.projectmaintainer.patching.common;
+package io.github.gregorpoloczek.projectmaintainer.patching.common.patches;
 
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchContext;
