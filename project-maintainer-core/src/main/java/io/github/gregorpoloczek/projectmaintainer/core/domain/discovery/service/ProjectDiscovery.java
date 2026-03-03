@@ -41,11 +41,11 @@ public interface ProjectDiscovery<T extends ProjectConnection> {
 
     default Mono<PullRequest> createPullRequest(ProjectRelatable projectRelatable,
                                                 PullRequestCreation pullRequestCreation) {
-        throw new NotImplementedException("Pull request creation not implemented");
+        throw new NotImplementedException("Pull request creation not implemented.");
     }
 
     default Mono<List<PullRequest>> getOpenPullRequests(ProjectRelatable projectRelatable) {
-        throw new NotImplementedException("Pull request loading not implemented");
+        throw new NotImplementedException("Pull request loading not implemented.");
     }
 
 }

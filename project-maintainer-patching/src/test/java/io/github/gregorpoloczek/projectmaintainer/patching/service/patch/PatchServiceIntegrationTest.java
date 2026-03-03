@@ -6,6 +6,7 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
+import io.github.gregorpoloczek.projectmaintainer.patching.common.IntegrationTestFileSystemProjectDiscovery;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.TestPatchArguments;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.patches.MultipurposeTestPatch;
 import io.github.gregorpoloczek.projectmaintainer.patching.common.patches.NoOpTestPatch;
@@ -71,6 +72,9 @@ public class PatchServiceIntegrationTest {
     @Autowired
     private ProjectService projectService;
 
+    @Autowired
+    private IntegrationTestFileSystemProjectDiscovery integrationTestFileSystemProjectDiscovery;
+
     private Path repository1;
 
     @DynamicPropertySource
@@ -84,6 +88,8 @@ public class PatchServiceIntegrationTest {
         for (Workspace workspace : workspaceService.findWorkspaces()) {
             workspaceService.deleteWorkspace(workspace);
         }
+
+        integrationTestFileSystemProjectDiscovery.reset();
     }
 
     @BeforeEach
@@ -157,19 +163,40 @@ public class PatchServiceIntegrationTest {
                 .contains("--- two.txt\n+++ two.txt\n@@ -1,1 +1,1 @@\n-# Two\n+My-Content")
                 // deleted file
                 .contains("--- three.txt\n+++ /dev/null\n@@ -1,1 +1,0 @@\n-# Three");
+        // TODO [Patching] test operations
     }
 
-    private @NonNull <T> PatchParameterArgumentImpl<T> toArgument(String patchId, String parameterId, T value) {
-        return new PatchParameterArgumentImpl(
-                patchService.getPatchMetaData(patchId)
-                        .requirePatchParameter(parameterId), value);
+    @Test
+    void testApplyWithFileManipulationPatch() {
+        Project project = createWorkspaceWithSingleRepository();
+
+        ProjectOperationProgress<PatchExecutionResult> applyProgress =
+                Objects.requireNonNull(patchService.applyPatch(project, MultipurposeTestPatch.ID,
+                                arguments(MultipurposeTestPatch.ID)
+                                        .argument(MultipurposeTestPatch.Parameters.ADD_FILENAME, "file.txt")
+                                        .argument(MultipurposeTestPatch.Parameters.EDIT_FILENAME, "two.txt")
+                                        .argument(MultipurposeTestPatch.Parameters.DELETE_FILENAME, "three.txt"))
+                        .blockLast());
+
+        assertThat(applyProgress.getState()).isEqualTo(OperationProgress.State.DONE);
+
+        PatchExecutionResult.AppliedResultDetail detail =
+                applyProgress.getResult()
+                        .map(PatchExecutionResult::getDetail)
+                        .map(PatchExecutionResult.AppliedResultDetail.class::cast)
+                        .orElseThrow();
+        assertThat(detail.getName()).isEqualTo("Patch applied");
+        assertThat(detail.getDescription()).isEqualTo("All projected changes were applied in a remote branch, and a pull request was created.");
+
+        assertThat(detail.getRemoteBranch().getName()).isEqualTo("project-maintainer/MultipurposeTestPatch");
+        assertThat(detail.getPullRequest().getSourceBranchName()).isEqualTo("project-maintainer/MultipurposeTestPatch");
+        assertThat(detail.getPullRequest().getTargetBranchName()).isEqualTo("master");
+        assertThat(detail.getPullRequest().getTitle()).isEqualTo(MultipurposeTestPatch.ID);
+        assertThat(detail.getCommitMessage()).isEqualTo("Applying patch \"MultipurposeTestPatch\": MultipurposeTestPatch");
+
+        // TODO [Patching] ins remote repository gucken, ob alles geändert wurde
     }
 
-    private @NonNull <T> PatchParameterArgumentImpl<T> toArgument(String patchId, String parameterId, Class<T> clazz) {
-        return new PatchParameterArgumentImpl<T>(
-                patchService.getPatchMetaData(patchId)
-                        .requirePatchParameter(parameterId), null);
-    }
 
     @Test
     void testApplyWithEmptyPatch() {

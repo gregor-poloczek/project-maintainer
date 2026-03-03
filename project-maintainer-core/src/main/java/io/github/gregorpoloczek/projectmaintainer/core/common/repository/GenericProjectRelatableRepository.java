@@ -37,4 +37,9 @@ public class GenericProjectRelatableRepository<T> implements ProjectRelatableRep
     public boolean delete(ProjectRelatable projectRelatable) {
         return this.data.remove(projectRelatable.getFQPN()) != null;
     }
+
+    @Override
+    public void deleteAll() {
+        this.data.clear();
+    }
 }

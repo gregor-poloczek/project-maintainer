@@ -16,4 +16,6 @@ public interface ProjectRelatableRepository<T> {
     void save(ProjectRelatable projectRelatable, T data);
 
     boolean delete(ProjectRelatable projectRelatable);
+
+    void deleteAll();
 }
