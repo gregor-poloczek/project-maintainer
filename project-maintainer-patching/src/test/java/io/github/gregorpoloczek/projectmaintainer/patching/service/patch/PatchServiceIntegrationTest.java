@@ -49,6 +49,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 public class PatchServiceIntegrationTest {
 
+    public static final int DIFF_CONTEXT_SIZE = 2;
+
     public static class RepositoryToc {
         public static final String ONE_TXT = "one.txt";
         public static final String TWO_TXT = "two.txt";
@@ -122,7 +124,7 @@ public class PatchServiceIntegrationTest {
 
         // create a preview
         ProjectOperationProgress<PatchExecutionResult> previewProgress =
-                Objects.requireNonNull(patchService.previewPatch(project, NoOpTestPatch.ID, List.of()).blockLast());
+                Objects.requireNonNull(patchService.previewPatch(project, NoOpTestPatch.ID, List.of(), DIFF_CONTEXT_SIZE).blockLast());
 
         assertThat(previewProgress.getState()).isEqualTo(OperationProgress.State.DONE);
 
@@ -148,7 +150,8 @@ public class PatchServiceIntegrationTest {
                                 arguments(MultipurposeTestPatch.ID)
                                         .argument(MultipurposeTestPatch.Parameters.ADD_FILENAME, "file.txt")
                                         .argument(MultipurposeTestPatch.Parameters.EDIT_FILENAME, RepositoryToc.TWO_TXT)
-                                        .argument(MultipurposeTestPatch.Parameters.DELETE_FILENAME, RepositoryToc.THREE_TXT))
+                                        .argument(MultipurposeTestPatch.Parameters.DELETE_FILENAME, RepositoryToc.THREE_TXT),
+                                DIFF_CONTEXT_SIZE)
                         .blockLast());
 
         assertThat(previewProgress.getState()).isEqualTo(OperationProgress.State.DONE);
@@ -180,7 +183,8 @@ public class PatchServiceIntegrationTest {
                                 arguments(MultipurposeTestPatch.ID)
                                         .argument(MultipurposeTestPatch.Parameters.ADD_FILENAME, "file.txt")
                                         .argument(MultipurposeTestPatch.Parameters.EDIT_FILENAME, RepositoryToc.TWO_TXT)
-                                        .argument(MultipurposeTestPatch.Parameters.DELETE_FILENAME, RepositoryToc.THREE_TXT))
+                                        .argument(MultipurposeTestPatch.Parameters.DELETE_FILENAME, RepositoryToc.THREE_TXT),
+                                DIFF_CONTEXT_SIZE)
                         .blockLast());
 
         assertThat(applyProgress.getState()).isEqualTo(OperationProgress.State.DONE);
@@ -209,7 +213,7 @@ public class PatchServiceIntegrationTest {
 
         // apply patch (which does nothing)
         ProjectOperationProgress<PatchExecutionResult> applyProgress =
-                Objects.requireNonNull(patchService.applyPatch(project, NoOpTestPatch.ID, List.of()).blockLast());
+                Objects.requireNonNull(patchService.applyPatch(project, NoOpTestPatch.ID, List.of(), DIFF_CONTEXT_SIZE).blockLast());
 
         assertThat(applyProgress.getState()).isEqualTo(OperationProgress.State.DONE);
 

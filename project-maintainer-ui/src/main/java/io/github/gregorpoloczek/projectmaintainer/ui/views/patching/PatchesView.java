@@ -4,6 +4,7 @@ import static io.github.gregorpoloczek.projectmaintainer.ui.common.composable.Co
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -13,6 +14,8 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.RangeInput;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -56,6 +59,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import org.apache.commons.lang3.BooleanUtils;
+import org.jspecify.annotations.NonNull;
 import reactor.core.Disposable;
 import reactor.core.Disposable.Swap;
 import reactor.core.Disposables;
@@ -79,6 +83,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final MenuBar menuBar;
     private final ComboBox<PatchMetaData> patchesSelection;
+    private int diffContextSize = 10;
 
 
     private final transient Swap currentOperation = Disposables.swap();
@@ -136,10 +141,12 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         this.patchesSelection.setRequired(true);
         this.patchesSelection.addValueChangeListener(x -> onPatchSelected(x.getValue()));
 
+        Component diffContextSizeRangeInput = createDiffContextSizeRangeInput();
+
         HorizontalLayout horizontalLayout = new HorizontalLayout(
                 this.patchesSelection,
                 new HasProjectFilterComponent<>(search),
-                hideNoOpCheckbox);
+                hideNoOpCheckbox, diffContextSizeRangeInput);
         horizontalLayout.setAlignItems(Alignment.CENTER);
         this.add(horizontalLayout,
                 details,
@@ -149,6 +156,23 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         );
         this.setSizeFull();
         this.grid.setSizeFull();
+    }
+
+    private @NonNull Component createDiffContextSizeRangeInput() {
+        Span valueSpan = new Span(this.diffContextSize + "");
+        RangeInput result = new RangeInput();
+        result.setMin(2);
+        result.setMax(30);
+        result.setStep(1.0);
+        result.addValueChangeListener(e -> {
+            this.diffContextSize = (int) Math.floor(e.getValue());
+            valueSpan.setText("" + this.diffContextSize);
+        });
+
+
+        HorizontalLayout layout = new HorizontalLayout(new Span("Diff lines: "), result, valueSpan);
+        layout.setPadding(false);
+        return layout;
     }
 
     private void onPatchSelected(PatchMetaData value) {
@@ -241,7 +265,8 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         this.onOperationClick(item -> this.patchService.previewPatch(
                         item,
                         this.patchesSelection.getValue().getId(),
-                        this.patchParameterArgumentsComponent.getValues().values()),
+                        this.patchParameterArgumentsComponent.getValues().values(),
+                        this.diffContextSize),
                 "Previewing patch ...");
     }
 
@@ -249,7 +274,8 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         this.onOperationClick(item -> this.patchService.applyPatch(
                         item,
                         this.patchesSelection.getValue().getId(),
-                        this.patchParameterArgumentsComponent.getValues().values()),
+                        this.patchParameterArgumentsComponent.getValues().values(),
+                        this.diffContextSize),
                 "Applying patch ...");
     }
 

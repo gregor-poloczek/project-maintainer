@@ -40,8 +40,14 @@ class PatchExecutionContext implements ProjectRelatable, PatchOperationContext {
         return this.workingCopy.getFQPN();
     }
 
+    @NonNull
+    Integer diffContextSize;
+
     public void publish(String message) {
         this.progressSink.next(message);
     }
 
+    public int getDiffContextSize() {
+        return diffContextSize;
+    }
 }

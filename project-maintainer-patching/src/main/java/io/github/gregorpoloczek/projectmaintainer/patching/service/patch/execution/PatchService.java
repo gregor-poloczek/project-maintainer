@@ -44,7 +44,6 @@ import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.SortedSet;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -84,7 +83,8 @@ public class PatchService {
     public Flux<ProjectOperationProgress<PatchExecutionResult>> applyPatch(
             ProjectRelatable projectRelatable,
             String patchId,
-            Iterable<PatchParameterArgument<?>> inputArguments) {
+            Iterable<PatchParameterArgument<?>> inputArguments,
+            int diffContextSize) {
         Patch patch = this.requirePatch(patchId);
 
         Collection<PatchParameterArgument<?>> actualArguments =
@@ -92,19 +92,20 @@ public class PatchService {
 
 
         this.validateParameters(patch, actualArguments);
-        return this.usePatch(projectRelatable, patch, actualArguments, false);
+        return this.usePatch(projectRelatable, patch, actualArguments, diffContextSize, false);
     }
 
     public Flux<ProjectOperationProgress<PatchExecutionResult>> previewPatch(ProjectRelatable projectRelatable,
                                                                              String patchId,
-                                                                             Iterable<PatchParameterArgument<?>> inputArguments) {
+                                                                             Iterable<PatchParameterArgument<?>> inputArguments,
+                                                                             int diffContextSize) {
         Patch patch = this.requirePatch(patchId);
 
         Collection<PatchParameterArgument<?>> actualArguments =
                 StreamSupport.stream(inputArguments.spliterator(), false).toList();
 
         this.validateParameters(patch, actualArguments);
-        return this.usePatch(projectRelatable, patch, actualArguments, true);
+        return this.usePatch(projectRelatable, patch, actualArguments, diffContextSize, true);
     }
 
     private void validateParameters(Patch patch, Collection<PatchParameterArgument<?>> arguments) {
@@ -230,7 +231,10 @@ public class PatchService {
     }
 
     private Flux<ProjectOperationProgress<PatchExecutionResult>> usePatch(ProjectRelatable projectRelatable,
-                                                                          Patch patch, Collection<PatchParameterArgument<?>> rawArguments, boolean previewOnly) {
+                                                                          Patch patch,
+                                                                          Collection<PatchParameterArgument<?>> rawArguments,
+                                                                          int diffContextSize,
+                                                                          boolean previewOnly) {
         FQPN fqpn = projectRelatable.getFQPN();
         WorkingCopy workingCopy = this.workingCopyService.require(projectRelatable);
 
@@ -258,6 +262,7 @@ public class PatchService {
 
                     PatchExecutionContext executionContext = PatchExecutionContext.builder()
                             .workingCopy(workingCopy)
+                            .diffContextSize(diffContextSize)
                             .arguments(patchContext.getArguments())
                             .progressSink(progressSink)
                             .patch(patch)
@@ -514,7 +519,7 @@ public class PatchService {
                     } else {
                         String unifiedDiff = operations
                                 .stream()
-                                .map(this::toUnifiedDiff)
+                                .map(operation -> toUnifiedDiff(operation, executionContext.getDiffContextSize()))
                                 .collect(joining("\n"));
                         return PatchExecutionResult.PreviewGeneratedResultDetail.builder()
                                 .operations(operations)
@@ -580,7 +585,7 @@ public class PatchService {
                 .orElseThrow(() -> new IllegalStateException("Patch \"%s\" not found.".formatted(patchId)));
     }
 
-    private String toUnifiedDiff(ProjectFileOperation operation) {
+    private String toUnifiedDiff(ProjectFileOperation operation, int contextSize) {
         List<String> before =
                 operation.getBefore().map(c -> List.of(c.split("\n"))).orElse(emptyList());
         List<String> after =
@@ -592,7 +597,7 @@ public class PatchService {
                 operation.getBefore().map(x -> filePath).orElse(null),
                 operation.getAfter().map(x -> filePath).orElse(null),
                 before,
-                patches, 2);
+                patches, contextSize);
 
         List<String> header = new ArrayList<>();
         header.add("diff --git a/%s b/%s".formatted(filePath, filePath));
