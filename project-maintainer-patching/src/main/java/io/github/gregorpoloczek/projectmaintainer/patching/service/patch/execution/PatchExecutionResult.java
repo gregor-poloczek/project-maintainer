@@ -2,7 +2,9 @@ package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execut
 
 import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.PullRequest;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
+
 import java.util.List;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,6 +26,11 @@ public class PatchExecutionResult implements PatchOperationResult {
 
         private final String name = "No-Op";
         private final String description = "Patch did not change any files.";
+
+        @Override
+        public Type getType() {
+            return Type.NOOP;
+        }
     }
 
     @Getter
@@ -38,6 +45,11 @@ public class PatchExecutionResult implements PatchOperationResult {
         String unifiedDiff;
         @NonNull
         List<ProjectFileOperation> operations;
+
+        @Override
+        public Type getType() {
+            return Type.PREVIEWED;
+        }
     }
 
     @Getter
@@ -52,6 +64,11 @@ public class PatchExecutionResult implements PatchOperationResult {
         String commitMessage;
         RemoteBranch remoteBranch;
         PullRequest pullRequest;
+
+        @Override
+        public Type getType() {
+            return Type.APPLIED;
+        }
     }
 
     @Getter
@@ -65,6 +82,11 @@ public class PatchExecutionResult implements PatchOperationResult {
 
         RemoteBranch remoteBranch;
         PullRequest pullRequest;
+
+        @Override
+        public Type getType() {
+            return Type.BLOCKED;
+        }
     }
 
     @Getter
@@ -77,6 +99,11 @@ public class PatchExecutionResult implements PatchOperationResult {
         private final String description = "A conflicting remote branch with the same name was detected.";
 
         RemoteBranch remoteBranch;
+
+        @Override
+        public Type getType() {
+            return Type.BLOCKED;
+        }
     }
 
     @NonNull

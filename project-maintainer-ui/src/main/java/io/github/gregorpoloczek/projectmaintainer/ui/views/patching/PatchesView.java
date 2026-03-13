@@ -34,6 +34,7 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperationType;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResultDetail;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
@@ -56,12 +57,16 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.Ha
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.github.gregorpoloczek.projectmaintainer.ui.views.patching.components.StatisticsComponent;
 import org.apache.commons.lang3.BooleanUtils;
 import org.jspecify.annotations.NonNull;
 import reactor.core.Disposable;
@@ -89,9 +94,13 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     private final ComboBox<PatchMetaData> patchesSelection;
     private int diffContextSize = 10;
 
+    private StatisticsComponent statisticsComponent;
 
     private final transient Swap currentOperation = Disposables.swap();
 
+    enum PatchOperationType {
+        PREVIEW, APPLY, STOP
+    }
 
     public PatchesView(
             ProjectService projectService,
@@ -152,9 +161,13 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
                 new HasProjectFilterComponent<>(search),
                 hideNoOpCheckbox, diffContextSizeRangeInput);
         horizontalLayout.setAlignItems(Alignment.CENTER);
+        this.statisticsComponent = new StatisticsComponent();
+        HorizontalLayout row = new HorizontalLayout(this.menuBar, this.statisticsComponent);
+        row.setPadding(false);
+        row.setAlignItems(Alignment.CENTER);
         this.add(horizontalLayout,
                 details,
-                this.menuBar,
+                row,
                 this.grid,
                 this.projectProgressBar
         );
@@ -187,6 +200,8 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
             this.dataProvider.refreshItem(item);
         });
         search.refresh();
+
+        this.statisticsComponent.clear();
 
         if (value != null) {
             this.patchParameterArgumentsComponent.setParameters(value.getPatchParameters());
@@ -262,23 +277,23 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private <T extends PatchOperationResult> void onOperationClick(
+            PatchOperationType operationType,
             Function<ProjectRelatable, Flux<ProjectOperationProgress<T>>> operation,
             String label) {
+
         List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
                 .sorted().toList();
         projectProgressBar.start(relevantItems, label);
 
-        // TODO [Patching] alle betroffenen projekte zählen und anzeigen
-
         Disposable subscription = Flux.fromIterable(relevantItems)
                 .doOnNext(this::clearItem)
+                .doOnNext(this.statisticsComponent::clear)
                 .flatMap(item ->
                         operation.apply(item)
-                                // TODO [Patching] broken package is not visible in view
                                 .onErrorComplete()
                                 .subscribeOn(Schedulers.boundedElastic()))
                 .doOnSubscribe(x -> VaadinUtils.access(this, PatchesView::onBeforeOperation))
-                .doOnNext(p -> VaadinUtils.access(this, p, PatchesView::onPatchOperationProgress))
+                .doOnNext(p -> VaadinUtils.access(this, p, (v, pr) -> v.onPatchOperationProgress(operationType, pr)))
                 .doFinally(x -> VaadinUtils.access(this, PatchesView::onAfterOperation))
                 .subscribe();
 
@@ -286,7 +301,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void onStopClick(ClickEvent<MenuItem> event) {
-        this.onOperationClick(item -> this.patchService.stopPatch(
+        this.onOperationClick(PatchOperationType.STOP, item -> this.patchService.stopPatch(
                         item,
                         this.patchesSelection.getValue().getId(),
                         this.patchParameterArgumentsComponent.getValues().values()),
@@ -294,7 +309,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void onPreviewClick(ClickEvent<MenuItem> event) {
-        this.onOperationClick(item -> this.patchService.previewPatch(
+        this.onOperationClick(PatchOperationType.PREVIEW, item -> this.patchService.previewPatch(
                         item,
                         this.patchesSelection.getValue().getId(),
                         this.patchParameterArgumentsComponent.getValues().values(),
@@ -303,7 +318,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void onApplyClick(ClickEvent<MenuItem> event) {
-        this.onOperationClick(item -> this.patchService.applyPatch(
+        this.onOperationClick(PatchOperationType.APPLY, item -> this.patchService.applyPatch(
                         item,
                         this.patchesSelection.getValue().getId(),
                         this.patchParameterArgumentsComponent.getValues().values(),
@@ -343,11 +358,22 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         this.dataProvider.refreshAll();
     }
 
-    private void onPatchOperationProgress(ProjectOperationProgress<? extends PatchOperationResult> progress) {
+    private void onPatchOperationProgress(PatchOperationType operationType, ProjectOperationProgress<? extends PatchOperationResult> progress) {
         ProjectPatchItem item = items.get(progress.getFQPN());
         this.projectProgressBar.update(progress);
 
+        if (progress.getState() == State.FAILED) {
+            var detailType = switch (operationType) {
+                case APPLY -> PatchOperationResultDetail.Type.APPLY_FAILED;
+                case PREVIEW -> PatchOperationResultDetail.Type.PREVIEW_FAILED;
+                case STOP -> PatchOperationResultDetail.Type.STOP_FAILED;
+            };
+            statisticsComponent.update(progress, detailType);
+        }
+
         if (progress.getState() == State.DONE) {
+            progress.getResult().ifPresent(r -> statisticsComponent.update(progress, r.getDetail().getType()));
+
             this.grid.setDetailsVisible(item, true);
         }
         item.replaceTrait(HasOperationProgress.class,

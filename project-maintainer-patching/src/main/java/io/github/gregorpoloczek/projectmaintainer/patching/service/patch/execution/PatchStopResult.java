@@ -1,7 +1,9 @@
 package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution;
 
 import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.PullRequest;
+
 import java.util.Optional;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,6 +30,11 @@ public class PatchStopResult implements PatchOperationResult {
         private final String description = "No pull request or existing patch remote branch was found.";
 
         private final String name = "No-Op";
+
+        @Override
+        public Type getType() {
+            return Type.NOOP;
+        }
     }
 
     /**
@@ -49,6 +56,10 @@ public class PatchStopResult implements PatchOperationResult {
             return Optional.ofNullable(pullRequest);
         }
 
+        @Override
+        public Type getType() {
+            return Type.STOPPED;
+        }
     }
 
 }
