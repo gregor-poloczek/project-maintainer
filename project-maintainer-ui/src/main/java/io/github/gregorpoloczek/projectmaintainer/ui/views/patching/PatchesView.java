@@ -31,6 +31,8 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperationType;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
@@ -55,8 +57,10 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.Ha
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.BooleanUtils;
 import org.jspecify.annotations.NonNull;
@@ -197,8 +201,36 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         result.setSelectionMode(SelectionMode.MULTI);
         result.addColumn(IconComponent.getRenderer()).setFlexGrow(0).setWidth("64px");
         result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
+        result.addColumn(createPatchDetailRenderer());
         result.addColumn(OperationProgressComponent.getRenderer());
         return result;
+    }
+
+    private @NonNull ComponentRenderer<? extends Component, ProjectPatchItem> createPatchDetailRenderer() {
+        return new ComponentRenderer<>(i -> {
+            if (i.getPatchOperationResult().isEmpty()) {
+                return new Span("");
+            }
+            PatchOperationResult r = i.getPatchOperationResult().get();
+            if (r.getDetail() instanceof PatchExecutionResult.PreviewGeneratedResultDetail pgr) {
+                Map<ProjectFileOperationType, List<ProjectFileOperation>> byType = pgr.getOperations().stream()
+                        .collect(Collectors.groupingBy(ProjectFileOperation::getType));
+
+                VerticalLayout layout = new VerticalLayout();
+                layout.setPadding(false);
+                for (ProjectFileOperationType type : byType.keySet()) {
+                    String label = switch (type) {
+                        case ADD -> "Added";
+                        case DELETE -> "Deleted";
+                        case UPDATE -> "Changed";
+                    };
+                    layout.add(new Span("%s: %d".formatted(label, byType.get(type).size())));
+                }
+                return layout;
+            }
+
+            return new Span("");
+        });
     }
 
 
