@@ -2,6 +2,7 @@ package io.github.gregorpoloczek.projectmaintainer.patching.service.patch;
 
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.PullRequest;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
@@ -20,8 +21,12 @@ import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.Workin
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.eclipse.jgit.api.CreateBranchCommand;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.merge.MergeStrategy;
 import org.jspecify.annotations.NonNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +47,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,6 +57,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class PatchServiceIntegrationTest {
 
     public static final int DIFF_CONTEXT_SIZE = 2;
+    private Git localRepository1Git;
+    private Path localRepository1;
 
     public static class RepositoryToc {
         public static final String ONE_TXT = "one.txt";
@@ -66,6 +74,9 @@ public class PatchServiceIntegrationTest {
 
     @TempDir
     static Path remoteRepositoriesDirectory;
+
+    @TempDir
+    static Path localRepositoriesDirectory;
 
     @Autowired
     PatchService patchService;
@@ -83,7 +94,7 @@ public class PatchServiceIntegrationTest {
     @Autowired
     private IntegrationTestFileSystemProjectDiscovery integrationTestFileSystemProjectDiscovery;
 
-    private Path repository1;
+    private Path remoteRepository1;
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
@@ -92,7 +103,7 @@ public class PatchServiceIntegrationTest {
 
     @AfterEach
     void tearDown() throws IOException {
-        FileUtils.deleteDirectory(this.repository1.toFile());
+        FileUtils.deleteDirectory(this.remoteRepository1.toFile());
         for (Workspace workspace : workspaceService.findWorkspaces()) {
             workspaceService.deleteWorkspace(workspace);
         }
@@ -101,8 +112,16 @@ public class PatchServiceIntegrationTest {
     }
 
     @BeforeEach
-    void setUp() {
-        this.repository1 = this.createEmptyRemoteRepository("repository-1");
+    void setUp() throws GitAPIException {
+
+        this.remoteRepository1 = this.createEmptyRemoteRepository("repository-1");
+
+        this.localRepository1 = localRepositoriesDirectory.resolve("repository-1");
+        this.localRepository1Git = Git.cloneRepository()
+                .setDirectory(localRepository1.toFile())
+                .setURI(this.remoteRepository1.toUri().toString())
+                .call();
+
     }
 
     // TODO apply - branch already exists
@@ -180,7 +199,7 @@ public class PatchServiceIntegrationTest {
     }
 
     @Test
-    void testApplyWithFileManipulationPatch() {
+    void testApplyWithFileManipulationPatch() throws GitAPIException {
         Project project = createWorkspaceWithSingleRepository();
 
         ProjectOperationProgress<PatchExecutionResult> applyProgress =
@@ -208,7 +227,43 @@ public class PatchServiceIntegrationTest {
         assertThat(detail.getPullRequest().getTitle()).isEqualTo(MultipurposeTestPatch.ID);
         assertThat(detail.getCommitMessage()).isEqualTo("Applying patch \"MultipurposeTestPatch\": MultipurposeTestPatch");
 
+        List<PullRequest> pullRequests = Objects.requireNonNull(integrationTestFileSystemProjectDiscovery.getOpenPullRequests(project).block());
+        assertThat(pullRequests).hasSize(1);
+
+        // TODO [Patching] refactor
+
+        PullRequest pullRequest = pullRequests.getFirst();
+        // mergePullRequest(pullRequest);
+        localRepository1Git.fetch().call();
+        localRepository1Git.checkout()
+                .setCreateBranch(true)
+                .setStartPoint("origin/" + pullRequest.getSourceBranchName())
+                .setUpstreamMode(CreateBranchCommand.SetupUpstreamMode.TRACK)
+                .setName(pullRequest.getSourceBranchName()).call();
+
+
+        assertThat(localRepository1.resolve("file.txt")).exists();
+        assertThat(localRepository1.resolve(RepositoryToc.TWO_TXT)).content().contains("My-Content");
+        assertThat(localRepository1.resolve(RepositoryToc.THREE_TXT)).doesNotExist();
+
+
         // TODO [Patching] ins remote repository gucken, ob alles geändert wurde
+    }
+
+    @SneakyThrows({GitAPIException.class, IOException.class})
+    private void mergePullRequest(PullRequest pullRequest) {
+        Ref call = localRepository1Git.checkout().setName(pullRequest.getTargetBranchName()).call();
+        localRepository1Git.fetch().call();
+
+        MergeResult mergeResult = localRepository1Git.merge()
+                .include(localRepository1Git.getRepository().resolve("refs/remotes/origin/" + pullRequest.getSourceBranchName()))
+                .setStrategy(MergeStrategy.RECURSIVE)
+                .call();
+        if (!mergeResult.getMergeStatus().isSuccessful()) {
+            throw new IllegalStateException("Merge failed");
+        }
+        var pushResult = StreamSupport.stream(localRepository1Git.push().call().spliterator(), false).toList();
+        // TODO [Patching] check result
     }
 
 
@@ -237,7 +292,7 @@ public class PatchServiceIntegrationTest {
 
         workspace = workspaceService.updateConnections(workspace,
                 List.of(IntegrationTestFileSystemProjectConnection.builder()
-                        .remoteRepository(repository1)
+                        .remoteRepository(remoteRepository1)
                         .build()));
 
         OperationProgress<?> discoveryProgress =
