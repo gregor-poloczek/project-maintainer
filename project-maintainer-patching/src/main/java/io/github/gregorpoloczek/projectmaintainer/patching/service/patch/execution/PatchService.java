@@ -31,6 +31,7 @@ import io.github.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -57,7 +58,11 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.dircache.DirCacheIterator;
 import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.treewalk.FileTreeIterator;
+import org.eclipse.jgit.treewalk.WorkingTreeIterator;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -278,10 +283,10 @@ public class PatchService {
                     log.info("A");
                     // TODO [Patching] umbauen auf ohne "switchIfEmpty"
                     Mono.empty()
-                            .then(this.resetWorkingCopy(executionContext))
+                            .then(this.resetWorkingCopyAnyCheckoutDefaultBranch(executionContext))
                             .then(this.checkForExistingPullRequest(executionContext))
                             .switchIfEmpty(this.checkForExistingRemoteBranch(executionContext))
-                            .switchIfEmpty(this.makeSourceCodeChanges(executionContext))
+                            .switchIfEmpty(this.previewSourceCodeChanges(executionContext))
                             .flatMap(detail -> {
                                 if (!(detail instanceof PreviewGeneratedResultDetail)) {
                                     return Mono.just(detail);
@@ -413,7 +418,7 @@ public class PatchService {
                     gitActionContext.command(Git::checkout).setName(branchState.getDefaultBranch()).call();
                     gitActionContext.command(Git::branchDelete).setBranchNames(executionContext.getPatchBranch()).setForce(true).call();
                 } finally {
-                    workingCopyService.reset(executionContext.getWorkingCopy());
+                    workingCopyService.resetAndCheckoutDefaultBranch(executionContext.getWorkingCopy());
                 }
             });
             return RemoteBranch.builder()
@@ -497,7 +502,7 @@ public class PatchService {
     }
 
 
-    private Mono<? extends PatchOperationResultDetail> makeSourceCodeChanges(PatchExecutionContext executionContext) {
+    private Mono<? extends PatchOperationResultDetail> previewSourceCodeChanges(PatchExecutionContext executionContext) {
 
         return Mono.fromSupplier(() -> {
                     Patch patch = executionContext.getPatch();
@@ -517,10 +522,11 @@ public class PatchService {
                     if (operations.isEmpty()) {
                         return PatchExecutionResult.NoopResultDetail.builder().build();
                     } else {
-                        String unifiedDiff = operations
-                                .stream()
-                                .map(operation -> toUnifiedDiff(operation, executionContext.getDiffContextSize()))
-                                .collect(joining("\n"));
+                        String unifiedDiff = this.toUnifiedDiff(executionContext);
+//                        String unifiedDiff = operations
+//                                .stream()
+//                                .map(operation -> toUnifiedDiff(operation, executionContext.getDiffContextSize()))
+//                                .collect(joining("\n"));
                         return PatchExecutionResult.PreviewGeneratedResultDetail.builder()
                                 .operations(operations)
                                 .unifiedDiff(unifiedDiff).build();
@@ -563,11 +569,11 @@ public class PatchService {
                 });
     }
 
-    private Mono<Void> resetWorkingCopy(PatchExecutionContext executionContext) {
+    private Mono<Void> resetWorkingCopyAnyCheckoutDefaultBranch(PatchExecutionContext executionContext) {
         return Mono.fromRunnable(() -> {
             executionContext.publish("Resetting working copy");
 
-            workingCopyService.reset(executionContext.getWorkingCopy());
+            workingCopyService.resetAndCheckoutDefaultBranch(executionContext.getWorkingCopy());
         });
     }
 
@@ -611,6 +617,34 @@ public class PatchService {
                 operation.getAfter().map(DigestUtils::md5Hex).orElse("000000000000")));
         return Stream.concat(header.stream(), unifiedDiff.stream())
                 .collect(joining("\n"));
+    }
+
+    private String toUnifiedDiff(PatchExecutionContext executionContext) {
+        try {
+            // apply any deferred operations of patch
+            this.applyOperationsToFileSystem(executionContext.getPatchContext().getOperations());
+
+            // create diff
+            return gitService.execute(executionContext.getWorkingCopy(), c -> {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DiffFormatter diffFormatter = new DiffFormatter(baos);
+                diffFormatter.setRepository(c.getGit().getRepository());
+                diffFormatter.setDetectRenames(true);
+                diffFormatter.setContext(executionContext.getDiffContextSize());
+
+                try {
+                    WorkingTreeIterator workingTreeIt = new FileTreeIterator(c.getGit().getRepository());
+                    DirCacheIterator indexIt = new DirCacheIterator(c.getGit().getRepository().readDirCache());
+                    diffFormatter.format(indexIt, workingTreeIt);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+                return baos.toString(StandardCharsets.UTF_8);
+            });
+        } finally {
+            // remove any changes made to the working copy
+            this.gitService.resetAndStayInBranch(executionContext.getWorkingCopy());
+        }
     }
 
     @PostConstruct

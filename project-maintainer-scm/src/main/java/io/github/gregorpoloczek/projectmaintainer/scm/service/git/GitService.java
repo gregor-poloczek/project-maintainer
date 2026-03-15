@@ -31,6 +31,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
+import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.Ref;
@@ -202,6 +203,22 @@ public class GitService {
 
     public Mono<Object> closePullRequest(ProjectRelatable projectRelatable, PullRequest pullRequest) {
         return getProjectDiscovery(projectRelatable).closePullRequest(projectRelatable, pullRequest);
+    }
+
+    public void resetAndStayInBranch(@NonNull WorkingCopy workingCopy) {
+        // remove any changes
+        this.execute(workingCopy, c -> {
+            c.command(Git::reset)
+                    .setMode(ResetCommand.ResetType.HARD)
+                    .call();
+            c.command(Git::clean)
+                    .setCleanDirectories(true)
+                    .call();
+
+            if (!c.command(Git::status).call().isClean()) {
+                throw new IllegalStateException("Working copy \"%s\" of \"%s\" was not properly reset".formatted(workingCopy, workingCopy.getFQPN()));
+            }
+        });
     }
 
     @FunctionalInterface
