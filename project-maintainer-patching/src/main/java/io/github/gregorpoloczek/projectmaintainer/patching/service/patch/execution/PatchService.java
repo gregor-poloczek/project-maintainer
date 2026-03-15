@@ -474,6 +474,7 @@ public class PatchService {
                     return c.getBranchState().getRemoteBranches();
                 });
         if (!remoteBranches.contains(executionContext.getPatchBranch())) {
+            // TODO [Patching] log message seems incorrect
             log.info("Detected existing remote branch \"{}\", cannot patch \"{}\".",
                     executionContext.getPatchBranch(),
                     executionContext.getFQPN());
@@ -517,16 +518,12 @@ public class PatchService {
 
                     // execute patch
                     patch.execute(executionContext.getPatchContext());
+                    String unifiedDiff = this.toUnifiedDiff(executionContext);
 
                     List<ProjectFileOperation> operations = executionContext.getPatchContext().getOperations();
-                    if (operations.isEmpty()) {
+                    if (unifiedDiff.isEmpty()) {
                         return PatchExecutionResult.NoopResultDetail.builder().build();
                     } else {
-                        String unifiedDiff = this.toUnifiedDiff(executionContext);
-//                        String unifiedDiff = operations
-//                                .stream()
-//                                .map(operation -> toUnifiedDiff(operation, executionContext.getDiffContextSize()))
-//                                .collect(joining("\n"));
                         return PatchExecutionResult.PreviewGeneratedResultDetail.builder()
                                 .operations(operations)
                                 .unifiedDiff(unifiedDiff).build();
