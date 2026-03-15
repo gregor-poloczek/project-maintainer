@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -164,13 +165,17 @@ public class PatchServiceIntegrationTest {
         assertThat(detail.getName()).isEqualTo("Preview Generated");
         assertThat(detail.getDescription()).isEqualTo("Preview of all projected changes generated.");
 
-        assertThat(detail.getUnifiedDiff())
-                // added file
-                .contains("--- /dev/null\n+++ file.txt\n@@ -0,0 +1,1 @@\n+My-Content")
-                // edited file
-                .contains("--- two.txt\n+++ two.txt\n@@ -1,1 +1,1 @@\n-# Two\n+My-Content")
-                // deleted file
-                .contains("--- three.txt\n+++ /dev/null\n@@ -1,1 +1,0 @@\n-# Three");
+        List<String> diffs = Arrays.asList(detail.getUnifiedDiff().split("(?=diff --git)"));
+
+        assertThat(diffs).hasSize(3);
+
+        // added file
+        assertThat(diffs.get(0)).contains("--- /dev/null\n+++ b/file.txt\n@@ -0,0 +1 @@\n+My-Content");
+        // edited file
+        assertThat(diffs.get(2)).contains("--- a/two.txt\n+++ b/two.txt\n@@ -1 +1 @@\n-# Two\n+My-Content");
+        // deleted file
+        assertThat(diffs.get(1)).contains("--- a/three.txt\n+++ /dev/null\n@@ -1 +0,0 @@\n-# Three");
+
         // TODO [Patching] test operations
     }
 
@@ -262,9 +267,9 @@ public class PatchServiceIntegrationTest {
             Path readme = result.resolve("README.md");
             createFile(readme, "# Some Project");
 
-            createFile(result.resolve(RepositoryToc.ONE_TXT), "# One");
-            createFile(result.resolve(RepositoryToc.TWO_TXT), "# Two");
-            createFile(result.resolve(RepositoryToc.THREE_TXT), "# Three");
+            createFile(result.resolve(RepositoryToc.ONE_TXT), "# One\n");
+            createFile(result.resolve(RepositoryToc.TWO_TXT), "# Two\n");
+            createFile(result.resolve(RepositoryToc.THREE_TXT), "# Three\n");
 
             git.add().addFilepattern(".").call();
             git.commit().setMessage("Initial commit").call();
