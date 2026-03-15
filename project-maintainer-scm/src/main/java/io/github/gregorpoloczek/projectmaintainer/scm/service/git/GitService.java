@@ -31,10 +31,13 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand.ListMode;
+import org.eclipse.jgit.api.ResetCommand;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.submodule.SubmoduleWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Service;
@@ -202,6 +205,25 @@ public class GitService {
 
     public Mono<Object> closePullRequest(ProjectRelatable projectRelatable, PullRequest pullRequest) {
         return getProjectDiscovery(projectRelatable).closePullRequest(projectRelatable, pullRequest);
+    }
+
+    public void resetAndStayInBranch(@NonNull WorkingCopy workingCopy) {
+        // remove any changes
+        this.execute(workingCopy, c -> {
+            c.command(Git::reset)
+                    .setMode(ResetCommand.ResetType.HARD)
+                    .call();
+            c.command(Git::clean)
+                    .setCleanDirectories(true)
+                    .call();
+
+            Status status = c.command(Git::status)
+                    .setIgnoreSubmodules(SubmoduleWalk.IgnoreSubmoduleMode.ALL)
+                    .call();
+            if (!status.isClean()) {
+                throw new IllegalStateException("Working copy \"%s\" of \"%s\" was not properly reset".formatted(workingCopy, workingCopy.getFQPN()));
+            }
+        });
     }
 
     @FunctionalInterface

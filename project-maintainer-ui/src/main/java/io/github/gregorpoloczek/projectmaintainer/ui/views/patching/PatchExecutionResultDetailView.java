@@ -12,7 +12,7 @@ public class PatchExecutionResultDetailView extends PatchOperationDetailView {
             case PatchExecutionResult.NoopResultDetail x -> {
             }
             case PatchExecutionResult.PreviewGeneratedResultDetail detail ->
-                    this.add(new DiffComponent(detail.getUnifiedDiff()));
+                    this.add(new UnifiedDiffComponent(detail.getUnifiedDiff()));
             case PatchExecutionResult.RemoteBranchExistsResultDetail detail -> this.add(this.toComponent(
                     "Remote Branch",
                     detail.getRemoteBranch()));

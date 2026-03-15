@@ -2,8 +2,10 @@ package io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy;
 
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectFileLocation;
+
 import java.io.File;
 import java.nio.file.Path;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;

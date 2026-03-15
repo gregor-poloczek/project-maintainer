@@ -1,5 +1,6 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.views.git;
 
+import static io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils.with;
 import static io.github.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder.toComposableHolder;
 import static java.util.function.Predicate.not;
 
@@ -94,15 +95,14 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
         this.grid = createGrid();
 
         this.menuBar = createMenuBar();
-        VerticalLayout controlElements = new VerticalLayout(
-                new HorizontalLayout(
-                        new HasWorkingCopyFilterComponent(search),
-                        new HasProjectFilterComponent<>(search)
-                ), menuBar);
-        controlElements.setPadding(false);
-        HorizontalLayout top = new HorizontalLayout(controlElements, new Markdown(DOCUMENTATION));
-        top.setPadding(false);
-        this.add(top, grid, this.projectProgressBar);
+        this.add(with(new HorizontalLayout(
+                        with(new VerticalLayout(new HorizontalLayout(
+                                new HasWorkingCopyFilterComponent(search),
+                                new HasProjectFilterComponent<>(search)
+                        ), menuBar), VaadinUtils.NO_PADDING),
+                        new Markdown(DOCUMENTATION)), VaadinUtils.NO_PADDING),
+                this.grid,
+                this.projectProgressBar);
         this.setSizeFull();
         this.grid.setSizeFull();
     }

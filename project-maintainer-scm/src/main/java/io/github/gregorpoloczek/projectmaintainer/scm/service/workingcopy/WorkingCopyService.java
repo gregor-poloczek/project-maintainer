@@ -32,7 +32,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -251,15 +250,9 @@ public class WorkingCopyService {
                 .resolve(Path.of(projectRelatable.getFQPN().toString().replaceAll("::", "/")));
     }
 
-    public void reset(WorkingCopy workingCopy) {
+    public void resetAndCheckoutDefaultBranch(WorkingCopy workingCopy) {
+        this.gitService.resetAndStayInBranch(workingCopy);
         this.gitService.execute(workingCopy, (gitActionContext) -> {
-            // remove all changes
-            gitActionContext.command(Git::reset)
-                    .setMode(ResetType.HARD)
-                    .call();
-            gitActionContext.command(Git::clean)
-                    .setCleanDirectories(true)
-                    .call();
             // check out default branch
             gitActionContext.command(Git::checkout)
                     .setName(gitActionContext.getBranchState().getDefaultBranch())

@@ -1,10 +1,5 @@
 package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution;
 
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.joining;
-
-import com.github.difflib.DiffUtils;
-import com.github.difflib.UnifiedDiffUtils;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress.ProjectOperationProgressBuilder;
@@ -17,11 +12,6 @@ import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.executi
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.WellKnownPatchParameters;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileCreation;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileDeletion;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperationType;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileUpdate;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult.PreviewGeneratedResultDetail;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
@@ -31,11 +21,10 @@ import io.github.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -53,11 +42,15 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.dircache.DirCacheIterator;
+import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.transport.RefSpec;
+import org.eclipse.jgit.treewalk.FileTreeIterator;
+import org.eclipse.jgit.treewalk.WorkingTreeIterator;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -278,10 +271,10 @@ public class PatchService {
                     log.info("A");
                     // TODO [Patching] umbauen auf ohne "switchIfEmpty"
                     Mono.empty()
-                            .then(this.resetWorkingCopy(executionContext))
+                            .then(this.resetWorkingCopyAnyCheckoutDefaultBranch(executionContext))
                             .then(this.checkForExistingPullRequest(executionContext))
                             .switchIfEmpty(this.checkForExistingRemoteBranch(executionContext))
-                            .switchIfEmpty(this.makeSourceCodeChanges(executionContext))
+                            .switchIfEmpty(this.previewSourceCodeChanges(executionContext))
                             .flatMap(detail -> {
                                 if (!(detail instanceof PreviewGeneratedResultDetail)) {
                                     return Mono.just(detail);
@@ -291,6 +284,12 @@ public class PatchService {
                                 } else {
                                     log.info("Patch {} in {} is a dry run, not applying changes", patch.getMetaData().getId(), fqpn);
                                     return Mono.just(detail);
+                                }
+                            })
+                            .doFinally(s -> {
+                                if (previewOnly) {
+                                    // remove any changes made to the working copy
+                                    this.gitService.resetAndStayInBranch(executionContext.getWorkingCopy());
                                 }
                             })
                             .subscribe(detail -> {
@@ -390,18 +389,9 @@ public class PatchService {
                             .add(executionContext.getPatchBranch())
                             .call();
 
-                    // apply changes in file system
-                    this.applyOperationsToFileSystem(detail.getOperations());
-
+                    // TODO [Patching] proper testing with sub modules
                     // stage changes
-                    for (ProjectFileOperation o : detail.getOperations()) {
-                        String pattern = o.getLocation().getRelativePath().toString();
-                        if (o instanceof ProjectFileDeletion) {
-                            gitActionContext.command(Git::rm).addFilepattern(pattern).call();
-                        } else {
-                            gitActionContext.command(Git::add).addFilepattern(pattern).call();
-                        }
-                    }
+                    gitActionContext.command(Git::add).addFilepattern(".").call();
 
                     // commit changes
                     gitActionContext.command(Git::commit).setMessage(
@@ -413,7 +403,7 @@ public class PatchService {
                     gitActionContext.command(Git::checkout).setName(branchState.getDefaultBranch()).call();
                     gitActionContext.command(Git::branchDelete).setBranchNames(executionContext.getPatchBranch()).setForce(true).call();
                 } finally {
-                    workingCopyService.reset(executionContext.getWorkingCopy());
+                    workingCopyService.resetAndCheckoutDefaultBranch(executionContext.getWorkingCopy());
                 }
             });
             return RemoteBranch.builder()
@@ -429,39 +419,6 @@ public class PatchService {
         return "Applying patch \"%s\": %s".formatted(metaData.getId(), metaData.getDescription());
     }
 
-    private void applyOperationsToFileSystem(List<ProjectFileOperation> operations) {
-        for (ProjectFileOperation operation : operations) {
-            switch (operation) {
-                case ProjectFileUpdate update -> {
-                    try {
-                        IOUtils.write(update.getAfter().get(),
-                                new FileOutputStream(update.getLocation().getAbsolutePath().toFile()),
-                                StandardCharsets.UTF_8);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                }
-                case ProjectFileCreation creation -> {
-                    try {
-                        IOUtils.write(creation.getAfter().get(),
-                                new FileOutputStream(creation.getLocation().getAbsolutePath().toFile()),
-                                StandardCharsets.UTF_8);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                }
-                case ProjectFileDeletion deletion -> {
-                    try {
-                        Files.delete(deletion.getLocation().getAbsolutePath());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                }
-                default -> throw new IllegalStateException("Not implemented yet: " + operation.getType());
-            }
-        }
-    }
-
     private Mono<? extends PatchOperationResultDetail> checkForExistingRemoteBranch(
             PatchExecutionContext executionContext) {
         SortedSet<String> remoteBranches = this.gitService.execute(
@@ -469,6 +426,7 @@ public class PatchService {
                     return c.getBranchState().getRemoteBranches();
                 });
         if (!remoteBranches.contains(executionContext.getPatchBranch())) {
+            // TODO [Patching] log message seems incorrect
             log.info("Detected existing remote branch \"{}\", cannot patch \"{}\".",
                     executionContext.getPatchBranch(),
                     executionContext.getFQPN());
@@ -497,7 +455,7 @@ public class PatchService {
     }
 
 
-    private Mono<? extends PatchOperationResultDetail> makeSourceCodeChanges(PatchExecutionContext executionContext) {
+    private Mono<? extends PatchOperationResultDetail> previewSourceCodeChanges(PatchExecutionContext executionContext) {
 
         return Mono.fromSupplier(() -> {
                     Patch patch = executionContext.getPatch();
@@ -512,18 +470,13 @@ public class PatchService {
 
                     // execute patch
                     patch.execute(executionContext.getPatchContext());
+                    String unifiedDiff = this.toUnifiedDiff(executionContext);
 
-                    List<ProjectFileOperation> operations = executionContext.getPatchContext().getOperations();
-                    if (operations.isEmpty()) {
+                    if (unifiedDiff.isEmpty()) {
                         return PatchExecutionResult.NoopResultDetail.builder().build();
                     } else {
-                        String unifiedDiff = operations
-                                .stream()
-                                .map(operation -> toUnifiedDiff(operation, executionContext.getDiffContextSize()))
-                                .collect(joining("\n"));
                         return PatchExecutionResult.PreviewGeneratedResultDetail.builder()
-                                .operations(operations)
-                                .unifiedDiff(unifiedDiff).build();
+                                .unifiedDiff(new UnifiedDiff(unifiedDiff)).build();
                     }
                 })
                 .doOnSubscribe(x -> executionContext.publish("Evaluating changes"));
@@ -563,11 +516,11 @@ public class PatchService {
                 });
     }
 
-    private Mono<Void> resetWorkingCopy(PatchExecutionContext executionContext) {
+    private Mono<Void> resetWorkingCopyAnyCheckoutDefaultBranch(PatchExecutionContext executionContext) {
         return Mono.fromRunnable(() -> {
             executionContext.publish("Resetting working copy");
 
-            workingCopyService.reset(executionContext.getWorkingCopy());
+            workingCopyService.resetAndCheckoutDefaultBranch(executionContext.getWorkingCopy());
         });
     }
 
@@ -585,32 +538,36 @@ public class PatchService {
                 .orElseThrow(() -> new IllegalStateException("Patch \"%s\" not found.".formatted(patchId)));
     }
 
-    private String toUnifiedDiff(ProjectFileOperation operation, int contextSize) {
-        List<String> before =
-                operation.getBefore().map(c -> List.of(c.split("\n"))).orElse(emptyList());
-        List<String> after =
-                operation.getAfter().map(c -> List.of(c.split("\n"))).orElse(emptyList());
-        com.github.difflib.patch.Patch<String> patches = DiffUtils.diff(before, after);
 
-        String filePath = operation.getLocation().getRelativePath().toString();
-        List<String> unifiedDiff = UnifiedDiffUtils.generateUnifiedDiff(
-                operation.getBefore().map(x -> filePath).orElse(null),
-                operation.getAfter().map(x -> filePath).orElse(null),
-                before,
-                patches, contextSize);
+    private String toUnifiedDiff(PatchExecutionContext executionContext) {
+        // create diff
+        return gitService.execute(executionContext.getWorkingCopy(), c -> {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            DiffFormatter diffFormatter = new DiffFormatter(baos);
+            diffFormatter.setRepository(c.getGit().getRepository());
+            diffFormatter.setDetectRenames(true);
+            diffFormatter.setContext(executionContext.getDiffContextSize());
 
-        List<String> header = new ArrayList<>();
-        header.add("diff --git a/%s b/%s".formatted(filePath, filePath));
-        if (operation.getType() == ProjectFileOperationType.ADD) {
-            header.add("new file mode 100644");
-        } else if (operation.getType() == ProjectFileOperationType.DELETE) {
-            header.add("deleted file mode 100644");
-        }
-        header.add("index %s..%s".formatted(
-                operation.getBefore().map(DigestUtils::md5Hex).orElse("000000000000"),
-                operation.getAfter().map(DigestUtils::md5Hex).orElse("000000000000")));
-        return Stream.concat(header.stream(), unifiedDiff.stream())
-                .collect(joining("\n"));
+            try {
+                WorkingTreeIterator workingTreeIt = new FileTreeIterator(c.getGit().getRepository());
+                DirCacheIterator indexIt = new DirCacheIterator(c.getGit().getRepository().readDirCache());
+
+                List<DiffEntry> diffs = diffFormatter.scan(indexIt, workingTreeIt);
+
+                for (DiffEntry entry : diffs) {
+                    if (entry.getOldMode() == FileMode.GITLINK ||
+                            entry.getNewMode() == FileMode.GITLINK) {
+                        // skip operation on submodule
+                        continue;
+                    }
+
+                    diffFormatter.format(entry);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return baos.toString(StandardCharsets.UTF_8);
+        });
     }
 
     @PostConstruct

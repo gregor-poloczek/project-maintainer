@@ -1,11 +1,14 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.views.patching;
 
+import static io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils.with;
 import static io.github.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder.toComposableHolder;
 
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -16,6 +19,7 @@ import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.RangeInput;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -31,11 +35,10 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperationType;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResultDetail;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchService;
+import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.UnifiedDiffFile;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
@@ -57,18 +60,17 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.Ha
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasWorkingCopy;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.gregorpoloczek.projectmaintainer.ui.views.patching.components.StatisticsComponent;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.NonNull;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 import reactor.core.Disposable;
 import reactor.core.Disposable.Swap;
 import reactor.core.Disposables;
@@ -83,19 +85,20 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
     private final transient PatchService patchService;
+
+    private String workspaceId;
+
     private final ProjectProgressBar projectProgressBar;
     private final ComposableFilterSearch<FQPN, ProjectPatchItem> search;
     private final PatchParameterArgumentsComponent patchParameterArgumentsComponent;
-    private String workspaceId;
-    private transient ComposableHolder<FQPN, ProjectPatchItem> items = ComposableHolder.emptyHolder();
     private final Grid<ProjectPatchItem> grid;
-    private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private final MenuBar menuBar;
     private final ComboBox<PatchMetaData> patchesSelection;
+    private final StatisticsComponent statisticsComponent;
+
+    private transient ComposableHolder<FQPN, ProjectPatchItem> items = ComposableHolder.emptyHolder();
+    private final ListDataProvider<ProjectPatchItem> dataProvider = new ListDataProvider<>(new ArrayList<>());
     private int diffContextSize = 10;
-
-    private StatisticsComponent statisticsComponent;
-
     private final transient Swap currentOperation = Disposables.swap();
 
     enum PatchOperationType {
@@ -120,11 +123,33 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
         this.patchParameterArgumentsComponent = new PatchParameterArgumentsComponent();
 
-        Details details = new Details("Parameters", this.patchParameterArgumentsComponent);
-        details.setOpened(true);
+        this.search = new ComposableFilterSearch<>(this.dataProvider);
 
-        search = new ComposableFilterSearch<>(this.dataProvider);
+        this.grid = createGrid();
 
+        this.patchesSelection = new ComboBox<>();
+        this.patchesSelection.setWidth("400px");
+        this.patchesSelection.setItemLabelGenerator(PatchMetaData::getId);
+        this.patchesSelection.setRequired(true);
+        this.patchesSelection.addValueChangeListener(x -> onPatchSelected(x.getValue()));
+
+        this.statisticsComponent = new StatisticsComponent();
+        this.add(with(new HorizontalLayout(
+                        this.patchesSelection,
+                        new HasProjectFilterComponent<>(search),
+                        this.createHideNoOpCheckbox(),
+                        this.createDiffContextSizeRangeInput()), VaadinUtils.ALIGN_ITEMS_CENTER),
+                with(new Details("Parameters", this.patchParameterArgumentsComponent), d -> d.setOpened(true)),
+                with(new HorizontalLayout(this.menuBar, this.statisticsComponent),
+                        VaadinUtils.NO_PADDING, VaadinUtils.ALIGN_ITEMS_CENTER),
+                this.grid,
+                this.projectProgressBar
+        );
+        this.setSizeFull();
+        this.grid.setSizeFull();
+    }
+
+    private @NonNull Checkbox createHideNoOpCheckbox() {
         Checkbox hideNoOpCheckbox = new Checkbox();
         hideNoOpCheckbox.setLabel("Hide No-Op");
         var handler = search.add(item -> {
@@ -138,41 +163,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         });
         hideNoOpCheckbox.addAttachListener(e1 -> hideNoOpCheckbox.addValueChangeListener(e2 -> handler.refresh()));
         hideNoOpCheckbox.addDetachListener(e -> handler.remove());
-
-        this.grid = createGrid();
-        this.grid.setItemDetailsRenderer(
-                new ComponentRenderer<>(item -> switch (item.getPatchOperationResult().orElse(null)) {
-                    case PatchExecutionResult per -> new PatchExecutionResultDetailView(per);
-                    case PatchStopResult per -> new PatchStopResultDetailView(per);
-                    case null -> new Div("null");
-                    default -> new Div();
-                }));
-
-        this.patchesSelection = new ComboBox<>();
-        this.patchesSelection.setWidth("400px");
-        this.patchesSelection.setItemLabelGenerator(PatchMetaData::getId);
-        this.patchesSelection.setRequired(true);
-        this.patchesSelection.addValueChangeListener(x -> onPatchSelected(x.getValue()));
-
-        Component diffContextSizeRangeInput = createDiffContextSizeRangeInput();
-
-        HorizontalLayout horizontalLayout = new HorizontalLayout(
-                this.patchesSelection,
-                new HasProjectFilterComponent<>(search),
-                hideNoOpCheckbox, diffContextSizeRangeInput);
-        horizontalLayout.setAlignItems(Alignment.CENTER);
-        this.statisticsComponent = new StatisticsComponent();
-        HorizontalLayout row = new HorizontalLayout(this.menuBar, this.statisticsComponent);
-        row.setPadding(false);
-        row.setAlignItems(Alignment.CENTER);
-        this.add(horizontalLayout,
-                details,
-                row,
-                this.grid,
-                this.projectProgressBar
-        );
-        this.setSizeFull();
-        this.grid.setSizeFull();
+        return hideNoOpCheckbox;
     }
 
     private @NonNull Component createDiffContextSizeRangeInput() {
@@ -187,19 +178,17 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         });
 
 
-        HorizontalLayout layout = new HorizontalLayout(new Span("Diff lines: "), result, valueSpan);
-        layout.setPadding(false);
-        return layout;
+        return with(new HorizontalLayout(new Span("Diff lines: "), result, valueSpan), VaadinUtils.NO_PADDING);
     }
 
     private void onPatchSelected(PatchMetaData value) {
         this.menuBar.setEnabled(value != null);
-        items.getAll().forEach(item -> {
+        this.items.getAll().forEach(item -> {
             item.clearResult();
             this.grid.setDetailsVisible(item, false);
             this.dataProvider.refreshItem(item);
         });
-        search.refresh();
+        this.search.refresh();
 
         this.statisticsComponent.clear();
 
@@ -218,28 +207,32 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         result.addColumn(ProjectNameComponent.getRenderer()).setHeader("Name");
         result.addColumn(createPatchDetailRenderer());
         result.addColumn(OperationProgressComponent.getRenderer());
+
+        result.setItemDetailsRenderer(
+                new ComponentRenderer<>(item -> switch (item.getPatchOperationResult().orElse(null)) {
+                    case PatchExecutionResult per -> new PatchExecutionResultDetailView(per);
+                    case PatchStopResult per -> new PatchStopResultDetailView(per);
+                    case null -> null;
+                    default -> new Div();
+                }));
         return result;
     }
 
     private @NonNull ComponentRenderer<? extends Component, ProjectPatchItem> createPatchDetailRenderer() {
         return new ComponentRenderer<>(i -> {
             if (i.getPatchOperationResult().isEmpty()) {
+                // nothing happened
                 return new Span("");
             }
-            PatchOperationResult r = i.getPatchOperationResult().get();
-            if (r.getDetail() instanceof PatchExecutionResult.PreviewGeneratedResultDetail pgr) {
-                Map<ProjectFileOperationType, List<ProjectFileOperation>> byType = pgr.getOperations().stream()
-                        .collect(Collectors.groupingBy(ProjectFileOperation::getType));
+            PatchOperationResultDetail detail = i.getPatchOperationResult().get().getDetail();
+            if (detail instanceof PatchExecutionResult.PreviewGeneratedResultDetail pgr) {
+                // Small statistic with occurrences of file modifications
+                Map<UnifiedDiffFile.Type, Long> countByType = pgr.getUnifiedDiff().getFiles().stream().collect(Collectors.groupingBy(UnifiedDiffFile::getType, Collectors.counting()));
 
-                VerticalLayout layout = new VerticalLayout();
-                layout.setPadding(false);
-                for (ProjectFileOperationType type : byType.keySet()) {
-                    String label = switch (type) {
-                        case ADD -> "Added";
-                        case DELETE -> "Deleted";
-                        case UPDATE -> "Changed";
-                    };
-                    layout.add(new Span("%s: %d".formatted(label, byType.get(type).size())));
+                VerticalLayout layout = with(new VerticalLayout(), VaadinUtils.NO_PADDING);
+                for (UnifiedDiffFile.Type type : countByType.keySet()) {
+                    String label = StringUtils.capitalize(type.name().toLowerCase());
+                    layout.add(new Span("%s: %d".formatted(label, countByType.get(type))));
                 }
                 return layout;
             }
@@ -251,17 +244,25 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
     private MenuBar createMenuBar() {
         MenuBar result = new MenuBar();
-        MenuItem preview = result.addItem("Preview", this::onPreviewClick);
-        MenuItem apply = result.addItem("Apply", this::onApplyClick);
-        MenuItem stop = result.addItem("Stop", this::onStopClick);
+        createMenuItem(result, this::onPreviewClick, MaterialIcons.VISIBILITY, "Preview",
+                "Preview the patch in selected projects. Will not cause any changes.");
 
-        result.setTooltipText(preview, "Preview the patch in selected projects. Will not cause any changes.");
-        result.setTooltipText(apply,
+        createMenuItem(result, this::onApplyClick, MaterialIcons.APPROVAL, "Apply",
                 "Apply patch to projects. Will create pull requests when source code is actually changed.");
-        result.setTooltipText(stop,
-                "Reverts non merged patches by the created pull request and deleting the existing remote branch.");
 
+        createMenuItem(result, this::onStopClick, MaterialIcons.CANCEL, "Stop",
+                "Reverts non merged patches of the created pull request and deleting the existing remote branch." +
+                        " If a branch name other then the default branch name was used during application of the patch, it must be re-entered " +
+                        " in order to stop close the correct pull requests.");
         return result;
+    }
+
+    private void createMenuItem(MenuBar menuBar, ComponentEventListener<ClickEvent<MenuItem>> callback, MaterialIcons icon, String label, String tooltipText) {
+        Icon iconComponent = icon.create();
+        iconComponent.getStyle().setMarginRight("var(--lumo-space-s)");
+        MenuItem preview = menuBar.addItem(iconComponent, callback);
+        preview.add(new Text(label));
+        menuBar.setTooltipText(preview, tooltipText);
     }
 
 
@@ -281,9 +282,9 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
             Function<ProjectRelatable, Flux<ProjectOperationProgress<T>>> operation,
             String label) {
 
-        List<ProjectPatchItem> relevantItems = grid.getSelectionModel().getSelectedItems().stream()
+        List<ProjectPatchItem> relevantItems = this.grid.getSelectionModel().getSelectedItems().stream()
                 .sorted().toList();
-        projectProgressBar.start(relevantItems, label);
+        this.projectProgressBar.start(relevantItems, label);
 
         Disposable subscription = Flux.fromIterable(relevantItems)
                 .doOnNext(this::clearItem)
@@ -345,12 +346,10 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         List<PatchMetaData> patches = patchService.getAvailablePatches();
         this.patchesSelection.setItems(patches);
         this.patchesSelection.setValue(patches.stream().findFirst().orElse(null));
-        if (patches.isEmpty()) {
-            this.patchesSelection.setEnabled(false);
-        }
+        this.patchesSelection.setEnabled(!patches.isEmpty());
 
-        this.items = projectService.findAllByWorkspaceId(this.workspaceId).stream()
-                .filter(workingCopyService::isAttached)
+        this.items = this.projectService.findAllByWorkspaceId(this.workspaceId).stream()
+                .filter(this.workingCopyService::isAttached)
                 .map(this::toProjectItem)
                 .collect(toComposableHolder());
 
@@ -359,11 +358,11 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     }
 
     private void onPatchOperationProgress(PatchOperationType operationType, ProjectOperationProgress<? extends PatchOperationResult> progress) {
-        ProjectPatchItem item = items.get(progress.getFQPN());
         this.projectProgressBar.update(progress);
 
         if (progress.getState() == State.FAILED) {
             var detailType = switch (operationType) {
+                // TODO [Patching] make this obsolete
                 case APPLY -> PatchOperationResultDetail.Type.APPLY_FAILED;
                 case PREVIEW -> PatchOperationResultDetail.Type.PREVIEW_FAILED;
                 case STOP -> PatchOperationResultDetail.Type.STOP_FAILED;
@@ -371,9 +370,9 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
             statisticsComponent.update(progress, detailType);
         }
 
+        ProjectPatchItem item = this.items.get(progress.getFQPN());
         if (progress.getState() == State.DONE) {
             progress.getResult().ifPresent(r -> statisticsComponent.update(progress, r.getDetail().getType()));
-
             this.grid.setDetailsVisible(item, true);
         }
         item.replaceTrait(HasOperationProgress.class,
@@ -383,18 +382,15 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         this.dataProvider.refreshItem(item);
     }
 
-    private ProjectPatchItem toProjectItem(Project p) {
-        ProjectMetaData metaData = p.getMetaData();
-        Optional<WorkingCopy> workingCopy = this.workingCopyService.find(metaData.getFQPN());
+    private ProjectPatchItem toProjectItem(Project project) {
+        WorkingCopy workingCopy = this.workingCopyService.require(project);
         return ProjectPatchItem.builder()
                 .build()
-                .addTrait(HasProject.class, () -> p)
+                .addTrait(HasProject.class, () -> project)
                 .addTrait(HasIcon.class, HasIcon.builder()
-                        .icon(this.imageResolverService.getProjectImage(p).orElse(null))
-                        .blurred(workingCopy.isEmpty())
+                        .icon(this.imageResolverService.getProjectImage(project).orElse(null))
                         .build())
-                .addTrait(HasWorkingCopy.class,
-                        HasWorkingCopy.builder().workingCopy(workingCopy.orElse(null)).build())
+                .addTrait(HasWorkingCopy.class, HasWorkingCopy.builder().workingCopy(workingCopy).build())
                 .addTrait(HasOperationProgress.class, HasOperationProgress.empty());
     }
 

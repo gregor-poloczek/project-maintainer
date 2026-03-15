@@ -7,10 +7,21 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.ThemableLayout;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class VaadinUtils {
+
+    public final static Consumer<ThemableLayout> NO_PADDING = l -> l.setPadding(false);
+    public final static Consumer<FlexComponent> ALIGN_ITEMS_CENTER = l -> l.setAlignItems(FlexComponent.Alignment.CENTER);
+
+    @SafeVarargs
+    public static <T extends Component> T with(T component, Consumer<? super T>... modifiers) {
+        Stream.of(modifiers).forEach(m -> m.accept(component));
+        return component;
+    }
 
     public <T extends Component> void access(T component, Consumer<T> command) {
         component.getUI().filter(UI::isAttached).ifPresent(ui -> ui.access(() -> {

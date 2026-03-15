@@ -1,9 +1,6 @@
 package io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution;
 
 import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.PullRequest;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.definition.ProjectFileOperation;
-
-import java.util.List;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -42,9 +39,8 @@ public class PatchExecutionResult implements PatchOperationResult {
         private final String name = "Preview Generated";
         private final String description = "Preview of all projected changes generated.";
 
-        String unifiedDiff;
         @NonNull
-        List<ProjectFileOperation> operations;
+        UnifiedDiff unifiedDiff;
 
         @Override
         public Type getType() {

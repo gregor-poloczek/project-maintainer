@@ -2,6 +2,9 @@ package io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters
 
 import java.util.List;
 
+/**
+ * Gives access to patch parameter arguments defined by the user.
+ */
 public interface PatchParameterArguments {
 
     PatchParameterArgument<Integer> getInteger(String parameterId);
@@ -10,7 +13,7 @@ public interface PatchParameterArguments {
 
     PatchParameterArgument<String> getString(String parameterId);
 
-    PatchParameterArgument<List<PatchParameterFile>> getFiles(String id);
+    PatchParameterArgument<List<PatchParameterFile>> getFiles(String parameterId);
 
 
     default PatchParameterArgument<Integer> getInteger(PatchParameter parameter) {
