@@ -27,7 +27,7 @@ mvn -B versions:commit
 
 # --- commit ---
 git add -A
-git commit -m "release ${RELEASE_VERSION}"
+git commit -m "Release ${RELEASE_VERSION}"
 
 # --- create tag (without 'v') ---
 git tag -a "${RELEASE_VERSION}" -m "Release ${RELEASE_VERSION}"
@@ -39,7 +39,7 @@ mvn -B versions:commit
 
 # --- commit ---
 git add -A
-git commit -m "prepare next development iteration ${NEXT_VERSION}"
+git commit -m "Bump version to ${NEXT_VERSION}"
 
 # --- push commits and tag ---
 echo "➡️ Pushing changes and tag..."
