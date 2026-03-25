@@ -50,6 +50,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Optional;
 
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import reactor.core.Disposable;
@@ -59,6 +60,12 @@ import reactor.core.scheduler.Schedulers;
 @Route(value = "/workspace/:workspaceId/reports/:reportId", layout = MainLayout.class)
 @Slf4j
 public class ReportView extends VerticalLayout implements BeforeEnterObserver {
+    @UtilityClass
+    public class Parameters {
+        public static final String WORKSPACE_ID = "workspaceId";
+        public static final String REPORT_ID = "reportId";
+    }
+
 
     private final Grid<ReportRow> grid;
     private final ReportHeader header;
@@ -82,7 +89,7 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
         this.header = new ReportHeader(this.workspaceId, reportGeneratorService.getProjectReportConfigs());
 
         this.search = new ComposableFilterSearch<>(this.dataProvider);
-        this.progressBar = new LabeledProgressBar();
+        this.progressBar = new LabeledProgressBar(null);
         this.progressBar.setWidthFull();
         this.progressBar.setVisible(false);
         this.grid = new Grid<>();
@@ -98,10 +105,10 @@ public class ReportView extends VerticalLayout implements BeforeEnterObserver {
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();
-        String reportId = parameters.get("reportId")
+        String reportId = parameters.get(Parameters.REPORT_ID)
                 .orElseThrow(() -> new IllegalArgumentException("No report id defined"));
 
-        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
+        this.workspaceId = event.getRouteParameters().get(Parameters.WORKSPACE_ID).orElseThrow();
 
         this.reportConfig = projectReportGeneratorService.getProjectReportConfigs().stream()
                 .filter(r -> r.getId().equals(reportId))

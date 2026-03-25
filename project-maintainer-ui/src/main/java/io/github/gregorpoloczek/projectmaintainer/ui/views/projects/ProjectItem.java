@@ -1,4 +1,4 @@
-package io.github.gregorpoloczek.projectmaintainer.ui.views.git;
+package io.github.gregorpoloczek.projectmaintainer.ui.views.projects;
 
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;

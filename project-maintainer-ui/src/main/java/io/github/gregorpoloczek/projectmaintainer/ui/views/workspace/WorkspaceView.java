@@ -7,7 +7,6 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.FieldSet;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -33,7 +32,9 @@ import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.connections
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.connections.common.ProjectConnectionUIAdapter;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspaces.WorkspacesView;
 import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
@@ -44,7 +45,10 @@ import java.util.UUID;
 @Slf4j
 @Route(value = "/workspace/:workspaceId", layout = MainLayout.class)
 public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver {
-    private static final String PARAMETER_WORKSPACE_ID = "workspaceId";
+    @UtilityClass
+    public class Parameters {
+        public static final String WORKSPACE_ID = "workspaceId";
+    }
 
     private final WorkspaceService workspaceService;
 
@@ -79,13 +83,13 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
         this.connectionFormsLayout.setPadding(false);
         this.connectionFormsLayout.setWidthFull();
 
-        Button addConnectionButton = new Button("Add Connection", e -> addNewConnection());
+        Button addConnectionButton = new Button("Add Connection", MaterialIcons.ADD.create(), e -> addNewConnection());
 
         // TODO [Workspaces] validity check
-        this.saveWorkspaceButton = new Button("Save workspace", e -> saveConnections());
-        this.deleteWorkspaceButton = new Button("Delete workspace", e -> deleteWorkspace());
-        this.discoverProjectsButton = new Button("Discover projects", VaadinIcon.SEARCH.create(), e -> discoverProjects());
-        this.progressBar = new GenericOperationProgressBar();
+        this.saveWorkspaceButton = new Button("Save workspace", MaterialIcons.SAVE.create(), e -> saveConnections());
+        this.deleteWorkspaceButton = new Button("Delete workspace", MaterialIcons.DELETE.create(), e -> deleteWorkspace());
+        this.discoverProjectsButton = new Button("Discover projects", MaterialIcons.SEARCH.create(), e -> discoverProjects());
+        this.progressBar = new GenericOperationProgressBar(null);
         this.progressBar.setWidthFull();
         this.connectionFormProvidersSelect = new Select<>();
         this.connectionFormProvidersSelect.setWidth("250px");
@@ -240,7 +244,7 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
         });
         projectConnectionFormComponent.setValue(cf);
 
-        Button deleteButton = new Button(VaadinIcon.TRASH.create());
+        Button deleteButton = new Button(MaterialIcons.DELETE.create());
         deleteButton.setTooltipText("Delete connection");
 
         HorizontalLayout wrapper = new HorizontalLayout((Component) projectConnectionFormComponent, deleteButton);
@@ -268,7 +272,7 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
     @Override
     public void beforeEnter(BeforeEnterEvent beforeEnterEvent) {
         this.workspaceId = beforeEnterEvent.getRouteParameters()
-                .get(PARAMETER_WORKSPACE_ID)
+                .get(Parameters.WORKSPACE_ID)
                 .orElseThrow();
 
         Workspace workspace = workspaceService.requireWorkspace(workspaceId);
@@ -294,4 +298,5 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
                 .count();
         this.projectsCountsText.setText(String.valueOf(projects));
     }
+
 }

@@ -1,7 +1,5 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components;
 
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -10,6 +8,7 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.AbstractC
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.filter.ComposableFilterSearch;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import org.apache.commons.lang3.StringUtils;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 public class HasProjectFilterComponent<K, T extends AbstractComposable<K, T>> extends HorizontalLayout {
 
@@ -18,6 +17,7 @@ public class HasProjectFilterComponent<K, T extends AbstractComposable<K, T>> ex
     public HasProjectFilterComponent(ComposableFilterSearch<K, T> composableFilterSearch) {
         textField = new TextField();
         textField.setValueChangeMode(ValueChangeMode.EAGER);
+        textField.setTooltipText("Project filer");
         setDecorated(true);
         this.add(textField);
 
@@ -42,7 +42,7 @@ public class HasProjectFilterComponent<K, T extends AbstractComposable<K, T>> ex
 
     public void setDecorated(boolean decorated) {
         if (decorated) {
-            textField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+            textField.setPrefixComponent(MaterialIcons.SEARCH.create());
             textField.setPlaceholder("Project");
         } else {
             textField.setPrefixComponent(null);

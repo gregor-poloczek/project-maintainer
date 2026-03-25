@@ -52,6 +52,7 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.WorkingTreeIterator;
 import org.springframework.stereotype.Service;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -145,7 +146,7 @@ public class PatchService {
                     .defaultBranch(defaultBranch)
                     .build();
 
-            declinePullRequest(stopContext)
+            Disposable inner = declinePullRequest(stopContext)
                     .flatMap(pullRequest -> deleteRemoteBranch(stopContext, pullRequest))
                     .map(detail -> PatchStopResult.builder().detail(detail).build())
                     .map(result -> progress.state(State.DONE)
@@ -154,11 +155,9 @@ public class PatchService {
                             .result(result)
                             .message(null)
                             .build())
-                    .subscribe(r -> {
-                        sink.next(r);
-                        sink.complete();
-                    });
+                    .subscribe(sink::next, sink::error, sink::complete);
 
+            sink.onCancel(inner);
         });
     }
 
@@ -268,9 +267,8 @@ public class PatchService {
 
                     // TODO [Patching] lock working copy
 
-                    log.info("A");
                     // TODO [Patching] umbauen auf ohne "switchIfEmpty"
-                    Mono.empty()
+                    Disposable inner = Mono.empty()
                             .then(this.resetWorkingCopyAnyCheckoutDefaultBranch(executionContext))
                             .then(this.checkForExistingPullRequest(executionContext))
                             .switchIfEmpty(this.checkForExistingRemoteBranch(executionContext))
@@ -287,21 +285,19 @@ public class PatchService {
                                 }
                             })
                             .doFinally(s -> {
-                                if (previewOnly) {
-                                    // remove any changes made to the working copy
-                                    this.gitService.resetAndStayInBranch(executionContext.getWorkingCopy());
-                                }
+                                // always return working copy to default branch, and remove everything
+                                workingCopyService.resetAndCheckoutDefaultBranch(executionContext.getWorkingCopy());
                             })
-                            .subscribe(detail -> {
-                                        sink.next(
-                                                progress.state(State.DONE)
-                                                        .progressCurrent(1)
-                                                        .progressTotal(1)
-                                                        .result(PatchExecutionResult.builder().detail(detail).build())
-                                                        .build());
-                                        sink.complete();
-                                    }, sink::error
+                            .subscribe(detail -> sink.next(
+                                            progress.state(State.DONE)
+                                                    .progressCurrent(1)
+                                                    .progressTotal(1)
+                                                    .result(PatchExecutionResult.builder().detail(detail).build())
+                                                    .build()),
+                                    sink::error,
+                                    sink::complete
                             );
+                    sink.onCancel(inner);
                 }).map(p -> {
                     if (p.getState() == State.DONE) {
                         String message = p.getResult()

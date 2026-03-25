@@ -3,11 +3,11 @@ package io.github.gregorpoloczek.projectmaintainer.ui.views.patching;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.PullRequest;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.RemoteBranch;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 public class PatchOperationDetailView extends VerticalLayout {
 
@@ -23,7 +23,7 @@ public class PatchOperationDetailView extends VerticalLayout {
                 .orElseGet(() -> new Span(remoteBranch.getName()));
 
         return new HorizontalLayout(
-                VaadinIcon.EXTERNAL_LINK.create(),
+                MaterialIcons.OPEN_IN_NEW.create(),
                 new Span(text),
                 branchName);
     }
@@ -35,7 +35,7 @@ public class PatchOperationDetailView extends VerticalLayout {
         pullRequestTitle.setTarget("_blank");
 
         return new HorizontalLayout(
-                VaadinIcon.EXTERNAL_LINK.create(),
+                MaterialIcons.OPEN_IN_NEW.create(),
                 new Span(text),
                 pullRequestTitle);
     }

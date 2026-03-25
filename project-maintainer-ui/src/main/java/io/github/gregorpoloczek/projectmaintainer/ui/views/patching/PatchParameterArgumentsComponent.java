@@ -4,13 +4,12 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
-import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.PatchParameterArgumentImpl;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.WellKnownPatchParameters;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
-import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterType;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.patching.components.FilesUploadParameterComponent;
 import org.jspecify.annotations.NonNull;
 
@@ -48,9 +47,8 @@ public class PatchParameterArgumentsComponent extends VerticalLayout {
         Component c = switch (patchParameter.getType()) {
             case STRING -> new TextField(label);
             case INTEGER -> {
-                TextField r = new TextField(label);
-                r.setPattern("(-?[0-9]+)?");
-                r.setValue("0");
+                IntegerField r = new IntegerField(label);
+                r.setValue(0);
                 yield r;
             }
             case BOOLEAN -> {
@@ -72,17 +70,8 @@ public class PatchParameterArgumentsComponent extends VerticalLayout {
             PatchParameterArgument<?> patchParameterArgument = map.get(patchParameter.getId());
             return patchParameterArgument;
         }, (m, v) -> {
-            // TODO make conversion for integers happen generically
-            // conversion must be within the component
-            Object actualValue;
-            if (patchParameter.getType() == PatchParameterType.INTEGER) {
-                actualValue = new PatchParameterArgumentImpl<>(patchParameter, ((PatchParameterArgument<String>) v).getValue().map(Integer::valueOf).orElse(null));
-            } else {
-                actualValue = v;
-            }
-
             Map<String, PatchParameterArgument<?>> map = (Map<String, PatchParameterArgument<?>>) m;
-            map.put(patchParameter.getId(), (PatchParameterArgument<?>) actualValue);
+            map.put(patchParameter.getId(), (PatchParameterArgument<?>) v);
         });
 
         if (c instanceof HasSize hasSize) {

@@ -8,10 +8,10 @@ public class GenericOperationProgressBar extends HorizontalLayout {
     private final LabeledProgressBar progressBar;
     private double progress = 0.0d;
 
-    public GenericOperationProgressBar() {
+    public GenericOperationProgressBar(Runnable onAbort) {
         this.setPadding(false);
 
-        this.progressBar = new LabeledProgressBar();
+        this.progressBar = new LabeledProgressBar(onAbort);
         this.progressBar.setWidthFull();
 
         this.setVisible(false);

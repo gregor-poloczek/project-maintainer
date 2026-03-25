@@ -7,9 +7,14 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import io.github.gregorpoloczek.projectmaintainer.reporting.ReportGeneratorService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
+import lombok.experimental.UtilityClass;
 
 @Route(value = "/workspace/:workspaceId/reports", layout = MainLayout.class)
 public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
+    @UtilityClass
+    public class Parameters {
+        public static final String WORKSPACE_ID = "workspaceId";
+    }
 
     private final ReportGeneratorService reportGeneratorService;
 
@@ -24,7 +29,7 @@ public class ReportsView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent beforeEnterEvent) {
-        String workspaceId = beforeEnterEvent.getRouteParameters().get("workspaceId").orElseThrow();
+        String workspaceId = beforeEnterEvent.getRouteParameters().get(Parameters.WORKSPACE_ID).orElseThrow();
         ReportHeader header = new ReportHeader(workspaceId, reportGeneratorService.getProjectReportConfigs());
         header.setTitle("Reports");
         this.add(header);

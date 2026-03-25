@@ -1,12 +1,12 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.views.workspaces;
 
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -14,6 +14,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParam;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.ProjectConnection;
@@ -22,9 +23,11 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
+import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.WorkspaceView;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.connections.common.GitProviderIconComponent;
 import lombok.NonNull;
 import lombok.Value;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 import java.util.Comparator;
 import java.util.List;
@@ -61,41 +64,35 @@ public class WorkspacesView extends VerticalLayout {
 
         this.newWorkspaceNameTextField = new TextField();
 
-        Button newWorkspaceButton = new Button("Create new workspace", e -> createWorkspace());
-
-        grid = createGrid();
-        this.add(new H1("Workspaces"), new HorizontalLayout(newWorkspaceNameTextField, newWorkspaceButton), grid);
+        this.grid = createGrid();
+        this.add(
+                new H1("Workspaces"),
+                new HorizontalLayout(
+                        newWorkspaceNameTextField,
+                        new Button("Create new workspace", MaterialIcons.CREATE.create(), e -> createWorkspace())),
+                this.grid);
     }
 
     private Grid<WorkspaceItem> createGrid() {
         final Grid<WorkspaceItem> result;
         result = new Grid<>();
-        result.addColumn(WorkspaceItem::getName).setHeader("Name");
-        result.addColumn(new ComponentRenderer<>(i -> {
-            if (i.getConnectionTypes().isEmpty()) {
-                return new Span("-");
-            } else {
-                var l = new HorizontalLayout();
-                i.getConnectionTypes().stream().map(t -> new GitProviderIconComponent(imageResolverService, t)).forEach(l::add);
-                return l;
-            }
-        })).setHeader("Connections");
-        result.addColumn(new ComponentRenderer<>(i -> {
-            if (i.getTotalProjects() == 0L) {
-                return new Span("-");
-            }
-            return new Span("%d / %d".formatted(i.getAttachedProjects(), i.getTotalProjects()));
-        })).setHeader("Projects").setTooltipGenerator(i -> "%d of available %d projects attached".formatted(i.getAttachedProjects(), i.getTotalProjects()));
-        result.addColumn(new ComponentRenderer<>(i -> new Button("Use", VaadinIcon.FOLDER_OPEN.create(), e -> openWorkspace(i.id))))
+        result.addColumn(WorkspaceItem::getName)
+                .setHeader("Name");
+        result.addColumn(createConnectionsIconRenderer())
+                .setHeader("Connections");
+        result.addColumn(this.createProjectCountRenderer())
+                .setHeader("Projects")
+                .setTooltipGenerator(item -> "%d of available %d projects attached".formatted(item.getAttachedProjects(), item.getTotalProjects()));
+        result.addColumn(this.createSwitchToWorkspaceRenderer())
                 .setTooltipGenerator(i -> "Switch to workspace \"%s\"".formatted(i.getName()))
                 .setFlexGrow(0)
                 .setWidth("120px");
-
         return result;
     }
 
+
     private void openWorkspace(String workspaceId) {
-        UI.getCurrent().getPage().setLocation(String.join("/", List.of("workspace", workspaceId)));
+        UI.getCurrent().navigate(WorkspaceView.class, new RouteParam(WorkspaceView.Parameters.WORKSPACE_ID, workspaceId));
     }
 
     @Override
@@ -132,4 +129,28 @@ public class WorkspacesView extends VerticalLayout {
         return new WorkspaceItem(w.getId(), w.getName(), connectionTypes, attached, total);
     }
 
+    private ComponentRenderer<? extends Component, WorkspaceItem> createConnectionsIconRenderer() {
+        return new ComponentRenderer<>(i -> {
+            if (i.getConnectionTypes().isEmpty()) {
+                return new Span("-");
+            } else {
+                var l = new HorizontalLayout();
+                i.getConnectionTypes().stream().map(t -> new GitProviderIconComponent(imageResolverService, t)).forEach(l::add);
+                return l;
+            }
+        });
+    }
+
+    private ComponentRenderer<Button, WorkspaceItem> createSwitchToWorkspaceRenderer() {
+        return new ComponentRenderer<>(item -> new Button("Use", MaterialIcons.FOLDER_OPEN.create(), e -> openWorkspace(item.id)));
+    }
+
+    private ComponentRenderer<Span, WorkspaceItem> createProjectCountRenderer() {
+        return new ComponentRenderer<>(item -> {
+            if (item.getTotalProjects() == 0L) {
+                return new Span("-");
+            }
+            return new Span("%d / %d".formatted(item.getAttachedProjects(), item.getTotalProjects()));
+        });
+    }
 }

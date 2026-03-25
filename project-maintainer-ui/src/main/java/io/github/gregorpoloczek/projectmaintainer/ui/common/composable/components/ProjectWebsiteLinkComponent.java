@@ -1,13 +1,13 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.common.composable.components;
 
 import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.Renderer;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.Composable;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.HasProject;
 import org.apache.commons.lang3.StringUtils;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 public class ProjectWebsiteLinkComponent extends FlexLayout {
 
@@ -21,7 +21,7 @@ public class ProjectWebsiteLinkComponent extends FlexLayout {
 
     public ProjectWebsiteLinkComponent(Composable<?, ?> composable) {
         anchor = new Anchor();
-        anchor.add(VaadinIcon.GLOBE_WIRE.create());
+        anchor.add(MaterialIcons.LANGUAGE.create());
         anchor.setTarget("_blank");
         anchor.setHref("");
         anchor.setVisible(false);

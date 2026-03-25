@@ -1,7 +1,5 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.common.composable.filter.components;
 
-import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
@@ -10,6 +8,7 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.Ha
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import org.apache.commons.lang3.StringUtils;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class HasLabelsFilterComponent extends HorizontalLayout {
@@ -19,7 +18,7 @@ public class HasLabelsFilterComponent extends HorizontalLayout {
     public HasLabelsFilterComponent(ComposableFilterSearch<?, ?> search) {
         labelsSearchFilter = new TextField();
         labelsSearchFilter.setPlaceholder("Labels");
-        labelsSearchFilter.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+        labelsSearchFilter.setPrefixComponent(MaterialIcons.SEARCH.create());
         labelsSearchFilter.setValueChangeMode(ValueChangeMode.EAGER);
 
         this.add(labelsSearchFilter);

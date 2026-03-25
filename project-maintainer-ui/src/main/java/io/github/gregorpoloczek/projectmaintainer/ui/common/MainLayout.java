@@ -4,7 +4,6 @@ import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -15,11 +14,12 @@ import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.analysis.AnalysisView;
-import io.github.gregorpoloczek.projectmaintainer.ui.views.git.GitView;
+import io.github.gregorpoloczek.projectmaintainer.ui.views.projects.ProjectView;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.patching.PatchesView;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.reports.ReportsView;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.WorkspaceView;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspaces.WorkspacesView;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 import java.util.*;
 
@@ -64,12 +64,12 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
 
         RouteParameters defaultRouteParameters = new RouteParameters(new RouteParam("workspaceId", "-1"));
         this.navItems = List.of(
-                new SideNavItem("Workspaces", WorkspacesView.class, VaadinIcon.WORKPLACE.create()),
-                new SideNavItem("Workspace", WorkspaceView.class, defaultRouteParameters, VaadinIcon.WORKPLACE.create()),
-                new SideNavItem("Projects", GitView.class, defaultRouteParameters, VaadinIcon.FOLDER_ADD.create()),
-                new SideNavItem("Analysis", AnalysisView.class, defaultRouteParameters, VaadinIcon.SEARCH.create()),
-                new SideNavItem("Reports", ReportsView.class, defaultRouteParameters, VaadinIcon.TABLE.create()),
-                new SideNavItem("Patches", PatchesView.class, defaultRouteParameters, VaadinIcon.FILE_PROCESS.create())
+                new SideNavItem("Workspaces", WorkspacesView.class, MaterialIcons.WORKSPACES.create()),
+                new SideNavItem("Workspace", WorkspaceView.class, defaultRouteParameters, MaterialIcons.WORKSPACES.create()),
+                new SideNavItem("Projects", ProjectView.class, defaultRouteParameters, MaterialIcons.FOLDER.create()),
+                new SideNavItem("Analysis", AnalysisView.class, defaultRouteParameters, MaterialIcons.SEARCH.create()),
+                new SideNavItem("Reports", ReportsView.class, defaultRouteParameters, MaterialIcons.TABLE_CHART.create()),
+                new SideNavItem("Patches", PatchesView.class, defaultRouteParameters, MaterialIcons.AUTO_FIX_HIGH.create())
         );
         for (SideNavItem navItem : navItems) {
             navItem.setEnabled(false);

@@ -7,6 +7,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.dom.Style.WhiteSpace;
+import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
 import io.github.gregorpoloczek.projectmaintainer.reporting.config.ReportConfig;
 import lombok.Setter;
@@ -40,9 +41,9 @@ public class ReportHeader extends FlexLayout {
                             if (e.getValue() == null) {
                                 ui.navigate(ReportsView.class);
                             } else {
-                                ui.navigate(ReportView.class, new RouteParameters(
-                                        Map.of("workspaceId", this.workspaceId,
-                                                "reportId", e.getValue().getId())));
+                                ui.navigate(ReportView.class,
+                                        new RouteParam(ReportView.Parameters.WORKSPACE_ID, this.workspaceId),
+                                        new RouteParam(ReportView.Parameters.REPORT_ID, e.getValue().getId()));
                             }
                         }));
         this.setJustifyContentMode(JustifyContentMode.BETWEEN);

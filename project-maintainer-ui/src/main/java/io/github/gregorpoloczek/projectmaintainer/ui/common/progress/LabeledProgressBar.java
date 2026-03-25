@@ -1,5 +1,7 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.common.progress;
 
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -9,6 +11,7 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 @Slf4j
 @StyleSheet("./styles/common/progress/LabeledProgressBar.css")
@@ -19,7 +22,7 @@ public class LabeledProgressBar extends HorizontalLayout {
     Div percentage = new Div("");
     Div label = new Div("");
 
-    public LabeledProgressBar() {
+    public LabeledProgressBar(Runnable onAbort) {
         this.addClassName(LabeledProgressBar.class.getSimpleName());
         this.label.getStyle().setWhiteSpace(WhiteSpace.NOWRAP);
         this.label.addClassName("label");
@@ -30,9 +33,15 @@ public class LabeledProgressBar extends HorizontalLayout {
         this.progressBar.setWidthFull();
         this.percentage.getStyle().setWhiteSpace(WhiteSpace.NOWRAP);
 
+        Button abortButton = new Button(MaterialIcons.STOP.create());
+        abortButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR);
+        abortButton.addClickListener(e -> onAbort.run());
+        abortButton.setVisible(onAbort != null);
+        abortButton.setTooltipText("Abort operation");
+
         this.setPadding(false);
         this.setAlignItems(Alignment.CENTER);
-        this.add(this.label, progressBar, percentage);
+        this.add(abortButton, this.label, this.progressBar, this.percentage);
     }
 
     public void setLabel(String label) {

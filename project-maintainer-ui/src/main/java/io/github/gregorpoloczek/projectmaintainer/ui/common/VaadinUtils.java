@@ -9,6 +9,8 @@ import java.util.stream.Stream;
 
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.ThemableLayout;
+import com.vaadin.flow.component.shared.HasTooltip;
+import com.vaadin.flow.component.shared.Tooltip;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -55,5 +57,16 @@ public class VaadinUtils {
         } else {
             component.removeClassName(className);
         }
+    }
+
+    public static Consumer<Component> withTooltip(String tooltip) {
+        return c -> {
+            if (c instanceof HasTooltip ht) {
+                ht.setTooltipText(tooltip);
+            } else {
+                Tooltip t = Tooltip.forComponent(c);
+                t.setText(tooltip);
+            }
+        };
     }
 }

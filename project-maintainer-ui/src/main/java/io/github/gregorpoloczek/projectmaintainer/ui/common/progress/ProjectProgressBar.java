@@ -13,10 +13,16 @@ public class ProjectProgressBar extends HorizontalLayout {
 
     private final LabeledProgressBar progressBar;
 
-    public ProjectProgressBar() {
+    public ProjectProgressBar(Runnable onStop) {
         this.setPadding(false);
 
-        this.progressBar = new LabeledProgressBar();
+        this.progressBar = new LabeledProgressBar(onStop != null ? () -> {
+            try {
+                onStop.run();
+            } finally {
+                this.stop();
+            }
+        } : null);
         this.progressBar.setWidthFull();
 
         this.setVisible(false);

@@ -1,5 +1,6 @@
-package io.github.gregorpoloczek.projectmaintainer.ui.views.git;
+package io.github.gregorpoloczek.projectmaintainer.ui.views.projects;
 
+import static io.github.gregorpoloczek.projectmaintainer.ui.common.MenuItemUtils.createMenuItem;
 import static io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils.with;
 import static io.github.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder.toComposableHolder;
 import static java.util.function.Predicate.not;
@@ -53,14 +54,21 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import lombok.experimental.UtilityClass;
 import org.intellij.lang.annotations.Language;
+import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-@Route(value = "/workspace/:workspaceId/git", layout = MainLayout.class)
-public class GitView extends VerticalLayout implements BeforeEnterObserver {
+@Route(value = "/workspace/:workspaceId/projects", layout = MainLayout.class)
+public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
+    @UtilityClass
+    public class Parameters {
+        public static final String WORKSPACE_ID = "workspaceId";
+    }
 
     public static final @Language
             ("markdown") String DOCUMENTATION = """
@@ -82,7 +90,7 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
     private final transient ProjectProgressBar projectProgressBar;
     private String workspaceId;
 
-    public GitView(
+    public ProjectView(
             ProjectService projectService,
             ImageResolverService imageResolverService,
             WorkingCopyService workingCopyService) {
@@ -90,7 +98,7 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
         this.imageResolverService = imageResolverService;
         this.workingCopyService = workingCopyService;
 
-        this.projectProgressBar = new ProjectProgressBar();
+        this.projectProgressBar = new ProjectProgressBar(() -> currentOperation.update(Mono.empty().subscribe()));
         this.projectProgressBar.setWidthFull();
         this.grid = createGrid();
 
@@ -124,15 +132,9 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
 
     private MenuBar createMenuBar() {
         MenuBar result = new MenuBar();
-        result.addItem("Attach",
-                "Clone project, and make it available for use.",
-                this::onAttachClick);
-        result.addItem("Pull",
-                "Pull latest changes from SCM.",
-                this::onPullClick);
-        result.addItem("Detach",
-                "Remove cloned project from disk, and make it no longer available for use.",
-                this::onDetachClick);
+        createMenuItem(result, "Clone project, and make it available for use.", MaterialIcons.ADD, "Attach", this::onAttachClick);
+        createMenuItem(result, "Pull latest changes from SCM.", MaterialIcons.DOWNLOADING, "Pull", this::onPullClick);
+        createMenuItem(result, "Remove cloned project from disk, and make it no longer available for use.", MaterialIcons.REMOVE, "Detach", this::onDetachClick);
         return result;
     }
 
@@ -152,8 +154,8 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
                 .flatMap(item ->
                         operation.apply(item)
                                 .onErrorComplete().subscribeOn(Schedulers.boundedElastic()))
-                .doFinally(s -> VaadinUtils.access(this, GitView::onAfterOperation))
-                .subscribe(p -> VaadinUtils.access(this, p, GitView::onUpdateEvent));
+                .doFinally(s -> VaadinUtils.access(this, ProjectView::onAfterOperation))
+                .subscribe(p -> VaadinUtils.access(this, p, ProjectView::onUpdateEvent));
         currentOperation.update(subscription);
     }
 
@@ -248,6 +250,6 @@ public class GitView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
+        this.workspaceId = event.getRouteParameters().get(Parameters.WORKSPACE_ID).orElseThrow();
     }
 }

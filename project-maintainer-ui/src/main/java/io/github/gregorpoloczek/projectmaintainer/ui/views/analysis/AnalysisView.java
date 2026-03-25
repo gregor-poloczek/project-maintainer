@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.SortedSet;
 
+import lombok.experimental.UtilityClass;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
@@ -49,6 +50,10 @@ import reactor.core.scheduler.Schedulers;
 
 @Route(value = "/workspace/:workspaceId/analysis", layout = MainLayout.class)
 public class AnalysisView extends VerticalLayout implements BeforeEnterObserver {
+    @UtilityClass
+    public class Parameters {
+        public static final String WORKSPACE_ID = "workspaceId";
+    }
 
     private final ProjectAnalysisService projectAnalysisService;
     private final ProjectService projectService;
@@ -76,7 +81,7 @@ public class AnalysisView extends VerticalLayout implements BeforeEnterObserver 
         this.labelService = labelService;
         this.imageResolverService = imageResolverService;
 
-        this.projectProgressBar = new ProjectProgressBar();
+        this.projectProgressBar = new ProjectProgressBar(null);
         this.projectProgressBar.setWidthFull();
 
         ComposableFilterSearch<FQPN, ProjectAnalysisItem> search = new ComposableFilterSearch<>(this.dataProvider);
@@ -157,6 +162,6 @@ public class AnalysisView extends VerticalLayout implements BeforeEnterObserver 
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
+        this.workspaceId = event.getRouteParameters().get(Parameters.WORKSPACE_ID).orElseThrow();
     }
 }

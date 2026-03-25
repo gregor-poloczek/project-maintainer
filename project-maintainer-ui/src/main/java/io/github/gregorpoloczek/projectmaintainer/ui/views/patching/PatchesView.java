@@ -6,9 +6,7 @@ import static io.github.gregorpoloczek.projectmaintainer.ui.common.composable.Co
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.DetachEvent;
-import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -17,9 +15,9 @@ import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.NativeLabel;
 import com.vaadin.flow.component.html.RangeInput;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -32,7 +30,6 @@ import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.O
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
-import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchOperationResult;
@@ -44,6 +41,7 @@ import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.executi
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchStopResult;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import io.github.gregorpoloczek.projectmaintainer.ui.common.MenuItemUtils;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.progress.ProjectProgressBar;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
@@ -62,11 +60,11 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.Ha
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import io.github.gregorpoloczek.projectmaintainer.ui.views.patching.components.StatisticsComponent;
+import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jspecify.annotations.NonNull;
@@ -75,11 +73,16 @@ import reactor.core.Disposable;
 import reactor.core.Disposable.Swap;
 import reactor.core.Disposables;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Route(value = "/workspace/:workspaceId/patch", layout = MainLayout.class)
 @JsModule("./diff2html-integration.js")
 public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
+    @UtilityClass
+    public class Parameters {
+        public static final String WORKSPACE_ID = "workspaceId";
+    }
 
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
@@ -118,7 +121,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         this.menuBar = createMenuBar();
         this.menuBar.setEnabled(false);
 
-        this.projectProgressBar = new ProjectProgressBar();
+        this.projectProgressBar = new ProjectProgressBar(() -> currentOperation.update(Mono.empty().subscribe()));
         this.projectProgressBar.setWidthFull();
 
         this.patchParameterArgumentsComponent = new PatchParameterArgumentsComponent();
@@ -130,6 +133,7 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         this.patchesSelection = new ComboBox<>();
         this.patchesSelection.setWidth("400px");
         this.patchesSelection.setItemLabelGenerator(PatchMetaData::getId);
+        this.patchesSelection.setTooltipText("Available patches. Select patch to preview or apply.");
         this.patchesSelection.setRequired(true);
         this.patchesSelection.addValueChangeListener(x -> onPatchSelected(x.getValue()));
 
@@ -152,6 +156,8 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
     private @NonNull Checkbox createHideNoOpCheckbox() {
         Checkbox hideNoOpCheckbox = new Checkbox();
         hideNoOpCheckbox.setLabel("Hide No-Op");
+        hideNoOpCheckbox.setTooltipText("When checked, projects will be hidden from view, if the patch did not produce any changes.");
+
         var handler = search.add(item -> {
             if (BooleanUtils.isFalse(hideNoOpCheckbox.getValue())) {
                 return true;
@@ -178,7 +184,11 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
         });
 
 
-        return with(new HorizontalLayout(new Span("Diff lines: "), result, valueSpan), VaadinUtils.NO_PADDING);
+        return with(new HorizontalLayout(
+                        new NativeLabel("Diff lines:"),
+                        result,
+                        valueSpan),
+                VaadinUtils.NO_PADDING, VaadinUtils.withTooltip("Amount of additional surrounding lines available in diffs."));
     }
 
     private void onPatchSelected(PatchMetaData value) {
@@ -244,25 +254,17 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
     private MenuBar createMenuBar() {
         MenuBar result = new MenuBar();
-        createMenuItem(result, this::onPreviewClick, MaterialIcons.VISIBILITY, "Preview",
-                "Preview the patch in selected projects. Will not cause any changes.");
+        MenuItemUtils.createMenuItem(result, "Preview the patch in selected projects. Will not cause any changes.", MaterialIcons.VISIBILITY, "Preview", this::onPreviewClick
+        );
 
-        createMenuItem(result, this::onApplyClick, MaterialIcons.APPROVAL, "Apply",
-                "Apply patch to projects. Will create pull requests when source code is actually changed.");
+        MenuItemUtils.createMenuItem(result, "Apply patch to projects. Will create pull requests when source code is actually changed.", MaterialIcons.APPROVAL, "Apply", this::onApplyClick
+        );
 
-        createMenuItem(result, this::onStopClick, MaterialIcons.CANCEL, "Stop",
-                "Reverts non merged patches of the created pull request and deleting the existing remote branch." +
-                        " If a branch name other then the default branch name was used during application of the patch, it must be re-entered " +
-                        " in order to stop close the correct pull requests.");
+        MenuItemUtils.createMenuItem(result, "Reverts non merged patches of the created pull request and deletes the existing remote branch." +
+                " If a branch name other then the default branch name was used during application of the patch, it must be re-entered " +
+                " in order to close the correct pull requests.", MaterialIcons.CANCEL, "Stop", this::onStopClick
+        );
         return result;
-    }
-
-    private void createMenuItem(MenuBar menuBar, ComponentEventListener<ClickEvent<MenuItem>> callback, MaterialIcons icon, String label, String tooltipText) {
-        Icon iconComponent = icon.create();
-        iconComponent.getStyle().setMarginRight("var(--lumo-space-s)");
-        MenuItem preview = menuBar.addItem(iconComponent, callback);
-        preview.add(new Text(label));
-        menuBar.setTooltipText(preview, tooltipText);
     }
 
 
@@ -396,6 +398,6 @@ public class PatchesView extends VerticalLayout implements BeforeEnterObserver {
 
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
-        this.workspaceId = event.getRouteParameters().get("workspaceId").orElseThrow();
+        this.workspaceId = event.getRouteParameters().get(Parameters.WORKSPACE_ID).orElseThrow();
     }
 }

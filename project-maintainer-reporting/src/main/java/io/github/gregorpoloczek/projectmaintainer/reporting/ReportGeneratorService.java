@@ -144,7 +144,7 @@ public class ReportGeneratorService {
                     .progressTotal(projects.size())
                     .build());
 
-            Disposable subscription = Flux.fromIterable(projects)
+            Disposable inner = Flux.fromIterable(projects)
                     .flatMap(project -> projectAnalysisService
                             .analyze(project)
                             .subscribeOn(Schedulers.parallel())
@@ -161,8 +161,7 @@ public class ReportGeneratorService {
                     .doOnError(sink::error)
                     .subscribe();
 
-            // TODO ist das korrekt?
-            sink.onDispose(subscription);
+            sink.onDispose(inner);
         });
 
 

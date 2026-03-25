@@ -13,7 +13,7 @@ public class AddPrettierPatch extends AbstractProgrammablePatch {
     public PatchMetaData getMetaData() {
         return PatchMetaData.builder()
                 .id("project-maintainer::add-prettier")
-                .description("Deletes package.json").build();
+                .description("Adds Prettier").build();
     }
 
     @Override
