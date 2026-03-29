@@ -2,11 +2,11 @@ package io.github.gregorpoloczek.projectmaintainer.ui.views.patching.components;
 
 import com.vaadin.flow.component.AbstractField;
 import com.vaadin.flow.component.HasValue;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.shared.Registration;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterFile;
 import org.apache.commons.lang3.NotImplementedException;
@@ -28,9 +28,8 @@ public class FilesUploadParameterComponent extends VerticalLayout
             List<PatchParameterFile> newValue = Stream.concat(this.value.stream(), Stream.of(new PatchParameterFileImpl(a.fileName(), a.contentType(), b))).map(PatchParameterFile.class::cast).toList();
             this.setValue(newValue);
         }));
-        upload.setWidth("500px");
-        // TODO [Patching] use better Label
-        upload.setDropLabel(new Div(patchParameter.getId()));
+        upload.addClassNames(LumoUtility.Padding.SMALL);
+        upload.setWidthFull();
         upload.addFileRemovedListener(e -> {
             List<PatchParameterFile> newValue = this.value.stream().filter(pF -> !pF.getFileName().equals(e.getFileName())).toList();
             this.setValue(newValue);

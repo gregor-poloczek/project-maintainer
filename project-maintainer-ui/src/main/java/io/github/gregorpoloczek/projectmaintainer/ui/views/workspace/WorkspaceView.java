@@ -18,10 +18,12 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.ProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
@@ -41,16 +43,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils.with;
+
 
 @Slf4j
 @Route(value = "/workspace/:workspaceId", layout = MainLayout.class)
 public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+
     @UtilityClass
     public class Parameters {
         public static final String WORKSPACE_ID = "workspaceId";
     }
 
     private final WorkspaceService workspaceService;
+    private final WorkingCopyService workingCopyService;
 
     private final H1 title;
     private final Button saveWorkspaceButton;
@@ -70,9 +76,11 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
     public WorkspaceView(
             ProjectService projectService,
             WorkspaceService workspaceService,
+            WorkingCopyService workingCopyService,
             ImageResolverService imageResolverService,
             List<ProjectConnectionUIAdapter<?, ?>> projectConnectionUIAdapters) {
         this.workspaceService = workspaceService;
+        this.workingCopyService = workingCopyService;
         this.projectService = projectService;
         this.imageResolverService = imageResolverService;
         this.projectConnectionUIAdapters = projectConnectionUIAdapters;
@@ -110,16 +118,22 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
         this.connectionFormProvidersSelect.setValue(((ListDataProvider<ConnectionFormProviderSelectItem>) this.connectionFormProvidersSelect.getDataProvider()).getItems().stream().findFirst().orElseThrow());
 
         projectsCountsText = new Text("");
-        HorizontalLayout discoverLayout = new HorizontalLayout(this.discoverProjectsButton, this.progressBar);
-        discoverLayout.setWidthFull();
-        FieldSet projects = createGroup("Projects",
-                new Span(new Text("Known projects: "), projectsCountsText), discoverLayout);
-        projects.setWidthFull();
-        FieldSet connections = createGroup("Connections", new HorizontalLayout(connectionFormProvidersSelect, addConnectionButton), connectionFormsLayout);
-        connections.setWidthFull();
         this.add(title,
-                projects,
-                connections,
+                with(createGroup("Projects",
+                                new Span(new Text("Attached projects: "), projectsCountsText),
+                                with(new HorizontalLayout(
+                                                this.discoverProjectsButton,
+                                                this.progressBar
+                                        ),
+                                        VaadinUtils.WIDTH_FULL)),
+                        VaadinUtils.WIDTH_FULL),
+                with(createGroup("Connections",
+                                new HorizontalLayout(
+                                        connectionFormProvidersSelect,
+                                        addConnectionButton),
+                                connectionFormsLayout),
+                        VaadinUtils.WIDTH_FULL
+                ),
                 new HorizontalLayout(this.saveWorkspaceButton, this.deleteWorkspaceButton));
     }
 
@@ -143,11 +157,11 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
             this.toggleButtons(false);
             this.workspaceService.deleteWorkspace(this.workspaceService.requireWorkspace(this.workspaceId));
             // TODO [Workspaces] notification is now shown?
-            Notification.show("Workspace deleted");
+            VaadinUtils.Notifications.showSuccess("Workspace deleted");
             UI.getCurrent().navigate(WorkspacesView.class);
         } catch (Exception e) {
             this.toggleButtons(true);
-            Notification.show("Workspace deletion failed");
+            VaadinUtils.Notifications.showError("Workspace deletion failed");
             throw e;
         }
     }
@@ -190,12 +204,12 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
                     this.progressBar.update(op);
                 }))
                 .doOnError(e -> VaadinUtils.access(this, e, (c, t) -> {
-                    Notification.show("Workspace project discovery failed");
+                    VaadinUtils.Notifications.showError("Workspace project discovery failed");
                     log.error(t.getMessage(), t);
                 }))
                 .doOnComplete(() -> {
                     VaadinUtils.access(this, null, (c, t) -> {
-                        Notification.show("Workspace project discovery completed");
+                        VaadinUtils.Notifications.showSuccess("Workspace project discovery completed");
                         this.loadProjects();
                     });
                 })
@@ -214,9 +228,9 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
                     .toList();
 
             this.workspaceService.updateConnections(workspace, projectConnections);
-            Notification.show("Workspace saved");
+            VaadinUtils.Notifications.showSuccess("Workspace saved");
         } catch (Exception ex) {
-            Notification.show("Saving workspace failed");
+            VaadinUtils.Notifications.showError("Saving workspace failed");
             log.error(ex.getMessage(), ex);
         }
 
@@ -293,10 +307,11 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
     }
 
     private void loadProjects() {
-        long projects = this.projectService.findAllByWorkspaceId(this.workspaceId)
-                .stream()
-                .count();
-        this.projectsCountsText.setText(String.valueOf(projects));
+        List<Project> projects = this.projectService.findAllByWorkspaceId(this.workspaceId)
+                .stream().toList();
+        long attached = projects.stream().filter(p -> this.workingCopyService.find(p).isPresent()).count();
+
+        this.projectsCountsText.setText("%d / %d".formatted(attached, projects.size()));
     }
 
 }

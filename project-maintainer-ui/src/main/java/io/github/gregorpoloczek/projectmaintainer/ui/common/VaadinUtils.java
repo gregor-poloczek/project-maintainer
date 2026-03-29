@@ -1,12 +1,15 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.common;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.UI;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.ThemableLayout;
 import com.vaadin.flow.component.shared.HasTooltip;
@@ -18,6 +21,7 @@ public class VaadinUtils {
 
     public final static Consumer<ThemableLayout> NO_PADDING = l -> l.setPadding(false);
     public final static Consumer<FlexComponent> ALIGN_ITEMS_CENTER = l -> l.setAlignItems(FlexComponent.Alignment.CENTER);
+    public final static Consumer<HasSize> WIDTH_FULL = HasSize::setWidthFull;
 
     @SafeVarargs
     public static <T extends Component> T with(T component, Consumer<? super T>... modifiers) {
@@ -69,4 +73,23 @@ public class VaadinUtils {
             }
         };
     }
+
+    public static class Notifications {
+        private static final int DURATION_MS = 3000;
+
+        public static void showError(String message) {
+            Notification notification = new Notification(message);
+            notification.addThemeVariants(NotificationVariant.ERROR);
+            notification.setDuration(DURATION_MS);
+            notification.open();
+        }
+
+        public static void showSuccess(String message) {
+            Notification notification = new Notification(message);
+            notification.addThemeVariants(NotificationVariant.SUCCESS);
+            notification.setDuration(DURATION_MS);
+            notification.open();
+        }
+    }
+
 }

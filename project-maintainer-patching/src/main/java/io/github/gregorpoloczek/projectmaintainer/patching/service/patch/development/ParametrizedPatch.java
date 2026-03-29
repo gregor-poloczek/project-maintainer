@@ -34,12 +34,12 @@ public class ParametrizedPatch implements Patch {
                 .id("project-maintainer::parametrized-patch")
                 .description("Does nothing with parameters")
                 .patchParameters(List.of(
-                        PatchParameter.builder().id(Parameters.COMMIT_MESSAGE).required(false).type(PatchParameterType.STRING).required(false).build(),
-                        PatchParameter.builder().id(Parameters.TITLE).required(false).type(PatchParameterType.STRING).build(),
-                        PatchParameter.builder().id(Parameters.FILE).required(false).type(PatchParameterType.FILES).build(),
-                        PatchParameter.builder().id(Parameters.REQUIRED_TEXT).required(true).type(PatchParameterType.STRING).build(),
-                        PatchParameter.builder().id(Parameters.CHECK).required(false).type(PatchParameterType.BOOLEAN).build(),
-                        PatchParameter.builder().id(Parameters.COUNT).required(false).type(PatchParameterType.INTEGER).build()
+                        PatchParameter.builder().id(Parameters.COMMIT_MESSAGE).name("Commit message").required(false).type(PatchParameterType.STRING).required(false).build(),
+                        PatchParameter.builder().id(Parameters.TITLE).name("Title").required(false).type(PatchParameterType.STRING).build(),
+                        PatchParameter.builder().id(Parameters.FILE).name("File").required(false).type(PatchParameterType.FILES).build(),
+                        PatchParameter.builder().id(Parameters.REQUIRED_TEXT).name("Required text").required(true).type(PatchParameterType.STRING).build(),
+                        PatchParameter.builder().id(Parameters.CHECK).name("Check").required(false).type(PatchParameterType.BOOLEAN).build(),
+                        PatchParameter.builder().id(Parameters.COUNT).name("Count").required(false).type(PatchParameterType.INTEGER).build()
                 ))
                 .build();
     }

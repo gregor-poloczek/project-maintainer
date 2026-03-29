@@ -5,9 +5,12 @@ import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasEnabled;
 import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.html.NativeLabel;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.shared.HasTooltip;
 import com.vaadin.flow.shared.Registration;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
 import lombok.AccessLevel;
@@ -18,6 +21,8 @@ import org.apache.commons.lang3.NotImplementedException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
+
+import static io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils.with;
 
 /**
  * Wrapper component that creates {@link PatchParameterArgument} based on the values produced by wrapped component via
@@ -32,7 +37,7 @@ public class PatchParameterArgumentComponent<
         T,
         C extends Component & HasValue<E, T> & HasEnabled,
         E extends HasValue.ValueChangeEvent<T>>
-        extends HorizontalLayout
+        extends FlexLayout
         implements HasValue<HasValue.ValueChangeEvent<PatchParameterArgument<T>>, PatchParameterArgument<T>> {
     final PatchParameter patchParameter;
     final C component;
@@ -63,6 +68,12 @@ public class PatchParameterArgumentComponent<
     public PatchParameterArgumentComponent(PatchParameter patchParameter, C component) {
         this.patchParameter = patchParameter;
         this.component = component;
+        this.setFlexDirection(FlexDirection.COLUMN);
+
+        HorizontalLayout row = new HorizontalLayout();
+        row.setAlignItems(Alignment.CENTER);
+        row.setPadding(false);
+
 
         if (!patchParameter.isRequired()) {
             this.defined = false;
@@ -78,8 +89,7 @@ public class PatchParameterArgumentComponent<
                 valueChangeListeners
                         .forEach((ValueChangeListener<? super ValueChangeEvent<PatchParameterArgument<T>>> l) -> l.valueChanged(event));
             });
-            this.add(definedCheckbox);
-            this.setAlignItems(Alignment.CENTER);
+            row.add(definedCheckbox);
         } else {
             this.defined = true;
         }
@@ -96,8 +106,11 @@ public class PatchParameterArgumentComponent<
                     .forEach((ValueChangeListener<? super ValueChangeEvent<PatchParameterArgument<T>>> l) -> l.valueChanged(event));
         });
 
+        row.add(component);
 
-        this.add(component);
+        String label = patchParameter.getName().orElse(patchParameter.getId());
+        this.add(with(new NativeLabel(label), l -> l.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL)),
+                row);
     }
 
 

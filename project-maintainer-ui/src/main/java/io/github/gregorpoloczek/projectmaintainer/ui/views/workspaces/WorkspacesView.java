@@ -23,6 +23,7 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
+import io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.WorkspaceView;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.connections.common.GitProviderIconComponent;
 import lombok.NonNull;
@@ -81,7 +82,7 @@ public class WorkspacesView extends VerticalLayout {
         result.addColumn(createConnectionsIconRenderer())
                 .setHeader("Connections");
         result.addColumn(this.createProjectCountRenderer())
-                .setHeader("Projects")
+                .setHeader("Attached projects")
                 .setTooltipGenerator(item -> "%d of available %d projects attached".formatted(item.getAttachedProjects(), item.getTotalProjects()));
         result.addColumn(this.createSwitchToWorkspaceRenderer())
                 .setTooltipGenerator(i -> "Switch to workspace \"%s\"".formatted(i.getName()))
@@ -104,9 +105,9 @@ public class WorkspacesView extends VerticalLayout {
         try {
             this.workspaceService.createWorkspace(newWorkspaceNameTextField.getValue());
             this.loadWorkspaces();
-            Notification.show("Workspace created");
+            VaadinUtils.Notifications.showSuccess("Workspace created");
         } catch (Exception e) {
-            Notification.show("Workspace creation failed: %s".formatted(e.getMessage()));
+            VaadinUtils.Notifications.showError("Workspace creation failed: %s".formatted(e.getMessage()));
             throw e;
         }
     }

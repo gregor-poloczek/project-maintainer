@@ -2,11 +2,12 @@ package io.github.gregorpoloczek.projectmaintainer.ui.views.patching;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.HasSize;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.parameters.WellKnownPatchParameters;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
@@ -21,7 +22,7 @@ import java.util.Map;
  * Component grouping together components for editing patch parameters, and creating
  * {@link PatchParameterArgument} instances.
  */
-public class PatchParameterArgumentsComponent extends VerticalLayout {
+public class PatchParameterArgumentsComponent extends FlexLayout {
 
     private Binder<Map<String, PatchParameterArgument<?>>> binder;
 
@@ -30,8 +31,9 @@ public class PatchParameterArgumentsComponent extends VerticalLayout {
 
     void setParameters(List<PatchParameter> parameters) {
         this.removeAll();
-        this.setSpacing(false);
-        this.setPadding(false);
+        this.addClassNames(LumoUtility.Gap.SMALL);
+        this.setFlexWrap(FlexLayout.FlexWrap.WRAP);
+
         binder = new Binder<>();
         this.binder.setBean(new LinkedHashMap<>());
 
@@ -43,17 +45,16 @@ public class PatchParameterArgumentsComponent extends VerticalLayout {
     }
 
     private @NonNull Component buildParameterComponent(PatchParameter patchParameter) {
-        final String label = patchParameter.getName().orElse(patchParameter.getId());
         Component c = switch (patchParameter.getType()) {
-            case STRING -> new TextField(label);
+            case STRING -> new TextField();
             case INTEGER -> {
-                IntegerField r = new IntegerField(label);
+                IntegerField r = new IntegerField();
+                r.setRequired(true);
                 r.setValue(0);
                 yield r;
             }
             case BOOLEAN -> {
                 RadioButtonGroup<Boolean> radioGroup = new RadioButtonGroup<>();
-                radioGroup.setLabel(label);
                 radioGroup.setItems(false, true);
                 radioGroup.setValue(false);
                 yield radioGroup;
@@ -75,7 +76,8 @@ public class PatchParameterArgumentsComponent extends VerticalLayout {
         });
 
         if (c instanceof HasSize hasSize) {
-            hasSize.setWidth("500px");
+            int width = patchParameter.isRequired() ? 542 : 500;
+            hasSize.setWidth(width + "px");
         }
 
         return result;
