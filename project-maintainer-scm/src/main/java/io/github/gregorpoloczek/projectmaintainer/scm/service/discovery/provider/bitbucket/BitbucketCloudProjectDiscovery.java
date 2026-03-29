@@ -58,7 +58,7 @@ public class BitbucketCloudProjectDiscovery implements ProjectDiscovery<Bitbucke
 
         // can result in 403
         WorkspaceMembershipListResource membershipList = webClient.get()
-                .uri("/user/permissions/workspaces")
+                .uri("/user/workspaces")
                 .retrieve()
                 .bodyToMono(WorkspaceMembershipListResource.class)
                 .doOnError(e -> {
