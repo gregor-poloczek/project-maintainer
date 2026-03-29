@@ -74,13 +74,11 @@ public class BitbucketCloudProjectConnectionFormComponent extends AbstractGeneri
                 write:repository:bitbucket
                 write:pullrequest:bitbucket
                 """);
-        pre.getClassNames().addAll(List.of(LumoUtility.Padding.SMALL, LumoUtility.BoxSizing.BORDER));
+        pre.addClassNames(LumoUtility.Padding.SMALL, LumoUtility.BoxSizing.BORDER, LumoUtility.Background.SHADE_10);
         pre.getStyle().setMarginTop("3px");
         Span label = new Span("Necessary Permissions");
         label.getStyle().setMarginTop("11px");
-        label.getStyle()
-                .setColor("var(--lumo-secondary-text-color)")
-                .setFontSize("var(--vaadin-input-field-label-font-size, var(--lumo-font-size-s))");
+        label.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
         VerticalLayout right = new VerticalLayout(label, pre);
         right.setSpacing(false);
         right.setPadding(false);
