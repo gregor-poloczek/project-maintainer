@@ -15,12 +15,14 @@ import com.vaadin.flow.data.provider.ListDataProvider;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParam;
+import io.github.gregorpoloczek.projectmaintainer.core.common.properties.ApplicationProperties;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.ProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import io.github.gregorpoloczek.projectmaintainer.ui.common.HelpDialog;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
@@ -28,16 +30,39 @@ import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.WorkspaceVi
 import io.github.gregorpoloczek.projectmaintainer.ui.views.workspace.connections.common.GitProviderIconComponent;
 import lombok.NonNull;
 import lombok.Value;
+import org.intellij.lang.annotations.Language;
 import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 
 import java.util.Comparator;
 import java.util.List;
 
 @Route(value = "/workspace", layout = MainLayout.class)
-public class WorkspacesView extends VerticalLayout {
+public class WorkspacesView extends VerticalLayout
+        implements HelpDialog.MarkdownHelpFactory {
 
     private final Grid<WorkspaceItem> grid;
     private final ImageResolverService imageResolverService;
+    private final ApplicationProperties applicationProperties;
+
+    @Override
+    public String createMarkdownHelp() {
+        @Language("markdown")
+        String code = """
+                # Workspaces
+                
+                ## Purpose
+                Workspaces bundle your maintained projects together. You need to create at least one workspace to manage your projects. Depending on your work, multiple workspaces can also be useful. For example, you might have one workspace dedicated to your own team’s work, while another is used for shared code across your company.
+                
+                Every feature in this application is executed within a single workspace at a time. To use these features, you need to **switch** to the desired workspace by pressing the *Use* button. A single project (Git repository) can be maintained in multiple workspaces. However, working copies of the same repository across different workspaces are completely independent.
+                
+                ## Lifecycle
+                Create a workspace by providing a unique name and pressing the **Create New Workspace** button. To delete a workspace, switch to it and navigate to the **Workspace Settings** page.
+                
+                ## Data Storage
+                Workspaces not only store settings but also cloned working copies of repositories. Each workspace has its own dedicated directory on the file system, located at `%s`. Deleting a workspace will remove the entire workspace directory from the file system, and this action cannot be undone.
+                """;
+        return code.formatted(applicationProperties.getWorkspacesDirectory());
+    }
 
     @Value
     public static class WorkspaceItem {
@@ -57,11 +82,13 @@ public class WorkspacesView extends VerticalLayout {
             WorkspaceService workspaceService,
             ProjectService projectService,
             WorkingCopyService workingCopyService,
-            ImageResolverService imageResolverService) {
+            ImageResolverService imageResolverService,
+            ApplicationProperties applicationProperties) {
         this.workspaceService = workspaceService;
         this.projectService = projectService;
         this.workingCopyService = workingCopyService;
         this.imageResolverService = imageResolverService;
+        this.applicationProperties = applicationProperties;
 
         this.newWorkspaceNameTextField = new TextField();
 

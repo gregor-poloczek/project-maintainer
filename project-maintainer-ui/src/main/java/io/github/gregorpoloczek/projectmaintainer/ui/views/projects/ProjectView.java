@@ -26,6 +26,7 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Pr
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopy;
+import io.github.gregorpoloczek.projectmaintainer.ui.common.HelpDialog;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.progress.ProjectProgressBar;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.ComposableHolder;
@@ -64,18 +65,26 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Route(value = "/workspace/:workspaceId/projects", layout = MainLayout.class)
-public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
+public class ProjectView extends VerticalLayout implements BeforeEnterObserver, HelpDialog.MarkdownHelpFactory {
+    @Override
+    public String createMarkdownHelp() {
+        return """
+                # Projects
+                This view shows all the projects you have access to. To make them available for maintenance features, you need to *attach* them to the workspace first.
+                
+                ## Lifecycle of projects
+                Attaching a project clones the repository as a local working copy. *Detaching* a project removes the working copy from the local file system. Some features do not automatically pull the latest changes from the origin, so you may need to update manually using the *Pull* button.
+                
+                ## Why are there no projects?
+                If the list of projects is empty, you have either not set up a project connection for the current workspace or have not triggered a project discovery. Go to the *Workspace Settings* page and follow the instructions on how to set up a connection and trigger project discovery.
+                """;
+    }
+
     @UtilityClass
     public class Parameters {
         public static final String WORKSPACE_ID = "workspaceId";
     }
 
-    public static final @Language
-            ("markdown") String DOCUMENTATION = """
-            In order to maintain projects, they need to be attached (cloned) first. To remove them from maintenance
-            feature detach them. Some features do not automatically pull the latest changes from the origin, so you may
-            need to pull the latest changes via the *Pull* button.
-            """;
     private final transient ProjectService projectService;
     private final transient ImageResolverService imageResolverService;
     private final transient WorkingCopyService workingCopyService;
@@ -107,8 +116,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver {
                         with(new VerticalLayout(new HorizontalLayout(
                                 new HasWorkingCopyFilterComponent(search),
                                 new HasProjectFilterComponent<>(search)
-                        ), menuBar), VaadinUtils.NO_PADDING),
-                        new Markdown(DOCUMENTATION)), VaadinUtils.NO_PADDING),
+                        ), menuBar), VaadinUtils.NO_PADDING)), VaadinUtils.NO_PADDING),
                 this.grid,
                 this.projectProgressBar);
         this.setSizeFull();
