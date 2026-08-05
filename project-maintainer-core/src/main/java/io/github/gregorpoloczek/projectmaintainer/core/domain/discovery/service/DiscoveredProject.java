@@ -13,11 +13,16 @@ import lombok.Getter;
 public class DiscoveredProject {
 
     private final URI uri;
+    private final String defaultBranch;
     private final String name;
     private String description;
     private final String owner;
     private String browserLink;
     private String websiteLink;
+
+    public Optional<String> getDefaultBranch() {
+        return Optional.ofNullable(defaultBranch);
+    }
 
     public Optional<String> getDescription() {
         return Optional.ofNullable(description);

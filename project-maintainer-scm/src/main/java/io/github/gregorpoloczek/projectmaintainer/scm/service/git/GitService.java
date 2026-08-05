@@ -279,10 +279,16 @@ public class GitService {
                 .filter(name -> name.matches("^refs/remotes/origin/.+$"))
                 .map(name -> name.replaceAll("^refs/remotes/origin/", ""))
                 .collect(toCollection(TreeSet::new));
-        // TODO [Working-Copy] read default branch during project discovery
-        String defaultBranch = localBranches.stream()
-                .filter(b -> Set.of("master", "main").contains(b)).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Cannot find default branch"));
+
+        Optional<String> defaultBranchFromProjectDiscovery = projectService.require(gitActionContext).getMetaData().getDefaultBranch();
+        Optional<String> defaultBranchFallback = localBranches.stream()
+                .filter(b -> Set.of("master", "main").contains(b)).findFirst();
+
+        // TODO [Working-Copy] read default branch during project discovery exclusively
+        String defaultBranch =
+                defaultBranchFromProjectDiscovery
+                        .or(() -> defaultBranchFallback)
+                        .orElseThrow(() -> new IllegalArgumentException("Cannot determine default branch. Please try to rediscover projects."));
 
         return new BranchState(remoteBranches, localBranches, defaultBranch);
     }

@@ -37,6 +37,7 @@ public class AWSCodeCommitProjectDiscovery implements ProjectDiscovery<AWSCodeCo
                         .forEach(r -> context.discovered(b -> b
                                         .fqpn(FQPN.of(accountId, region.id(), r.repositoryName()))
                                         .uri(URI.create(r.cloneUrlHttp()))
+                                        .defaultBranch(r.defaultBranch())
                                         .browserLink(
                                                 "https://%s.console.aws.amazon.com/codesuite/codecommit/repositories/%s/browse?region=%s"
                                                         .formatted(region.id(), r.repositoryName(), region.id())

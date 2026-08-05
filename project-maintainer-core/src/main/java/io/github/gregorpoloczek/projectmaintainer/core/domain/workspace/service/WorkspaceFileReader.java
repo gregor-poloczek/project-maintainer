@@ -97,6 +97,7 @@ public class WorkspaceFileReader {
         ProjectMetaData metaData = ProjectMetaData.builder()
                 .fqpn(p.getFQPN())
                 .uri(metaDataV1.getUri())
+                .defaultBranch(metaDataV1.getDefaultBranch())
                 .name(metaDataV1.getName())
                 .description(metaDataV1.getDescription())
                 .owner(metaDataV1.getOwner())

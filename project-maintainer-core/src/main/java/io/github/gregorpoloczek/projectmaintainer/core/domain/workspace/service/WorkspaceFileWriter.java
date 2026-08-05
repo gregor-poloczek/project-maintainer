@@ -53,6 +53,7 @@ public class WorkspaceFileWriter {
                         .owner(metaData.getOwner())
                         .description(metaData.getDescription().orElse(null))
                         .uri(metaData.getURI())
+                        .defaultBranch(metaData.getDefaultBranch().orElse(null))
                         .websiteLink(metaData.getWebsiteLink().orElse(null))
                         .browserLink(metaData.getBrowserLink().orElse(null))
                         .build())

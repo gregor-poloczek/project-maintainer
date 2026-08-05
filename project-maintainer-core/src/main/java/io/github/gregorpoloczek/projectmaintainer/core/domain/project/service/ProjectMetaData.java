@@ -14,9 +14,14 @@ public class ProjectMetaData implements ProjectRelatable {
     private String name;
     private String description;
     private URI uri;
+    private String defaultBranch;
     private String browserLink;
     private String websiteLink;
     private FQPN fqpn;
+
+    public Optional<String> getDefaultBranch() {
+        return Optional.ofNullable(defaultBranch);
+    }
 
     public Optional<String> getDescription() {
         return Optional.ofNullable(description);

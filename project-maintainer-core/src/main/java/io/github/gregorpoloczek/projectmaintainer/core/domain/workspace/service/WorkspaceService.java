@@ -315,6 +315,7 @@ public class WorkspaceService {
                             .description(discoveredProject.getDescription().orElse(null))
                             .name(discoveredProject.getName())
                             .uri(discoveredProject.getURI())
+                            .defaultBranch(discoveredProject.getDefaultBranch().orElse(null))
                             .owner(discoveredProject.getOwner())
                             .browserLink(discoveredProject.getBrowserLink().orElse(null))
                             .websiteLink(discoveredProject.getWebsiteLink().orElse(null))

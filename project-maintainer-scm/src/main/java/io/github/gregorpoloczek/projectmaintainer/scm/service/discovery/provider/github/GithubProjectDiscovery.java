@@ -40,6 +40,7 @@ public class GithubProjectDiscovery implements ProjectDiscovery<GithubProjectCon
                 context.discovered(b -> b.uri(uri)
                         .name(repository.getName())
                         .description(repository.getDescription())
+                        .defaultBranch(repository.getDefaultBranch())
                         .owner(repository.getOwnerName())
                         .browserLink(repository.getHtmlUrl().toString())
                         .fqpn(FQPN.of(connection.getUsername(), repository.getName()))

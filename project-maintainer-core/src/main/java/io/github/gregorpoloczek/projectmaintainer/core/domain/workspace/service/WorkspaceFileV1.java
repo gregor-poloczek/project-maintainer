@@ -72,6 +72,7 @@ public class WorkspaceFileV1 {
         String owner;
         String description;
         URI uri;
+        String defaultBranch;
         String websiteLink;
         String browserLink;
     }

@@ -1,6 +1,8 @@
 package io.github.gregorpoloczek.projectmaintainer.scm.service.git;
 
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.ProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.BelongsToProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.GitUsernamePasswordCredentialsFacet;
@@ -21,7 +23,7 @@ import java.util.function.Function;
 @Builder
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class GitActionContext {
+public class GitActionContext implements ProjectRelatable {
     @Getter
     Git git;
     Project project;
@@ -51,5 +53,10 @@ public class GitActionContext {
                     .flatMap(pC -> ((ProjectConnection) pC).getFacet(GitUsernamePasswordCredentialsFacet.class))
                     .ifPresent(f -> transportHttp.setPreemptiveBasicAuthentication(f.getUsername(), f.getPassword()));
         }
+    }
+
+    @Override
+    public FQPN getFQPN() {
+        return project.getFQPN();
     }
 }

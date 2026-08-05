@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class WorkingCopyImpl implements WorkingCopy {
 
+    // TODO [Working-Copy] what is that?
     private final String currentBranch;
     private final FQPN fqpn;
     private final File directory;

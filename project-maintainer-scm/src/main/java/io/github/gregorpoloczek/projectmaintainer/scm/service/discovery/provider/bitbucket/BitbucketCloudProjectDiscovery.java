@@ -4,6 +4,7 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.BelongsToProjectConnection;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.MainBranchResource;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestListResource;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource.Branch;
@@ -110,6 +111,7 @@ public class BitbucketCloudProjectDiscovery implements ProjectDiscovery<Bitbucke
                         context.discovered(c -> c.fqpn(fqpn)
                                 .owner(workspace)
                                 .uri(URI.create(cloneLink))
+                                .defaultBranch(Optional.ofNullable(repository.getMainbranch()).map(MainBranchResource::getName).orElse(null))
                                 .description(repository.getDescription())
                                 .websiteLink(Optional.ofNullable(repository.getWebsite())
                                         .filter(StringUtils::isNotBlank)

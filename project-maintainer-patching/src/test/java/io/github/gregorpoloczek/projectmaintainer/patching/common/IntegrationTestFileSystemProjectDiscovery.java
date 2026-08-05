@@ -10,9 +10,12 @@ import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.eclipse.jgit.api.Git;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,8 +45,20 @@ public class IntegrationTestFileSystemProjectDiscovery implements ProjectDiscove
         List<Path> remoteRepositories = connection.getRemoteRepositories();
 
         for (Path remoteRepository : remoteRepositories) {
+            String defaultBranch;
+            try (Git git = Git.open(remoteRepository.toFile())) {
+                // the current branch will be the default branch (a bit optimistic, might fail in some scenario eventually)
+                defaultBranch = git.getRepository().getBranch();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
             String repositoryName = remoteRepository.getFileName().toString();
-            context.discovered(b -> b.fqpn(FQPN.of(repositoryName)).name(repositoryName).uri(remoteRepository.toUri()).build());
+            context.discovered(b -> b
+                    .fqpn(FQPN.of(repositoryName))
+                    .name(repositoryName)
+                    .defaultBranch(defaultBranch)
+                    .uri(remoteRepository.toUri())
+            );
         }
     }
 
