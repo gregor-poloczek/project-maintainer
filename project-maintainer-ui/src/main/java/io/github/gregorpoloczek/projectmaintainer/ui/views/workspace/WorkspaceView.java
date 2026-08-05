@@ -7,7 +7,6 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.FieldSet;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
@@ -24,6 +23,8 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.WorkingCopyService;
+import io.github.gregorpoloczek.projectmaintainer.ui.common.HelpDialog;
+import io.github.gregorpoloczek.projectmaintainer.ui.common.IconText;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.ImageResolverService;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.MainLayout;
 import io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils;
@@ -48,7 +49,27 @@ import static io.github.gregorpoloczek.projectmaintainer.ui.common.VaadinUtils.w
 
 @Slf4j
 @Route(value = "/workspace/:workspaceId", layout = MainLayout.class)
-public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver {
+public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver, HelpDialog.MarkdownHelpFactory {
+
+    private final IconText noConnectionsWarnText =
+            with(new IconText(MaterialIcons.WARNING, "Please add at least one project connection and save the workspace settings."), VaadinUtils.HIDDEN);
+
+    private final IconText noProjectsDiscoveredWarnText =
+            with(new IconText(MaterialIcons.WARNING, "Trigger a project discovery in order to detect remote projects."), VaadinUtils.HIDDEN);
+
+    @Override
+    public String createMarkdownHelp() {
+        return """
+                # Workspace Settings
+                Access to projects (remote Git repositories) is achieved through an auto-discovery mechanism. This auto-discovery entails the configuration of a **connection**, which holds the necessary credentials to access repositories and REST APIs.
+                
+                ## Setting up a connection
+                Select a connection type in the connections panel and press *Add Connection*. Fill out all the necessary fields for the connection, then press the *Save* button.
+                
+                ## Project discovery
+                If at least one connection is defined, you can press the *Discover Projects* button. Discovery may take a moment, and you will be notified whether it succeeded. In case of failure, check the server log. The most likely reason is a misconfiguration of credentials or insufficient permissions associated with the configured credentials.
+                """;
+    }
 
     @UtilityClass
     public class Parameters {
@@ -123,14 +144,17 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
                                 new Span(new Text("Attached projects: "), projectsCountsText),
                                 with(new HorizontalLayout(
                                                 this.discoverProjectsButton,
-                                                this.progressBar
+                                                this.progressBar,
+                                                this.noProjectsDiscoveredWarnText
                                         ),
-                                        VaadinUtils.WIDTH_FULL)),
+                                        VaadinUtils.WIDTH_FULL, VaadinUtils.ALIGN_ITEMS_CENTER)),
                         VaadinUtils.WIDTH_FULL),
                 with(createGroup("Connections",
-                                new HorizontalLayout(
-                                        connectionFormProvidersSelect,
-                                        addConnectionButton),
+                                with(new HorizontalLayout(
+                                                connectionFormProvidersSelect,
+                                                addConnectionButton,
+                                                noConnectionsWarnText),
+                                        VaadinUtils.ALIGN_ITEMS_CENTER),
                                 connectionFormsLayout),
                         VaadinUtils.WIDTH_FULL
                 ),
@@ -204,12 +228,12 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
                     this.progressBar.update(op);
                 }))
                 .doOnError(e -> VaadinUtils.access(this, e, (c, t) -> {
-                    VaadinUtils.Notifications.showError("Workspace project discovery failed");
+                    VaadinUtils.Notifications.showError("Workspace project discovery failed. See server logs.");
                     log.error(t.getMessage(), t);
                 }))
                 .doOnComplete(() -> {
                     VaadinUtils.access(this, null, (c, t) -> {
-                        VaadinUtils.Notifications.showSuccess("Workspace project discovery completed");
+                        VaadinUtils.Notifications.showSuccess("Workspace project discovery completed.");
                         this.loadProjects();
                     });
                 })
@@ -228,6 +252,7 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
                     .toList();
 
             this.workspaceService.updateConnections(workspace, projectConnections);
+            this.updateComponents();
             VaadinUtils.Notifications.showSuccess("Workspace saved");
         } catch (Exception ex) {
             VaadinUtils.Notifications.showError("Saving workspace failed");
@@ -303,7 +328,19 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
                     .build());
         }
 
+        this.updateComponents();
+
         this.loadProjects();
+    }
+
+    private void updateComponents() {
+        Workspace workspace = this.workspaceService.requireWorkspace(this.workspaceId);
+        this.noConnectionsWarnText.setVisible(workspace.getProjectConnections().isEmpty());
+        this.discoverProjectsButton.setEnabled(!workspace.getProjectConnections().isEmpty());
+
+        List<Project> projects = this.projectService.findAllByWorkspaceId(this.workspaceId)
+                .stream().toList();
+        this.noProjectsDiscoveredWarnText.setVisible(!workspace.getProjectConnections().isEmpty() && projects.isEmpty());
     }
 
     private void loadProjects() {
@@ -312,6 +349,8 @@ public class WorkspaceView extends VerticalLayout implements BeforeEnterObserver
         long attached = projects.stream().filter(p -> this.workingCopyService.find(p).isPresent()).count();
 
         this.projectsCountsText.setText("%d / %d".formatted(attached, projects.size()));
+
+        this.updateComponents();
     }
 
 }

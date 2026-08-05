@@ -1,17 +1,24 @@
 package io.github.gregorpoloczek.projectmaintainer.ui.common;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.dependency.Uses;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.sidenav.SideNavItem;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.analysis.AnalysisView;
 import io.github.gregorpoloczek.projectmaintainer.ui.views.projects.ProjectView;
@@ -25,11 +32,14 @@ import java.util.*;
 
 @Uses(TextField.class)
 @Uses(PasswordField.class)
-public class MainLayout extends AppLayout implements BeforeEnterObserver {
+public class MainLayout extends AppLayout implements BeforeEnterObserver, AfterNavigationObserver, HelpDialog.HelpFactoryProvider {
 
     private final VerticalLayout itemsLayout;
     private final List<SideNavItem> navItems;
+    private final Button helpButton;
+    private final HelpDialog helpDialog;
     private String selectedWorkspaceId;
+    private HelpDialog.HelpFactory currentHelpFactory;
 
     @Override
     public void beforeEnter(BeforeEnterEvent beforeEnterEvent) {
@@ -58,24 +68,54 @@ public class MainLayout extends AppLayout implements BeforeEnterObserver {
         DrawerToggle toggle = new DrawerToggle();
 
         Span viewTitle = new Span("Project Maintainer");
-        addToNavbar(toggle, viewTitle);
+        this.helpDialog = new HelpDialog(this);
+        this.helpButton = new Button("Help", VaadinIcon.QUESTION_CIRCLE.create(), e -> {
+            helpDialog.open();
+        });
+        this.helpButton.getStyle().setMarginLeft("auto");
+        this.helpButton.addClassNames(LumoUtility.Margin.SMALL);
+        addToNavbar(toggle, viewTitle, helpButton);
         itemsLayout = new VerticalLayout();
         itemsLayout.setPadding(false);
 
         RouteParameters defaultRouteParameters = new RouteParameters(new RouteParam("workspaceId", "-1"));
         this.navItems = List.of(
-                new SideNavItem("Workspaces", WorkspacesView.class, MaterialIcons.WORKSPACES.create()),
-                new SideNavItem("Workspace", WorkspaceView.class, defaultRouteParameters, MaterialIcons.WORKSPACES.create()),
+                new SideNavItem("Switch Workspace", WorkspacesView.class, MaterialIcons.WORKSPACES.create()),
                 new SideNavItem("Projects", ProjectView.class, defaultRouteParameters, MaterialIcons.FOLDER.create()),
                 new SideNavItem("Analysis", AnalysisView.class, defaultRouteParameters, MaterialIcons.SEARCH.create()),
                 new SideNavItem("Reports", ReportsView.class, defaultRouteParameters, MaterialIcons.TABLE_CHART.create()),
-                new SideNavItem("Patches", PatchesView.class, defaultRouteParameters, MaterialIcons.AUTO_FIX_HIGH.create())
+                new SideNavItem("Patches", PatchesView.class, defaultRouteParameters, MaterialIcons.AUTO_FIX_HIGH.create()),
+                new SideNavItem("Workspace Settings", WorkspaceView.class, defaultRouteParameters, MaterialIcons.SETTINGS.create())
         );
         for (SideNavItem navItem : navItems) {
             navItem.setEnabled(false);
             itemsLayout.add(navItem);
         }
 
+        itemsLayout.addComponentAtIndex(1, new Hr());
+        itemsLayout.addComponentAtIndex(6, new Hr());
+
         addToDrawer(new VerticalLayout(itemsLayout));
+    }
+
+    @Override
+    public HelpDialog.HelpFactory getHelpFactory() {
+        return this.currentHelpFactory;
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+
+        Component view = this.getChildren().toList().getLast();
+
+        this.currentHelpFactory = view instanceof HelpDialog.HelpFactory helpFactory ? helpFactory : null;
+
+        if (this.currentHelpFactory != null) {
+            this.helpButton.setVisible(true);
+            this.helpDialog.refresh();
+        } else {
+            this.helpButton.setVisible(false);
+            this.helpDialog.close();
+        }
     }
 }

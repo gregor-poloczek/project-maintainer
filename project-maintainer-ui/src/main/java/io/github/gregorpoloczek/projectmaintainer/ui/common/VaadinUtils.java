@@ -22,6 +22,7 @@ public class VaadinUtils {
     public final static Consumer<ThemableLayout> NO_PADDING = l -> l.setPadding(false);
     public final static Consumer<FlexComponent> ALIGN_ITEMS_CENTER = l -> l.setAlignItems(FlexComponent.Alignment.CENTER);
     public final static Consumer<HasSize> WIDTH_FULL = HasSize::setWidthFull;
+    public static final Consumer<? super Component> HIDDEN = c -> c.setVisible(false);
 
     @SafeVarargs
     public static <T extends Component> T with(T component, Consumer<? super T>... modifiers) {
