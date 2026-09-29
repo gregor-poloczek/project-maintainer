@@ -4,22 +4,26 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.facets.BelongsToProjectConnection;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.MainBranchResource;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestListResource;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource.Branch;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.PullRequestResource.PullRequestLocation;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.RepositoryLinkResource;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.RepositoryListResource;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.RepositoryResource;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.WorkspaceMembershipListResource;
-import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.api.WorkspaceMembershipListResource.WorkspaceMembershipResource;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.ApiClient;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.api.V2PullRequestsApi;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.api.V2RepositoriesApi;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.api.V2WorkspacesApi;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2Branch;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2NamedLink;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2NewPullRequest;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2PaginatedPullRequests;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2PaginatedRepositories;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2PaginatedWorkspaceAccess;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2PullRequest;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2PullRequestEndpoint;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2Repository;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model.V2WorkspaceAccess;
+import io.github.gregorpoloczek.projectmaintainer.scm.spi.bitbucket.BitbucketCloudRepositoryIdentifier;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscovery;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.discovery.service.ProjectDiscoveryContext;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 
 import java.net.URI;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,12 +35,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.util.unit.DataSize;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -44,6 +47,11 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class BitbucketCloudProjectDiscovery implements ProjectDiscovery<BitbucketCloudProjectConnection> {
+
+    /**
+     * Number of items requested per page for paginated calls (maximum supported by all used endpoints is 50).
+     */
+    private static final int PAGE_LENGTH = 50;
 
     ProjectService projectService;
 
@@ -55,133 +63,125 @@ public class BitbucketCloudProjectDiscovery implements ProjectDiscovery<Bitbucke
     @Override
     public void discoverProjects(final ProjectDiscoveryContext<BitbucketCloudProjectConnection> context) {
         BitbucketCloudProjectConnection connection = context.getConnection();
-        WebClient webClient = createWebClient(connection);
+        ApiClient apiClient = createApiClient(connection);
+        V2WorkspacesApi workspacesApi = new V2WorkspacesApi(apiClient);
+        V2RepositoriesApi repositoriesApi = new V2RepositoriesApi(apiClient);
 
-        // can result in 403
-        WorkspaceMembershipListResource membershipList = webClient.get()
-                .uri("/user/workspaces")
-                .retrieve()
-                .bodyToMono(WorkspaceMembershipListResource.class)
+        List<V2WorkspaceAccess> memberships = getWorkspaces(workspacesApi);
+
+        for (V2WorkspaceAccess membership : memberships) {
+            String workspace = membership.getWorkspace().getSlug();
+
+            // follow the pagination until there is no next page; on errors, the pages loaded so far are kept
+            List<V2Repository> repositories = getRepositories(repositoriesApi, workspace);
+
+            for (V2Repository repository : repositories) {
+
+                Optional<String> maybeCloneLink = repository.getLinks()
+                        .getClone()
+                        .stream()
+                        .filter(l -> l.getName().equals("https"))
+                        .findFirst()
+                        .map(V2NamedLink::getHref);
+                if (maybeCloneLink.isEmpty()) {
+                    log.warn("Cannot determine clone link for repository {}/{}", workspace,
+                            repository.getName());
+                    continue;
+                }
+                String cloneLink = maybeCloneLink.get();
+                String cloneUsername = cloneLink.replaceAll("^https://([^@]+)@.*$", "$1");
+                if (cloneUsername.contains("https")) {
+                    log.warn("Cannot determine username for connecting to repository {}/{}", workspace,
+                            repository.getName());
+                    continue;
+                }
+
+                FQPN fqpn = FQPN.of(
+                        workspace,
+                        repository.getProject().getKey(),
+                        repository.getSlug());
+
+                context.discovered(c -> c.fqpn(fqpn)
+                        .owner(workspace)
+                        .uri(URI.create(cloneLink))
+                        .defaultBranch(Optional.ofNullable(repository.getMainbranch()).map(V2Branch::getName).orElse(null))
+                        .description(repository.getDescription())
+                        .websiteLink(Optional.ofNullable(repository.getWebsite())
+                                .filter(StringUtils::isNotBlank)
+                                .orElse(null))
+                        .browserLink("https://bitbucket.org/%s/%s/src/%s/".formatted(
+                                workspace, repository.getName(), repository.getMainbranch().getName()))
+                        .name(repository.getName()));
+            }
+        }
+    }
+
+    private List<V2WorkspaceAccess> getWorkspaces(V2WorkspacesApi workspacesApi) {
+        return workspacesApi.listWorkspacesForCurrentUser(1, PAGE_LENGTH)
+                .expand(page -> page.getNext() != null
+                        ? workspacesApi.listWorkspacesForCurrentUser(page.getPage() + 1, PAGE_LENGTH)
+                        : Mono.empty())
+                // can result in 403
                 .doOnError(e -> {
+                    // TODO [SCM] muss das sein?
                     if (e instanceof WebClientResponseException.Forbidden wcre) {
                         log.error("{}: {}", wcre.getMessage(), wcre.getResponseBodyAsString());
                     }
                 })
-                .blockOptional().orElseThrow(IllegalStateException::new);
-
-        for (WorkspaceMembershipResource membership : membershipList.getValues()) {
-            String workspace = membership.getWorkspace().getSlug();
-
-            Integer nextPage = 1;
-            do {
-                try {
-                    Mono<RepositoryListResource> response = webClient.get()
-                            .uri("/repositories/" + workspace + "?page=" + nextPage)
-                            .retrieve()
-                            .bodyToMono(RepositoryListResource.class);
-
-                    RepositoryListResource list = response.blockOptional().orElseThrow(IllegalStateException::new);
-
-                    for (RepositoryResource repository : list.getValues()) {
-
-                        Optional<String> maybeCloneLink = repository.getLinks()
-                                .getClone()
-                                .stream()
-                                .filter(l -> l.getName().equals("https"))
-                                .findFirst()
-                                .map(RepositoryLinkResource::getHref);
-                        if (maybeCloneLink.isEmpty()) {
-                            log.warn("Cannot determine clone link for repository {}/{}", workspace,
-                                    repository.getName());
-                            continue;
-                        }
-                        String cloneLink = maybeCloneLink.get();
-                        String cloneUsername = cloneLink.replaceAll("^https://([^@]+)@.*$", "$1");
-                        if (cloneUsername.contains("https")) {
-                            log.warn("Cannot determine username for connecting to repository {}/{}", workspace,
-                                    repository.getName());
-                            continue;
-                        }
-
-                        FQPN fqpn = FQPN.of(
-                                workspace,
-                                repository.getProject().getKey(),
-                                repository.getName());
-
-                        context.discovered(c -> c.fqpn(fqpn)
-                                .owner(workspace)
-                                .uri(URI.create(cloneLink))
-                                .defaultBranch(Optional.ofNullable(repository.getMainbranch()).map(MainBranchResource::getName).orElse(null))
-                                .description(repository.getDescription())
-                                .websiteLink(Optional.ofNullable(repository.getWebsite())
-                                        .filter(StringUtils::isNotBlank)
-                                        .orElse(null))
-                                .browserLink("https://bitbucket.org/%s/%s/src/%s/".formatted(
-                                        workspace, repository.getName(), repository.getMainbranch().getName()))
-                                .name(repository.getName()));
-                    }
-                    nextPage = list.getNext() != null ? list.getPage() + 1 : null;
-                } catch (WebClientResponseException e) {
-                    log.error("Error listing bitbucket repositories", e);
-                    break;
-                }
-            } while (nextPage != null);
-        }
+                .flatMapIterable(V2PaginatedWorkspaceAccess::getValues)
+                .collectList()
+                .blockOptional().orElseThrow();
     }
 
-    private WebClient createWebClient(ProjectRelatable projectRelatable) {
+    private List<V2Repository> getRepositories(V2RepositoriesApi repositoriesApi, String workspace) {
+        return repositoriesApi.listRepositories(workspace, 1, PAGE_LENGTH)
+                .expand(page -> page.getNext() != null
+                        ? repositoriesApi.listRepositories(workspace, page.getPage() + 1, PAGE_LENGTH)
+                        : Mono.empty())
+                .flatMapIterable(V2PaginatedRepositories::getValues)
+                .collectList()
+                .blockOptional().orElseThrow();
+    }
+
+    private ApiClient createApiClient(ProjectRelatable projectRelatable) {
         BitbucketCloudProjectConnection projectConnection = this.projectService.require(projectRelatable).requireFacet(BelongsToProjectConnection.class).getProjectConnection();
-        return createWebClient(projectConnection);
+        return createApiClient(projectConnection);
     }
 
-    private WebClient createWebClient(BitbucketCloudProjectConnection connection) {
-        String rawCredentials = connection.getEmail() + ":" + connection.getPassword();
-        String encodedCredentials = Base64.getEncoder().encodeToString(rawCredentials.getBytes());
-
+    private ApiClient createApiClient(BitbucketCloudProjectConnection connection) {
         final int size = (int) DataSize.ofMegabytes(16).toBytes();
-        final ExchangeStrategies strategies = ExchangeStrategies.builder()
+        WebClient webClient = ApiClient.buildWebClientBuilder()
                 .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(size))
                 .build();
-        return WebClient.builder().baseUrl("https://api.bitbucket.org/2.0")
-                .exchangeStrategies(strategies)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedCredentials)
-                .build();
+
+        ApiClient apiClient = new ApiClient(webClient);
+        apiClient.setUsername(connection.getEmail());
+        apiClient.setPassword(connection.getPassword());
+        return apiClient;
     }
 
     @Override
     public Mono<Object> closePullRequest(ProjectRelatable projectRelatable, PullRequest pullRequest) {
-        BitbucketRepositoryIds ids = getRepositoryIds(projectRelatable);
+        BitbucketCloudRepositoryIdentifier id = BitbucketCloudRepositoryIdentifier.of(projectRelatable);
+        V2PullRequestsApi pullRequestsApi = new V2PullRequestsApi(createApiClient(id));
 
-        WebClient webClient = createWebClient(projectRelatable);
-
-        return webClient.post()
-                .uri("/repositories/" + ids.getWorkspace() + "/" + ids.getSlug() + "/pullrequests/"
-                        + pullRequest.getId().toString() + "/decline")
-                .retrieve()
-                .bodyToMono(Object.class);
+        return pullRequestsApi.declinePullRequest(id.getBitbucketWorkspace(), id.getBitbucketSlug(),
+                        Integer.valueOf(pullRequest.getId().toString()))
+                .cast(Object.class);
     }
 
     @Override
     public Mono<PullRequest> createPullRequest(ProjectRelatable projectRelatable, PullRequestCreation pullRequest) {
-        WebClient webClient = createWebClient(projectRelatable);
+        BitbucketCloudRepositoryIdentifier id = BitbucketCloudRepositoryIdentifier.of(projectRelatable);
+        V2PullRequestsApi pullRequestsApi = new V2PullRequestsApi(createApiClient(id));
 
-        BitbucketRepositoryIds ids = getRepositoryIds(projectRelatable);
-
-        Branch source = Branch.builder().name(pullRequest.getSourceBranchName()).build();
-        Branch destination = Branch.builder().name(pullRequest.getTargetBranchName()).build();
-        PullRequestPostBodyResource body = PullRequestPostBodyResource.builder()
+        V2NewPullRequest body = new V2NewPullRequest()
                 .title(pullRequest.getTitle())
-                .source(PullRequestLocation.builder().branch(source).build())
-                .destination(PullRequestLocation.builder().branch(destination).build())
-                // TODO testen, dass das hier wirklich funktioniert
-                .closeSourceBranch(true)
-                .build();
+                .source(new V2PullRequestEndpoint().branch(new V2Branch().name(pullRequest.getSourceBranchName())))
+                .destination(new V2PullRequestEndpoint().branch(new V2Branch().name(pullRequest.getTargetBranchName())))
+                .closeSourceBranch(true);
 
-        return webClient.post()
-                .uri("/repositories/" + ids.getWorkspace() + "/" + ids.getSlug() + "/pullrequests")
-                .body(Mono.just(body), PullRequestPostBodyResource.class)
-                .retrieve()
-                .bodyToMono(PullRequestResource.class)
+        return pullRequestsApi.createPullRequest(id.getBitbucketWorkspace(), id.getBitbucketSlug(), body)
                 .map(BitbucketCloudProjectDiscovery::convert);
     }
 
@@ -204,36 +204,28 @@ public class BitbucketCloudProjectDiscovery implements ProjectDiscovery<Bitbucke
         String browserLink;
     }
 
-    @Getter
-    @RequiredArgsConstructor()
-    @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-    private static class BitbucketRepositoryIds {
-
-        String workspace;
-        String slug;
-    }
-
     @Override
     public Mono<List<PullRequest>> getOpenPullRequests(ProjectRelatable projectRelatable) {
-        // TODO repair
-        WebClient webClient = createWebClient(projectRelatable);
-
-        BitbucketRepositoryIds ids = getRepositoryIds(projectRelatable);
-
-        // TODO pagination
-        Mono<PullRequestListResource> response = webClient.get()
-                .uri("/repositories/" + ids.getWorkspace() + "/" + ids.getSlug() + "/pullrequests?state=open")
-                .retrieve()
-                .bodyToMono(PullRequestListResource.class);
-
-        return response
-                .map(r -> r.getValues().stream()
-                        .filter(pR -> pR.getState().equals("OPEN"))
-                        .map(BitbucketCloudProjectDiscovery::convert).map(PullRequest.class::cast)
-                        .toList());
+        return getAllPullRequests(BitbucketCloudRepositoryIdentifier.of(projectRelatable), "OPEN")
+                .flatMapIterable(V2PaginatedPullRequests::getValues)
+                .map(BitbucketCloudProjectDiscovery::convert)
+                .map(PullRequest.class::cast)
+                .collectList();
     }
 
-    private static PullRequestImpl convert(PullRequestResource prr) {
+    private Flux<V2PaginatedPullRequests> getAllPullRequests(BitbucketCloudRepositoryIdentifier id, String state) {
+        V2PullRequestsApi pullRequestsApi = new V2PullRequestsApi(createApiClient(id));
+
+        String workspace = id.getBitbucketWorkspace();
+        String slug = id.getBitbucketSlug();
+
+        return pullRequestsApi.listPullRequests(workspace, slug, state, 1, PAGE_LENGTH)
+                .expand(page -> page.getNext() != null
+                        ? pullRequestsApi.listPullRequests(workspace, slug, state, page.getPage() + 1, PAGE_LENGTH)
+                        : Mono.empty());
+    }
+
+    private static PullRequestImpl convert(V2PullRequest prr) {
         return PullRequestImpl.builder()
                 .id(prr.getId())
                 .title(prr.getTitle())
@@ -241,13 +233,5 @@ public class BitbucketCloudProjectDiscovery implements ProjectDiscovery<Bitbucke
                 .sourceBranchName(prr.getSource().getBranch().getName())
                 .browserLink(prr.getLinks().getHtml().getHref())
                 .build();
-    }
-
-    private BitbucketRepositoryIds getRepositoryIds(ProjectRelatable projectRelatable) {
-        // TODO ordentlicher identifizieren
-        List<String> segments = projectRelatable.getFQPN().getSegments();
-        String workspace = segments.get(2);
-        String repositorySlug = segments.get(4);
-        return new BitbucketRepositoryIds(workspace, repositorySlug);
     }
 }

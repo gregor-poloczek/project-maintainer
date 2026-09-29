@@ -5,53 +5,38 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.exceptions.FQPNInvalidException;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Getter
 public class FQPN implements Comparable<FQPN>, ProjectRelatable, Serializable {
 
     public static final String SEPARATOR = "::";
+    @EqualsAndHashCode.Include
     private final String value;
     private final List<String> segments;
 
     public FQPN(final List<String> segments) {
-        this.value = segments.stream().collect(Collectors.joining(SEPARATOR));
+        if (segments.stream().anyMatch(s -> s.contains(SEPARATOR))) {
+            throw new FQPNInvalidException(segments, "segments must not contain \"%s\"".formatted(SEPARATOR));
+        }
+        this.value = String.join(SEPARATOR, segments);
+        // the passed list is stored as is and also handed out by getSegments(); if it is mutable (e.g. the ArrayList
+        // created in of(...)), modifying it afterwards makes segments and value diverge
         this.segments = segments;
     }
 
     public static FQPN of(String segment, String... segments) {
         final List<String> allSegments = new ArrayList<>();
-        allSegments.addAll(Arrays.asList(segment.split(SEPARATOR)));
-        allSegments.addAll(
-                Arrays.stream(segments).map(s -> Arrays.asList(s.split(SEPARATOR))).flatMap(List::stream).toList());
+        allSegments.add(segment);
+        allSegments.addAll(Arrays.asList(segments));
         return new FQPN(allSegments);
     }
 
-    @Override
-    public boolean equals(final Object object) {
-        if (this == object) {
-            return true;
-        }
-
-        if (object == null || getClass() != object.getClass()) {
-            return false;
-        }
-
-        final FQPN fqpn = (FQPN) object;
-
-        return new EqualsBuilder().append(value, fqpn.value)
-                .isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder(17, 37).append(value).toHashCode();
-    }
 
     @Override
     public String toString() {
@@ -70,5 +55,9 @@ public class FQPN implements Comparable<FQPN>, ProjectRelatable, Serializable {
 
     public FQPN append(FQPN fqpn) {
         return new FQPN(Stream.of(this.segments, fqpn.segments).flatMap(List::stream).toList());
+    }
+
+    public FQPN append(String segment) {
+        return new FQPN(Stream.of(this.segments, List.of(segment)).flatMap(List::stream).toList());
     }
 }

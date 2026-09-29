@@ -18,6 +18,7 @@ import java.util.List;
 public class TestPatchArguments implements Iterable<PatchParameterArgument<?>> {
     @Autowired
     PatchService patchService;
+
     private final String patchId;
     private final List<PatchParameterArgument<?>> arguments = new ArrayList<>();
 

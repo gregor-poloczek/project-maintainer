@@ -1,0 +1,284 @@
+openapi: 3.0.3
+info:
+  title: Bitbucket Cloud API (subset)
+  description: >
+    Minimal subset of the Bitbucket Cloud REST API 2.0, covering only the endpoints and fields used by
+    project-maintainer. See https://developer.atlassian.com/cloud/bitbucket/rest/ for the full API.
+  version: "2.0"
+servers:
+  - url: https://api.bitbucket.org/2.0
+security:
+  - basicAuth: [ ]
+
+paths:
+  /user/workspaces:
+    get:
+      operationId: listWorkspacesForCurrentUser
+      tags: [ V2Workspaces ]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Pagelen"
+      responses:
+        "200":
+          description: Workspaces the current user has access to
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedWorkspaceAccess"
+
+  /repositories/{workspace}:
+    get:
+      operationId: listRepositories
+      tags: [ V2Repositories ]
+      parameters:
+        - $ref: "#/components/parameters/Workspace"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Pagelen"
+      responses:
+        "200":
+          description: Repositories of the workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedRepositories"
+
+  /repositories/{workspace}/{repo_slug}/pullrequests:
+    get:
+      operationId: listPullRequests
+      tags: [ V2PullRequests ]
+      parameters:
+        - $ref: "#/components/parameters/Workspace"
+        - $ref: "#/components/parameters/RepoSlug"
+        - name: state
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Pagelen"
+      responses:
+        "200":
+          description: Pull requests of the repository
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedPullRequests"
+    post:
+      operationId: createPullRequest
+      tags: [ V2PullRequests ]
+      parameters:
+        - $ref: "#/components/parameters/Workspace"
+        - $ref: "#/components/parameters/RepoSlug"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewPullRequest"
+      responses:
+        "201":
+          description: The created pull request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullRequest"
+
+  /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/decline:
+    post:
+      operationId: declinePullRequest
+      tags: [ V2PullRequests ]
+      parameters:
+        - $ref: "#/components/parameters/Workspace"
+        - $ref: "#/components/parameters/RepoSlug"
+        - name: pull_request_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: The declined pull request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PullRequest"
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Number of the page to load, starting with 1
+      schema:
+        type: integer
+    Pagelen:
+      name: pagelen
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+    Workspace:
+      name: workspace
+      in: path
+      required: true
+      description: Slug of the Bitbucket Cloud workspace
+      schema:
+        type: string
+    RepoSlug:
+      name: repo_slug
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    # --- workspaces ---
+    PaginatedWorkspaceAccess:
+      type: object
+      required: [ page, values ]
+      properties:
+        page:
+          type: integer
+        next:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceAccess"
+    WorkspaceAccess:
+      type: object
+      required: [ workspace ]
+      properties:
+        workspace:
+          $ref: "#/components/schemas/Workspace"
+    Workspace:
+      type: object
+      required: [ slug ]
+      properties:
+        slug:
+          type: string
+
+    # --- repositories ---
+    PaginatedRepositories:
+      type: object
+      required: [ page, values ]
+      properties:
+        page:
+          type: integer
+        next:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/Repository"
+    Repository:
+      type: object
+      required: [ name, slug, project, mainbranch, links ]
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        website:
+          type: string
+        project:
+          $ref: "#/components/schemas/Project"
+        mainbranch:
+          $ref: "#/components/schemas/Branch"
+        links:
+          $ref: "#/components/schemas/RepositoryLinks"
+    Project:
+      type: object
+      properties:
+        key:
+          type: string
+    RepositoryLinks:
+      type: object
+      required: [ clone ]
+      properties:
+        clone:
+          type: array
+          items:
+            $ref: "#/components/schemas/NamedLink"
+    NamedLink:
+      type: object
+      required: [ name, href ]
+      properties:
+        name:
+          type: string
+        href:
+          type: string
+
+    # --- pull requests ---
+    PaginatedPullRequests:
+      type: object
+      required: [ page, values ]
+      properties:
+        page:
+          type: integer
+        next:
+          type: string
+        values:
+          type: array
+          items:
+            $ref: "#/components/schemas/PullRequest"
+    PullRequest:
+      type: object
+      required: [ id, title, state, source, destination, links ]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        state:
+          type: string
+        source:
+          $ref: "#/components/schemas/PullRequestEndpoint"
+        destination:
+          $ref: "#/components/schemas/PullRequestEndpoint"
+        links:
+          $ref: "#/components/schemas/PullRequestLinks"
+    NewPullRequest:
+      type: object
+      required: [ title, source, destination ]
+      properties:
+        title:
+          type: string
+        source:
+          $ref: "#/components/schemas/PullRequestEndpoint"
+        destination:
+          $ref: "#/components/schemas/PullRequestEndpoint"
+        close_source_branch:
+          type: boolean
+    PullRequestEndpoint:
+      type: object
+      required: [ branch ]
+      properties:
+        branch:
+          $ref: "#/components/schemas/Branch"
+    PullRequestLinks:
+      type: object
+      required: [ html ]
+      properties:
+        html:
+          $ref: "#/components/schemas/Link"
+    Link:
+      type: object
+      required: [ href ]
+      properties:
+        href:
+          type: string
+
+    # --- common ---
+    Branch:
+      type: object
+      required: [ name ]
+      properties:
+        name:
+          type: string

@@ -2,13 +2,15 @@ package io.github.gregorpoloczek.projectmaintainer.core.common.events;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Getter
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class DomainObjectUpdatedEvent<I, T> {
-    I id;
+public class DomainObjectUpdatedEvent<I, T> extends DomainObjectEvent<I> {
     T value;
+
+    public DomainObjectUpdatedEvent(I id, T value) {
+        super(id);
+        this.value = value;
+    }
 }

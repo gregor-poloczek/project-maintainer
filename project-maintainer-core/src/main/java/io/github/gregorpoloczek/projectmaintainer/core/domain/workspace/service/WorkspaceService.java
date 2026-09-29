@@ -18,6 +18,10 @@ import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.events.WorkspaceCreatedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.events.WorkspaceDeletedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.events.WorkspaceUpdatedEvent;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.exceptions.ProjectConnectionNotFoundException;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.exceptions.WorkspaceAlreadyExistsException;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.exceptions.WorkspaceNameInvalidException;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.exceptions.WorkspaceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -63,12 +67,15 @@ public class WorkspaceService {
 
 
     public ProjectConnection requireConnection(String workspaceId, String connectionId) {
-        return this.requireWorkspace(workspaceId).getProjectConnections().stream().filter(connection -> connectionId.equals(connection.getId())).findFirst().orElseThrow(() -> new IllegalStateException("Connection with id " + connectionId + " not found"));
+        return this.requireWorkspace(workspaceId).getProjectConnections().stream()
+                .filter(connection -> connectionId.equals(connection.getId()))
+                .findFirst()
+                .orElseThrow(() -> new ProjectConnectionNotFoundException(workspaceId, connectionId));
     }
 
 
     public List<Workspace> findWorkspaces() {
-        return Collections.unmodifiableList(new ArrayList<>(this.workspaces));
+        return List.copyOf(this.workspaces);
     }
 
     public Optional<Workspace> findWorkspace(String id) {
@@ -78,13 +85,13 @@ public class WorkspaceService {
     }
 
     public Workspace requireWorkspace(String id) {
-        return findWorkspace(id).orElseThrow(() -> new IllegalStateException("Workspace with id %s not found".formatted(id)));
+        return findWorkspace(id).orElseThrow(() -> new WorkspaceNotFoundException(id));
     }
 
 
     public WorkspaceImpl requireWorkspaceInternal(String id) {
         return workspaces.stream().filter(w -> w.id.equals(id))
-                .findFirst().orElseThrow();
+                .findFirst().orElseThrow(() -> new WorkspaceNotFoundException(id));
     }
 
 
@@ -153,12 +160,12 @@ public class WorkspaceService {
     @SneakyThrows({IOException.class})
     public Workspace createWorkspace(String name) {
         if (StringUtils.isBlank(name)) {
-            throw new IllegalArgumentException("Name cannot be empty");
+            throw new WorkspaceNameInvalidException(name);
         }
 
         boolean nameCollision = this.workspaces.stream().anyMatch(w -> w.getName().equals(name));
         if (nameCollision) {
-            throw new IllegalArgumentException("Workspace already exists: " + name);
+            throw new WorkspaceAlreadyExistsException(name);
         }
         String workspaceId = generateFreeWorkspaceId(name);
         Path workspaceDirectory = workspacesDirectory.resolve(workspaceId);
@@ -186,7 +193,7 @@ public class WorkspaceService {
     @SneakyThrows({IOException.class})
     public void deleteWorkspace(Workspace workspace) {
         if (this.findWorkspace(workspace.getId()).isEmpty()) {
-            throw new IllegalStateException("Workspace with id \"%s\" not found".formatted(workspace.getId()));
+            throw new WorkspaceNotFoundException(workspace.getId());
         }
 
         Path workspaceDirectory = toWorkspaceDirectory(workspace);
@@ -221,6 +228,9 @@ public class WorkspaceService {
     }
 
     private void readWorkspacesFromFileSystem() throws IOException {
+        // forget everything stored in memory (necessary for integration tests)
+        this.workspaces.clear();
+
         try (Stream<Path> workspaceDirectories = Files
                 .walk(workspacesDirectory, 1)
                 .filter(d -> !d.equals(workspacesDirectory))

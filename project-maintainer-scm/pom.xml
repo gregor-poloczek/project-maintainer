@@ -39,7 +39,51 @@
             <groupId>org.kohsuke</groupId>
             <artifactId>github-api</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>7.25.0</version>
+                <executions>
+                    <execution>
+                        <id>bitbucket-cloud-client</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/openapi/bitbucket-cloud.yaml</inputSpec>
+                            <generatorName>java</generatorName>
+                            <library>webclient</library>
+                            <apiPackage>io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.api</apiPackage>
+                            <modelPackage>io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client.model</modelPackage>
+                            <invokerPackage>io.github.gregorpoloczek.projectmaintainer.scm.service.discovery.provider.bitbucket.client</invokerPackage>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <modelNamePrefix>V2</modelNamePrefix>
+                            <configOptions>
+                                <useSpringBoot4>true</useSpringBoot4>
+                                <useJackson3>true</useJackson3>
+                                <useJakartaEe>true</useJakartaEe>
+                                <openApiNullable>false</openApiNullable>
+                                <annotationLibrary>none</annotationLibrary>
+                                <sourceFolder>src/main/java</sourceFolder>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

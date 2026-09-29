@@ -4,9 +4,15 @@ package io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.e
 import io.github.gregorpoloczek.projectmaintainer.core.common.events.DomainObjectUpdatedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
 
-public class ProjectUpdatedEvent extends DomainObjectUpdatedEvent<FQPN, Project> {
+public class ProjectUpdatedEvent extends DomainObjectUpdatedEvent<FQPN, Project> implements ProjectRelatable {
     public ProjectUpdatedEvent(Project project) {
         super(project.getFQPN(), project);
+    }
+
+    @Override
+    public FQPN getFQPN() {
+        return this.getId();
     }
 }

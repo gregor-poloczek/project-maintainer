@@ -6,6 +6,7 @@ import java.util.Optional;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.events.ProjectCreatedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.events.ProjectDeletedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.events.ProjectUpdatedEvent;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.exceptions.ProjectNotFoundException;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.events.ProjectConnectionDeletedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.events.WorkspaceDeletedEvent;
@@ -86,7 +87,7 @@ public class ProjectService {
     }
 
     public Project require(@NonNull final ProjectRelatable projectRelatable) {
-        return this.projectRepository.require(projectRelatable);
+        return this.find(projectRelatable).orElseThrow(() -> new ProjectNotFoundException(projectRelatable.getFQPN()));
     }
 
     public void delete(FQPN fqpn) {
