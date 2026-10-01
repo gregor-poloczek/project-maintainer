@@ -20,7 +20,18 @@ public class GenericProjectRelatableRepository<T> implements ProjectRelatableRep
 
     @Override
     public T require(ProjectRelatable projectRelatable) {
-        return this.find(projectRelatable).orElseThrow(() -> new IllegalStateException("Unable to find data for %s".formatted(projectRelatable.getFQPN())));
+        return this.find(projectRelatable).orElseThrow(() -> this.createNotFoundException(projectRelatable));
+    }
+
+    /**
+     * Creates the exception thrown by {@link #require(ProjectRelatable)} if no data exists for the given project.
+     * Subclasses may override this method to throw a dedicated exception.
+     *
+     * @param projectRelatable the project no data was found for
+     * @return the exception to throw, never {@code null}
+     */
+    protected RuntimeException createNotFoundException(ProjectRelatable projectRelatable) {
+        return new IllegalStateException("Unable to find data for %s".formatted(projectRelatable.getFQPN()));
     }
 
     @Override

@@ -42,6 +42,7 @@
         <module>project-maintainer-scm</module>
         <module>project-maintainer-reporting</module>
         <module>project-maintainer-patching</module>
+        <module>project-maintainer-integration-tests</module>
     </modules>
 
     <properties>
@@ -252,6 +253,10 @@
                 <configuration>
                     <publishingServerId>central.sonatype.org</publishingServerId>
                     <checksums>all</checksums>
+                    <excludeArtifacts>
+                        <!-- tests only, not meant to be published -->
+                        <artifact>project-maintainer-integration-tests</artifact>
+                    </excludeArtifacts>
                 </configuration>
             </plugin>
 

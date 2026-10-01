@@ -13,6 +13,7 @@ import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.executi
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.Patch;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.common.PatchMetaData;
 import io.github.gregorpoloczek.projectmaintainer.patching.service.patch.execution.PatchExecutionResult.PreviewGeneratedResultDetail;
+import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.exceptions.PatchParameterArgumentMissingException;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameter;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArgument;
 import io.github.gregorpoloczek.projectmaintainer.patching.spi.patch.parameters.PatchParameterArguments;
@@ -105,7 +106,7 @@ public class PatchService {
     private void validateParameters(Patch patch, Collection<PatchParameterArgument<?>> arguments) {
         for (PatchParameter definedParameter : patch.getMetaData().getPatchParameters()) {
             if (arguments.stream().noneMatch(p -> p.getParameter().getId().equals(definedParameter.getId()))) {
-                throw new IllegalArgumentException("No argument passed for parameter \"%s\".".formatted(definedParameter.getId()));
+                throw new PatchParameterArgumentMissingException(patch.getMetaData().getId(), definedParameter.getId());
             }
         }
     }
@@ -417,27 +418,28 @@ public class PatchService {
 
     private Mono<? extends PatchOperationResultDetail> checkForExistingRemoteBranch(
             PatchExecutionContext executionContext) {
-        SortedSet<String> remoteBranches = this.gitService.execute(
-                executionContext.getWorkingCopy(), c -> {
-                    return c.getBranchState().getRemoteBranches();
-                });
-        if (!remoteBranches.contains(executionContext.getPatchBranch())) {
-            // TODO [Patching] log message seems incorrect
+        // deferred, so that the check only runs when it is actually reached (and not already while assembling)
+        return Mono.<PatchOperationResultDetail>defer(() -> {
+            SortedSet<String> remoteBranches = this.gitService.execute(
+                    executionContext.getWorkingCopy(), c -> {
+                        return c.getBranchState().getRemoteBranches();
+                    });
+            if (!remoteBranches.contains(executionContext.getPatchBranch())) {
+                log.info("No existing remote branch \"{}\" found in \"{}\".",
+                        executionContext.getPatchBranch(),
+                        executionContext.getFQPN());
+                return Mono.empty();
+            }
+
             log.info("Detected existing remote branch \"{}\", cannot patch \"{}\".",
                     executionContext.getPatchBranch(),
                     executionContext.getFQPN());
-            return Mono.empty();
-        }
-
-        return Mono.fromSupplier(() -> {
-            String href = getPatchRemoteBranchHref(executionContext);
-
-            return PatchExecutionResult.RemoteBranchExistsResultDetail.builder()
+            return Mono.just(PatchExecutionResult.RemoteBranchExistsResultDetail.builder()
                     .remoteBranch(RemoteBranch.builder()
                             .name(executionContext.getPatchBranch())
-                            .href(href)
+                            .href(getPatchRemoteBranchHref(executionContext))
                             .build())
-                    .build();
+                    .build());
         }).doOnSubscribe(x -> executionContext.publish("Checking for remote branches"));
     }
 
