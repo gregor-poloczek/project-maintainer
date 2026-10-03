@@ -595,7 +595,7 @@ public class PatchServiceIntegrationTest {
         Project project = projects.getFirst();
 
         // attach project
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         return project;
     }
 

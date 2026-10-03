@@ -120,7 +120,7 @@ class WorkingCopyServiceIntegrationTest {
     void attachProject_clonesRemoteRepository() {
         assertThat(workingCopyService.isAttached(project)).isFalse();
 
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
 
         WorkingCopy workingCopy = workingCopyService.require(project);
         assertThat(workingCopyService.isAttached(project)).isTrue();
@@ -144,8 +144,9 @@ class WorkingCopyServiceIntegrationTest {
                         e -> assertThat(e.getFQPN()).isEqualTo(project.getFQPN()));
 
         // operations requiring a working copy fail the same way
-        assertThatThrownBy(() -> workingCopyService.pullProject(project))
-                .isInstanceOf(WorkingCopyNotFoundException.class);
+        assertThatThrownBy(() -> workingCopyService.pullProject(project, progress -> { }))
+                .isInstanceOf(ProjectOperationFailedException.class)
+                .hasCauseInstanceOf(WorkingCopyNotFoundException.class);
     }
 
     @Test
@@ -167,7 +168,7 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void attachProjectBlocking_reportsFailureExactlyOnce() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
 
         // attaching an already attached project fails, as its working copy directory already exists
@@ -181,12 +182,13 @@ class WorkingCopyServiceIntegrationTest {
                 .endsWith(OperationProgress.State.FAILED)
                 .containsOnlyOnce(OperationProgress.State.FAILED)
                 .doesNotContain(OperationProgress.State.DONE);
-        assertThat(progress.getLast().getThrowable()).isPresent();
+        assertThat(progress.getLast().getThrowable()).get()
+                .satisfies(t -> assertThat(t).hasRootCauseInstanceOf(IllegalStateException.class));
     }
 
     @Test
     void pullBlocking_fetchesNewCommitsAndReportsProgress() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         WorkingCopy workingCopy = workingCopyService.require(project);
         // the remote repository receives a new commit after the project has been attached
         String newCommitHash = commitInRemoteRepository("new.txt", "# New");
@@ -207,7 +209,7 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void pullBlocking_reportsFailureExactlyOnce() throws IOException {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         WorkingCopy workingCopy = workingCopyService.require(project);
         // the remote repository is gone, hence pulling fails
         FileUtils.deleteDirectory(remoteRepository.toFile());
@@ -227,7 +229,7 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void pullProjectBlocking_updatesWorkingCopyAndReportsProgress() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         // the remote repository receives a new commit after the project has been attached
         String newCommitHash = commitInRemoteRepository("new.txt", "# New");
         List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
@@ -251,7 +253,8 @@ class WorkingCopyServiceIntegrationTest {
         List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
 
         assertThatThrownBy(() -> workingCopyService.pullProject(project, progress::add))
-                .isInstanceOf(WorkingCopyNotFoundException.class);
+                .isInstanceOf(ProjectOperationFailedException.class)
+                .hasCauseInstanceOf(WorkingCopyNotFoundException.class);
 
         assertThat(progress).extracting(ProjectOperationProgress::getState)
                 .containsExactly(OperationProgress.State.FAILED);
@@ -260,12 +263,12 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void pullProject_fetchesNewCommits() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
 
         // the remote repository receives a new commit after the project has been attached
         String newCommitHash = commitInRemoteRepository("new.txt", "# New");
 
-        requireDone(workingCopyService.pullProject(project));
+        requireDone(listener -> workingCopyService.pullProject(project, listener));
 
         WorkingCopy workingCopy = workingCopyService.require(project);
         assertThat(workingCopy.getDirectory().toPath().resolve("new.txt")).hasContent("# New");
@@ -274,7 +277,7 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void detachProjectBlocking_removesWorkingCopyAndReportsProgress() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         Path directory = workingCopyService.require(project).getDirectory().toPath();
         List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
 
@@ -296,7 +299,8 @@ class WorkingCopyServiceIntegrationTest {
         List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
 
         assertThatThrownBy(() -> workingCopyService.detachProject(unknown, progress::add))
-                .isInstanceOf(ProjectNotFoundException.class);
+                .isInstanceOf(ProjectOperationFailedException.class)
+                .hasCauseInstanceOf(ProjectNotFoundException.class);
 
         assertThat(progress).extracting(ProjectOperationProgress::getState)
                 .containsExactly(OperationProgress.State.SCHEDULED, OperationProgress.State.FAILED);
@@ -305,10 +309,10 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void detachProject_removesWorkingCopy() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         Path directory = workingCopyService.require(project).getDirectory().toPath();
 
-        requireDone(workingCopyService.detachProject(project));
+        requireDone(listener -> workingCopyService.detachProject(project, listener));
 
         assertThat(workingCopyService.isAttached(project)).isFalse();
         assertThat(directory).doesNotExist();
@@ -321,7 +325,7 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void deletingProject_removesWorkingCopy() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         Path directory = workingCopyService.require(project).getDirectory().toPath();
 
         // removing the connection removes its projects, and hence their working copies
@@ -334,7 +338,7 @@ class WorkingCopyServiceIntegrationTest {
 
     @Test
     void restart_restoresExistingWorkingCopy() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         WorkingCopy attached = workingCopyService.require(project);
 
         // simulate a restart: projects and working copies are only kept in memory, the working copy directory remains
@@ -353,7 +357,7 @@ class WorkingCopyServiceIntegrationTest {
     @Test
     @SneakyThrows({IOException.class, GitAPIException.class})
     void resetAndCheckoutDefaultBranch_discardsChangesAndReturnsToDefaultBranch() {
-        requireDone(workingCopyService.attachProject(project));
+        requireDone(listener -> workingCopyService.attachProject(project, listener));
         WorkingCopy workingCopy = workingCopyService.require(project);
         Path directory = workingCopy.getDirectory().toPath();
 
