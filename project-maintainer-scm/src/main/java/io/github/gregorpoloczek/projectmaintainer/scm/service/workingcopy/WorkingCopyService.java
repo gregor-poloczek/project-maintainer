@@ -3,6 +3,7 @@ package io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgressListener;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.events.ProjectCreatedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.events.ProjectDeletedEvent;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
@@ -71,6 +72,56 @@ public class WorkingCopyService {
                 })
                 .map(this::toProgressWithoutResult);
 
+    }
+
+    /**
+     * Attaches the given project by cloning its repository into a new working copy.
+     * <p>
+     * Blocks until the project is attached. The progress of cloning is forwarded to the given listener, while the
+     * outcome ({@code DONE} or {@code FAILED}) is reported once for attaching as a whole.
+     *
+     * @param projectRelatable the project to attach
+     * @param progressListener receives the progress of attaching
+     * @return the new working copy
+     */
+    public WorkingCopy attachProject(@NonNull ProjectRelatable projectRelatable,
+                                     @NonNull ProjectOperationProgressListener<Void> progressListener) {
+        final WorkingCopy result;
+        try {
+            final Project project = this.projectService.require(projectRelatable);
+            final WorkingCopy workingCopy =
+                    this.createNew(project.getMetaData().getFQPN(), project.getURI());
+
+            final CloneResult cloneResult = this.gitService.clone(workingCopy, p -> {
+                // the outcome of cloning is not the outcome of attaching, hence only intermediate progress is forwarded
+                if (!p.getState().isTerminated()) {
+                    progressListener.onProgress(this.toProgressWithoutResult(p));
+                }
+            });
+            result = this.save(
+                    workingCopy.getFQPN(),
+                    workingCopy.getURI(),
+                    workingCopy.getDirectory(),
+                    cloneResult.getCurrentBranch(),
+                    cloneResult.getLatestCommit().orElse(null)
+            );
+        } catch (Exception e) {
+            // every kind of failure is reported exactly once
+            progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                    .fqpn(projectRelatable.getFQPN())
+                    .throwable(e)
+                    .state(State.FAILED)
+                    .build());
+            throw e;
+        }
+
+        progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                .fqpn(projectRelatable.getFQPN())
+                .state(State.DONE)
+                .progressCurrent(1)
+                .progressTotal(1)
+                .build());
+        return result;
     }
 
     public Flux<ProjectOperationProgress<Void>> pullProject(@NonNull ProjectRelatable projectRelatable) {

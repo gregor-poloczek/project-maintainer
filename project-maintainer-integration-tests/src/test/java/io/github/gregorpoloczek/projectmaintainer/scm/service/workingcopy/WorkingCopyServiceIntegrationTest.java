@@ -1,5 +1,7 @@
 package io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy;
 
+import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRepository;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
@@ -34,6 +36,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 
 import static io.github.gregorpoloczek.projectmaintainer.integrationtests.support.OperationProgressAssertions.requireDone;
@@ -135,6 +138,42 @@ class WorkingCopyServiceIntegrationTest {
         // operations requiring a working copy fail the same way
         assertThatThrownBy(() -> workingCopyService.pullProject(project))
                 .isInstanceOf(WorkingCopyNotFoundException.class);
+    }
+
+    @Test
+    void attachProjectBlocking_clonesRemoteRepositoryAndReportsProgress() {
+        List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
+
+        WorkingCopy workingCopy = workingCopyService.attachProject(project, progress::add);
+
+        assertThat(workingCopyService.isAttached(project)).isTrue();
+        assertThat(workingCopy.getDirectory().toPath().resolve(README_MD)).hasContent("# Some Project");
+        // the progress starts with SCHEDULED and ends with DONE, reported once for attaching as a whole
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .startsWith(OperationProgress.State.SCHEDULED)
+                .endsWith(OperationProgress.State.DONE)
+                .containsOnlyOnce(OperationProgress.State.DONE)
+                .doesNotContain(OperationProgress.State.FAILED);
+        assertThat(progress).extracting(ProjectOperationProgress::getFQPN).containsOnly(project.getFQPN());
+    }
+
+    @Test
+    void attachProjectBlocking_reportsFailureExactlyOnce() {
+        requireDone(workingCopyService.attachProject(project));
+        List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
+
+        // attaching an already attached project fails, as its working copy directory already exists
+        assertThatThrownBy(() -> workingCopyService.attachProject(project, progress::add))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Project already cloned");
+
+        // the failure is reported exactly once (and not again for cloning), carrying its cause
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .endsWith(OperationProgress.State.FAILED)
+                .containsOnlyOnce(OperationProgress.State.FAILED)
+                .doesNotContain(OperationProgress.State.DONE);
+        assertThat(progress.getLast().getThrowable()).get()
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

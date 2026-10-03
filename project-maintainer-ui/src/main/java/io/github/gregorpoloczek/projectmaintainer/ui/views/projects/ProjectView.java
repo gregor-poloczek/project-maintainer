@@ -21,6 +21,7 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.Route;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgressListener;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectMetaData;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRelatable;
@@ -52,6 +53,8 @@ import io.github.gregorpoloczek.projectmaintainer.ui.common.composable.traits.Ha
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -167,6 +170,69 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         currentOperation.update(subscription);
     }
 
+    /**
+     * Same as {@link #onOperationClick(Predicate, Function, String)}, but for blocking operations, which are bridged
+     * into the reactive world via {@link #toFlux(Consumer)}.
+     */
+    private void onBlockingOperationClick(Predicate<ProjectItem> predicate,
+                                          BiConsumer<ProjectRelatable, ProjectOperationProgressListener<Void>> operation,
+                                          String label) {
+        List<ProjectItem> relevantItems = grid.getSelectionModel()
+                .getSelectedItems()
+                .stream()
+                .filter(predicate)
+                .sorted()
+                .toList();
+
+        this.onBeforeOperation();
+        this.projectProgressBar.start(relevantItems, label);
+
+        Disposable subscription = Flux.fromIterable(relevantItems)
+                .flatMap(item ->
+                        toFlux((ProjectOperationProgressListener<Void> listener) -> operation.accept(item, listener))
+                                // the failure has already been reported as progress by the operation itself
+                                .onErrorComplete())
+                .doFinally(s -> VaadinUtils.access(this, ProjectView::onAfterOperation))
+                .subscribe(p -> VaadinUtils.access(this, p, ProjectView::onUpdateEvent));
+        currentOperation.update(subscription);
+    }
+
+    /**
+     * Runs the given blocking operation on {@link Schedulers#boundedElastic()} when subscribing, and emits the progress
+     * it reports. The operation reports its outcome ({@code DONE} or {@code FAILED}) itself, this only completes or
+     * fails the returned {@link Flux} accordingly.
+     * <p>
+     * Cancelling the subscription interrupts the thread running the operation.
+     */
+    private static <T> Flux<ProjectOperationProgress<T>> toFlux(Consumer<ProjectOperationProgressListener<T>> operation) {
+        return Flux.<ProjectOperationProgress<T>>create(sink -> {
+            // interrupting and resetting the interrupt are synchronized, so that a cancellation can never hit the
+            // (pooled) thread after the operation has finished
+            final Object guard = new Object();
+            final Thread runningThread = Thread.currentThread();
+            final boolean[] running = {true};
+            sink.onCancel(() -> {
+                synchronized (guard) {
+                    if (running[0]) {
+                        runningThread.interrupt();
+                    }
+                }
+            });
+
+            try {
+                operation.accept(sink::next);
+                sink.complete();
+            } catch (Exception e) {
+                sink.error(e);
+            } finally {
+                synchronized (guard) {
+                    running[0] = false;
+                    Thread.interrupted();
+                }
+            }
+        }).subscribeOn(Schedulers.boundedElastic());
+    }
+
     private void onDetachClick(ClickEvent<MenuItem> event) {
         this.onOperationClick(
                 this.workingCopyService::isAttached,
@@ -175,7 +241,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     }
 
     private void onAttachClick(ClickEvent<MenuItem> event) {
-        this.onOperationClick(
+        this.onBlockingOperationClick(
                 not(this.workingCopyService::isAttached),
                 this.workingCopyService::attachProject,
                 "Attaching projects ...");
