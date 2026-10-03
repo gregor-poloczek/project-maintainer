@@ -43,7 +43,6 @@ import org.eclipse.jgit.submodule.SubmoduleWalk;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static java.util.stream.Collectors.toCollection;
@@ -56,51 +55,6 @@ public class GitService {
     private final List<ProjectDiscovery<?>> projectDiscoveries;
     private final WorkspaceService workspaceService;
     private final ProjectService projectService;
-
-    public Flux<ProjectOperationProgress<PullResult>> pull(@NonNull WorkingCopy workingCopy) {
-
-        return Flux.create(sink -> {
-            sink.next(ProjectOperationProgress.<PullResult>builder()
-                    .fqpn(workingCopy.getFQPN())
-                    .state(State.SCHEDULED)
-                    .message("Pulling ...")
-                    .build());
-            try {
-                PullResult pullResult = workingCopy.withWriteLockAndThrowing(() -> {
-                    final File directory = workingCopy.getDirectory();
-                    // TODO [Working-Copy] configure transport not to not use credentials at the first attempt
-                    try (Git git = Git.open(directory)) {
-                        log.info("Pulling \"{}\".", directory);
-
-                        var p = this.createGitActionContext(workingCopy, git)
-                                .command(Git::pull)
-                                .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
-                                .call();
-
-                        log.info("Pulled \"{}\" successfully.", directory);
-                        return new PullResult(Commit.of((RevCommit) p.getMergeResult().getNewHead()));
-                    }
-                });
-                sink.next(ProjectOperationProgress.<PullResult>builder()
-                        .fqpn(workingCopy.getFQPN())
-                        .state(State.DONE)
-                        .progressCurrent(1)
-                        .progressTotal(1)
-                        .result(pullResult)
-                        .build());
-                sink.complete();
-
-            } catch (Exception e) {
-                log.error("Pulling failed.", e);
-                sink.next(ProjectOperationProgress.<PullResult>builder()
-                        .fqpn(workingCopy.getFQPN())
-                        .throwable(e)
-                        .state(State.FAILED)
-                        .build());
-                sink.error(e);
-            }
-        });
-    }
 
     public PullResult pull(@NonNull WorkingCopy workingCopy, ProjectOperationProgressListener<PullResult> progressListener) {
         progressListener.onProgress(ProjectOperationProgress.<PullResult>builder().fqpn(workingCopy.getFQPN())
@@ -144,64 +98,6 @@ public class GitService {
                 return new PullResult(Commit.of((RevCommit) p.getMergeResult().getNewHead()));
             }
         });
-    }
-
-    public Flux<ProjectOperationProgress<CloneResult>> clone(@NonNull final WorkingCopy workingCopy) {
-        return Flux.<ProjectOperationProgress<CloneResult>>create(sink -> {
-            sink.next(ProjectOperationProgress.<CloneResult>builder()
-                    .fqpn(workingCopy.getFQPN())
-                    .state(State.SCHEDULED)
-                    .message("Cloning ...")
-                    .build());
-            CloneResult cloneResult = workingCopy.withWriteLock(() -> {
-                final File directory = workingCopy.getDirectory();
-                final URI uri = workingCopy.getURI();
-                if (directory.exists()) {
-                    log.error("Project \"{}\" has already been cloned", workingCopy.getFQPN());
-                    throw new IllegalStateException("Project already cloned");
-                }
-
-                final CredentialsProvider credentialProvider = getCredentialsProvider(workingCopy);
-
-                try {
-                    log.info("Cloning \"{}\".", workingCopy.getFQPN());
-                    Git.cloneRepository().setURI(uri.toString())
-                            .setDirectory(directory)
-                            .setCredentialsProvider(credentialProvider)
-                            .setProgressMonitor(new GitOperationProgressMonitor<>(sink, workingCopy.getFQPN()))
-                            .call().close();
-
-                    final Optional<Commit> commit =
-                            this.getLatestCommitHash(workingCopy);
-
-                    final String currentBranch =
-                            this.getCurrentBranch(workingCopy);
-
-                    log.info("Cloned \"{}\" successfully.", workingCopy.getFQPN());
-                    return new CloneResult(commit.orElse(null), currentBranch);
-                } catch (GitAPIException e) {
-                    log.error("Cloning failed.", e);
-                    sink.next(ProjectOperationProgress.<CloneResult>builder()
-                            .fqpn(workingCopy.getFQPN())
-                            .throwable(e)
-                            .state(State.FAILED)
-                            .build());
-                    throw new IllegalStateException(e);
-                }
-            });
-            sink.next(ProjectOperationProgress.<CloneResult>builder()
-                    .fqpn(workingCopy.getFQPN())
-                    .state(OperationProgress.State.DONE)
-                    .progressCurrent(1)
-                    .progressTotal(1)
-                    .result(cloneResult)
-                    .build());
-            sink.complete();
-        }).onErrorResume(t -> Flux.just(ProjectOperationProgress.<CloneResult>builder()
-                .fqpn(workingCopy.getFQPN())
-                .state(State.FAILED)
-                .throwable(t)
-                .build()).concatWith(Mono.error(t)));
     }
 
 

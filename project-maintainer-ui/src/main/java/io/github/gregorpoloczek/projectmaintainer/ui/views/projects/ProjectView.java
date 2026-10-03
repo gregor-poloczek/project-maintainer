@@ -11,7 +11,6 @@ import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.Grid.SelectionMode;
-import com.vaadin.flow.component.markdown.Markdown;
 import com.vaadin.flow.component.menubar.MenuBar;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -55,11 +54,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import lombok.experimental.UtilityClass;
-import org.intellij.lang.annotations.Language;
 import org.vaadin.addons.gl0b3.materialicons.MaterialIcons;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
@@ -149,30 +146,9 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
         return result;
     }
 
-    private void onOperationClick(Predicate<ProjectItem> predicate,
-                                  Function<ProjectRelatable, Flux<ProjectOperationProgress<Void>>> operation, String label) {
-        List<ProjectItem> relevantItems = grid.getSelectionModel()
-                .getSelectedItems()
-                .stream()
-                .filter(predicate)
-                .sorted()
-                .toList();
-
-        this.onBeforeOperation();
-        this.projectProgressBar.start(relevantItems, label);
-
-        Disposable subscription = Flux.fromIterable(relevantItems)
-                .flatMap(item ->
-                        operation.apply(item)
-                                .onErrorComplete().subscribeOn(Schedulers.boundedElastic()))
-                .doFinally(s -> VaadinUtils.access(this, ProjectView::onAfterOperation))
-                .subscribe(p -> VaadinUtils.access(this, p, ProjectView::onUpdateEvent));
-        currentOperation.update(subscription);
-    }
-
     /**
-     * Same as {@link #onOperationClick(Predicate, Function, String)}, but for blocking operations, which are bridged
-     * into the reactive world via {@link #toFlux(Consumer)}.
+     * Runs the given blocking operation for all selected projects matching the predicate, and displays their progress.
+     * The blocking operations are bridged into the reactive world via {@link #toFlux(Consumer)}.
      */
     private void onBlockingOperationClick(Predicate<ProjectItem> predicate,
                                           BiConsumer<ProjectRelatable, ProjectOperationProgressListener<Void>> operation,

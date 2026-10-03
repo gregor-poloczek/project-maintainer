@@ -1,6 +1,5 @@
 package io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy;
 
-import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress.State;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationFailedException;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
@@ -40,7 +39,6 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 
 @Slf4j
 @Service
@@ -52,28 +50,6 @@ public class WorkingCopyService {
     GitService gitService;
     ProjectService projectService;
     WorkingCopyRepository workingCopyRepository;
-
-    public Flux<ProjectOperationProgress<Void>> attachProject(@NonNull ProjectRelatable projectRelatable) {
-        final Project project = this.projectService.require(projectRelatable);
-        final WorkingCopy workingCopy =
-                this.createNew(project.getMetaData().getFQPN(), project.getURI());
-        final Flux<ProjectOperationProgress<CloneResult>> clone = this.gitService.clone(workingCopy);
-
-        return clone.doOnNext(p -> {
-                    if (p.getState() == OperationProgress.State.DONE) {
-                        CloneResult result = p.getResult().orElseThrow();
-                        this.save(
-                                workingCopy.getFQPN(),
-                                workingCopy.getURI(),
-                                workingCopy.getDirectory(),
-                                result.getCurrentBranch(),
-                                result.getLatestCommit().orElse(null)
-                        );
-                    }
-                })
-                .map(this::toProgressWithoutResult);
-
-    }
 
     /**
      * Attaches the given project by cloning its repository into a new working copy.
@@ -130,24 +106,6 @@ public class WorkingCopyService {
         return result;
     }
 
-    public Flux<ProjectOperationProgress<Void>> pullProject(@NonNull ProjectRelatable projectRelatable) {
-        final WorkingCopy workingCopy = this.require(projectRelatable);
-        final Flux<ProjectOperationProgress<PullResult>> pull = this.gitService.pull(workingCopy);
-
-        return pull.doOnNext(p -> {
-            if (p.getState() == OperationProgress.State.DONE) {
-                PullResult result = p.getResult().orElseThrow();
-                this.save(
-                        workingCopy.getFQPN(),
-                        workingCopy.getURI(),
-                        workingCopy.getDirectory(),
-                        workingCopy.getCurrentBranch(),
-                        result.getLatestCommit().orElse(null)
-                );
-            }
-        }).map(this::toProgressWithoutResult);
-    }
-
     /**
      * Pulls the latest changes into the working copy of the given project.
      * <p>
@@ -161,29 +119,15 @@ public class WorkingCopyService {
     public WorkingCopy pullProject(@NonNull ProjectRelatable projectRelatable,
                                    @NonNull ProjectOperationProgressListener<Void> progressListener) {
         try {
-            final WorkingCopy workingCopy = this.require(projectRelatable);
 
-            final PullResult pullResult = this.gitService.pull(workingCopy, p -> {
-                // the outcome of pulling is reported once the working copy has been updated, hence only intermediate
-                // progress is forwarded
-                if (!p.getState().isTerminated()) {
-                    progressListener.onProgress(this.toProgressWithoutResult(p));
-                }
-            });
-            final WorkingCopy result = this.save(
-                    workingCopy.getFQPN(),
-                    workingCopy.getURI(),
-                    workingCopy.getDirectory(),
-                    workingCopy.getCurrentBranch(),
-                    pullResult.getLatestCommit().orElse(null)
-            );
+            WorkingCopy workingCopy = pullProjectInternal(projectRelatable, progressListener);
             progressListener.onProgress(ProjectOperationProgress.<Void>builder()
                     .fqpn(projectRelatable.getFQPN())
                     .state(State.DONE)
                     .progressCurrent(1)
                     .progressTotal(1)
                     .build());
-            return result;
+            return workingCopy;
         } catch (Exception e) {
             // every kind of failure is reported exactly once
             ProjectOperationProgress<Void> progress = ProjectOperationProgress.<Void>builder()
@@ -196,6 +140,26 @@ public class WorkingCopyService {
         }
     }
 
+    private WorkingCopy pullProjectInternal(@org.jspecify.annotations.NonNull ProjectRelatable projectRelatable, @org.jspecify.annotations.NonNull ProjectOperationProgressListener<Void> progressListener) {
+        final WorkingCopy workingCopy = this.require(projectRelatable);
+
+        final PullResult pullResult = this.gitService.pull(workingCopy, p -> {
+            // the outcome of pulling is reported once the working copy has been updated, hence only intermediate
+            // progress is forwarded
+            if (!p.getState().isTerminated()) {
+                progressListener.onProgress(this.toProgressWithoutResult(p));
+            }
+        });
+        final WorkingCopy result = this.save(
+                workingCopy.getFQPN(),
+                workingCopy.getURI(),
+                workingCopy.getDirectory(),
+                workingCopy.getCurrentBranch(),
+                pullResult.getLatestCommit().orElse(null)
+        );
+        return result;
+    }
+
     private ProjectOperationProgress<Void> toProgressWithoutResult(ProjectOperationProgress<?> p) {
         return ProjectOperationProgress.<Void>builder()
                 .fqpn(p.getFQPN())
@@ -205,41 +169,6 @@ public class WorkingCopyService {
                 .progressTotal(p.getProgressTotal())
                 .message(p.getMessage())
                 .build();
-    }
-
-    public Flux<ProjectOperationProgress<Void>> detachProject(@NonNull final ProjectRelatable projectRelatable) {
-        final Project project = this.projectService.require(projectRelatable);
-        return Flux.create(sink -> {
-            sink.next(ProjectOperationProgress.<Void>builder()
-                    .fqpn(project.getFQPN())
-                    .message("Removing working copy")
-                    .state(State.SCHEDULED)
-                    .build());
-            project.withWriteLock(() -> {
-                try {
-                    this.remove(projectRelatable.getFQPN());
-                    sink.next(ProjectOperationProgress.<Void>builder()
-                            .fqpn(project.getFQPN())
-                            .message("Working copy removed")
-                            .state(OperationProgress.State.DONE)
-                            .progressCurrent(1)
-                            .progressTotal(1)
-                            .result(null)
-                            .build());
-
-                    eventPublisher.publishEvent(new ProjectDetachedEvent(project));
-                    sink.complete();
-                } catch (Exception e) {
-                    sink.next(ProjectOperationProgress.<Void>builder()
-                            .fqpn(project.getFQPN())
-                            .throwable(e)
-                            .state(OperationProgress.State.FAILED)
-                            .build());
-                    sink.error(e);
-                }
-                return null;
-            });
-        });
     }
 
     /**
@@ -278,12 +207,13 @@ public class WorkingCopyService {
             }
         } catch (Exception e) {
             // every kind of failure is reported exactly once
-            progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+            ProjectOperationProgress<Void> progress = ProjectOperationProgress.<Void>builder()
                     .fqpn(projectRelatable.getFQPN())
                     .throwable(e)
                     .state(State.FAILED)
-                    .build());
-            throw e;
+                    .build();
+            progressListener.onProgress(progress);
+            throw new ProjectOperationFailedException(progress, e);
         }
 
     }
