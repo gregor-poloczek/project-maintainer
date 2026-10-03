@@ -234,7 +234,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     }
 
     private void onDetachClick(ClickEvent<MenuItem> event) {
-        this.onOperationClick(
+        this.onBlockingOperationClick(
                 this.workingCopyService::isAttached,
                 this.workingCopyService::detachProject,
                 "Detaching projects ...");
@@ -248,7 +248,7 @@ public class ProjectView extends VerticalLayout implements BeforeEnterObserver, 
     }
 
     private void onPullClick(ClickEvent<MenuItem> event) {
-        this.onOperationClick(
+        this.onBlockingOperationClick(
                 this.workingCopyService::isAttached,
                 this.workingCopyService::pullProject,
                 "Pulling projects ...");

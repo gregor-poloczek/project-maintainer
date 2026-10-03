@@ -1,15 +1,20 @@
 package io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy;
 
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.OperationProgress;
+import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationFailedException;
 import io.github.gregorpoloczek.projectmaintainer.core.common.service.progress.ProjectOperationProgress;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.FQPN;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.Project;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectRepository;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.ProjectService;
+import io.github.gregorpoloczek.projectmaintainer.core.domain.project.service.exceptions.ProjectNotFoundException;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.Workspace;
 import io.github.gregorpoloczek.projectmaintainer.core.domain.workspace.service.WorkspaceService;
 import io.github.gregorpoloczek.projectmaintainer.integrationtests.TestApplication;
 import io.github.gregorpoloczek.projectmaintainer.integrationtests.support.IntegrationTestFileSystemProjectConnection;
 import io.github.gregorpoloczek.projectmaintainer.integrationtests.support.IntegrationTestCleanupExtension;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.git.GitService;
+import io.github.gregorpoloczek.projectmaintainer.scm.service.git.PullResult;
 import io.github.gregorpoloczek.projectmaintainer.scm.service.workingcopy.exceptions.WorkingCopyNotFoundException;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
@@ -63,6 +68,9 @@ class WorkingCopyServiceIntegrationTest {
 
     @Autowired
     WorkingCopyRepository workingCopyRepository;
+
+    @Autowired
+    GitService gitService;
 
     @Autowired
     WorkspaceService workspaceService;
@@ -164,16 +172,90 @@ class WorkingCopyServiceIntegrationTest {
 
         // attaching an already attached project fails, as its working copy directory already exists
         assertThatThrownBy(() -> workingCopyService.attachProject(project, progress::add))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Project already cloned");
+                .isInstanceOf(ProjectOperationFailedException.class)
+                .hasRootCauseInstanceOf(IllegalStateException.class)
+                .hasRootCauseMessage("Project already cloned");
 
         // the failure is reported exactly once (and not again for cloning), carrying its cause
         assertThat(progress).extracting(ProjectOperationProgress::getState)
                 .endsWith(OperationProgress.State.FAILED)
                 .containsOnlyOnce(OperationProgress.State.FAILED)
                 .doesNotContain(OperationProgress.State.DONE);
-        assertThat(progress.getLast().getThrowable()).get()
-                .isInstanceOf(IllegalStateException.class);
+        assertThat(progress.getLast().getThrowable()).isPresent();
+    }
+
+    @Test
+    void pullBlocking_fetchesNewCommitsAndReportsProgress() {
+        requireDone(workingCopyService.attachProject(project));
+        WorkingCopy workingCopy = workingCopyService.require(project);
+        // the remote repository receives a new commit after the project has been attached
+        String newCommitHash = commitInRemoteRepository("new.txt", "# New");
+        List<ProjectOperationProgress<PullResult>> progress = new ArrayList<>();
+
+        PullResult result = gitService.pull(workingCopy, progress::add);
+
+        assertThat(workingCopy.getDirectory().toPath().resolve("new.txt")).hasContent("# New");
+        // commits are identified by their abbreviated hash
+        assertThat(newCommitHash).startsWith(result.getLatestCommit().orElseThrow().getHash());
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .startsWith(OperationProgress.State.SCHEDULED)
+                .endsWith(OperationProgress.State.DONE)
+                .containsOnlyOnce(OperationProgress.State.DONE)
+                .doesNotContain(OperationProgress.State.FAILED);
+        assertThat(progress.getLast().getResult()).contains(result);
+    }
+
+    @Test
+    void pullBlocking_reportsFailureExactlyOnce() throws IOException {
+        requireDone(workingCopyService.attachProject(project));
+        WorkingCopy workingCopy = workingCopyService.require(project);
+        // the remote repository is gone, hence pulling fails
+        FileUtils.deleteDirectory(remoteRepository.toFile());
+        List<ProjectOperationProgress<PullResult>> progress = new ArrayList<>();
+
+        assertThatThrownBy(() -> gitService.pull(workingCopy, progress::add))
+                .isInstanceOfSatisfying(ProjectOperationFailedException.class,
+                        e -> assertThat(e.getProgress()).isSameAs(progress.getLast()));
+
+        // the failure is reported exactly once, carrying its cause
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .endsWith(OperationProgress.State.FAILED)
+                .containsOnlyOnce(OperationProgress.State.FAILED)
+                .doesNotContain(OperationProgress.State.DONE);
+        assertThat(progress.getLast().getThrowable()).isPresent();
+    }
+
+    @Test
+    void pullProjectBlocking_updatesWorkingCopyAndReportsProgress() {
+        requireDone(workingCopyService.attachProject(project));
+        // the remote repository receives a new commit after the project has been attached
+        String newCommitHash = commitInRemoteRepository("new.txt", "# New");
+        List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
+
+        WorkingCopy workingCopy = workingCopyService.pullProject(project, progress::add);
+
+        assertThat(workingCopy.getDirectory().toPath().resolve("new.txt")).hasContent("# New");
+        // the stored working copy knows about the new commit
+        assertThat(newCommitHash).startsWith(workingCopyService.require(project).getLatestCommit().orElseThrow().getHash());
+        // the progress starts with SCHEDULED and ends with DONE, reported once for the operation as a whole
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .startsWith(OperationProgress.State.SCHEDULED)
+                .endsWith(OperationProgress.State.DONE)
+                .containsOnlyOnce(OperationProgress.State.DONE)
+                .doesNotContain(OperationProgress.State.FAILED);
+    }
+
+    @Test
+    void pullProjectBlocking_reportsFailureExactlyOnce() {
+        // the project has not been attached, hence there is nothing to pull
+        List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
+
+        assertThatThrownBy(() -> workingCopyService.pullProject(project, progress::add))
+                .isInstanceOf(WorkingCopyNotFoundException.class);
+
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .containsExactly(OperationProgress.State.FAILED);
+        assertThat(progress.getLast().getThrowable()).get().isInstanceOf(WorkingCopyNotFoundException.class);
     }
 
     @Test
@@ -188,6 +270,37 @@ class WorkingCopyServiceIntegrationTest {
         WorkingCopy workingCopy = workingCopyService.require(project);
         assertThat(workingCopy.getDirectory().toPath().resolve("new.txt")).hasContent("# New");
         assertThat(newCommitHash).startsWith(workingCopy.getLatestCommit().orElseThrow().getHash());
+    }
+
+    @Test
+    void detachProjectBlocking_removesWorkingCopyAndReportsProgress() {
+        requireDone(workingCopyService.attachProject(project));
+        Path directory = workingCopyService.require(project).getDirectory().toPath();
+        List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
+
+        workingCopyService.detachProject(project, progress::add);
+
+        assertThat(workingCopyService.isAttached(project)).isFalse();
+        assertThat(directory).doesNotExist();
+        assertThat(applicationEvents.stream(ProjectDetachedEvent.class))
+                .extracting(ProjectDetachedEvent::getFQPN)
+                .containsExactly(project.getFQPN());
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .containsExactly(OperationProgress.State.SCHEDULED, OperationProgress.State.DONE);
+    }
+
+    @Test
+    void detachProjectBlocking_reportsFailureExactlyOnce() {
+        // an unknown project cannot be detached
+        FQPN unknown = FQPN.of("unknown-workspace", "unknown-connection", "unknown-project");
+        List<ProjectOperationProgress<Void>> progress = new ArrayList<>();
+
+        assertThatThrownBy(() -> workingCopyService.detachProject(unknown, progress::add))
+                .isInstanceOf(ProjectNotFoundException.class);
+
+        assertThat(progress).extracting(ProjectOperationProgress::getState)
+                .containsExactly(OperationProgress.State.SCHEDULED, OperationProgress.State.FAILED);
+        assertThat(applicationEvents.stream(ProjectDetachedEvent.class)).isEmpty();
     }
 
     @Test

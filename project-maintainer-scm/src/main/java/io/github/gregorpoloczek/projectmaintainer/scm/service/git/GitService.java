@@ -102,6 +102,50 @@ public class GitService {
         });
     }
 
+    public PullResult pull(@NonNull WorkingCopy workingCopy, ProjectOperationProgressListener<PullResult> progressListener) {
+        progressListener.onProgress(ProjectOperationProgress.<PullResult>builder().fqpn(workingCopy.getFQPN())
+                .state(State.SCHEDULED)
+                .message("Pulling ...")
+                .build());
+
+        try {
+            PullResult result = pullInternal(workingCopy, progressListener);
+            progressListener.onProgress(ProjectOperationProgress.<PullResult>builder().fqpn(workingCopy.getFQPN())
+                    .state(State.DONE)
+                    .progressCurrent(1)
+                    .progressTotal(1)
+                    .result(result)
+                    .build());
+            return result;
+        } catch (Exception e) {
+            log.error("Pulling failed.", e);
+            ProjectOperationProgress<PullResult> progress = ProjectOperationProgress.<PullResult>builder().fqpn(workingCopy.getFQPN())
+                    .throwable(e)
+                    .state(State.FAILED)
+                    .build();
+            progressListener.onProgress(progress);
+            throw new ProjectOperationFailedException(progress, e);
+        }
+    }
+
+    private @NonNull PullResult pullInternal(@NonNull WorkingCopy workingCopy, ProjectOperationProgressListener<PullResult> progressListener) throws Exception {
+        return workingCopy.withWriteLockAndThrowing(() -> {
+            final File directory = workingCopy.getDirectory();
+            // TODO [Working-Copy] configure transport not to not use credentials at the first attempt
+            try (Git git = Git.open(directory)) {
+                log.info("Pulling \"{}\".", directory);
+
+                var p = this.createGitActionContext(workingCopy, git)
+                        .command(Git::pull)
+                        .setProgressMonitor(new BlockingGitOperationProgressMonitor<>(progressListener, workingCopy.getFQPN()))
+                        .call();
+
+                log.info("Pulled \"{}\" successfully.", directory);
+                return new PullResult(Commit.of((RevCommit) p.getMergeResult().getNewHead()));
+            }
+        });
+    }
+
     public Flux<ProjectOperationProgress<CloneResult>> clone(@NonNull final WorkingCopy workingCopy) {
         return Flux.<ProjectOperationProgress<CloneResult>>create(sink -> {
             sink.next(ProjectOperationProgress.<CloneResult>builder()

@@ -142,6 +142,55 @@ public class WorkingCopyService {
         }).map(this::toProgressWithoutResult);
     }
 
+    /**
+     * Pulls the latest changes into the working copy of the given project.
+     * <p>
+     * Blocks until pulling is finished. The progress of pulling is forwarded to the given listener, while the
+     * outcome ({@code DONE} or {@code FAILED}) is reported once for the operation as a whole.
+     *
+     * @param projectRelatable the project to pull
+     * @param progressListener receives the progress of pulling
+     * @return the updated working copy
+     */
+    public WorkingCopy pullProject(@NonNull ProjectRelatable projectRelatable,
+                                   @NonNull ProjectOperationProgressListener<Void> progressListener) {
+        final WorkingCopy result;
+        try {
+            final WorkingCopy workingCopy = this.require(projectRelatable);
+
+            final PullResult pullResult = this.gitService.pull(workingCopy, p -> {
+                // the outcome of pulling is reported once the working copy has been updated, hence only intermediate
+                // progress is forwarded
+                if (!p.getState().isTerminated()) {
+                    progressListener.onProgress(this.toProgressWithoutResult(p));
+                }
+            });
+            result = this.save(
+                    workingCopy.getFQPN(),
+                    workingCopy.getURI(),
+                    workingCopy.getDirectory(),
+                    workingCopy.getCurrentBranch(),
+                    pullResult.getLatestCommit().orElse(null)
+            );
+        } catch (Exception e) {
+            // every kind of failure is reported exactly once
+            progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                    .fqpn(projectRelatable.getFQPN())
+                    .throwable(e)
+                    .state(State.FAILED)
+                    .build());
+            throw e;
+        }
+
+        progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                .fqpn(projectRelatable.getFQPN())
+                .state(State.DONE)
+                .progressCurrent(1)
+                .progressTotal(1)
+                .build());
+        return result;
+    }
+
     private ProjectOperationProgress<Void> toProgressWithoutResult(ProjectOperationProgress<?> p) {
         return ProjectOperationProgress.<Void>builder()
                 .fqpn(p.getFQPN())
@@ -186,6 +235,49 @@ public class WorkingCopyService {
                 return null;
             });
         });
+    }
+
+    /**
+     * Detaches the given project by removing its working copy.
+     * <p>
+     * Blocks until the working copy has been removed. The outcome ({@code DONE} or {@code FAILED}) is reported once
+     * for the operation as a whole.
+     *
+     * @param projectRelatable the project to detach
+     * @param progressListener receives the progress of detaching
+     */
+    public void detachProject(@NonNull final ProjectRelatable projectRelatable,
+                              @NonNull final ProjectOperationProgressListener<Void> progressListener) {
+        progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                .fqpn(projectRelatable.getFQPN())
+                .message("Removing working copy")
+                .state(State.SCHEDULED)
+                .build());
+
+        try {
+            final Project project = this.projectService.require(projectRelatable);
+            project.withWriteLock(() -> {
+                this.remove(projectRelatable.getFQPN());
+                return null;
+            });
+            eventPublisher.publishEvent(new ProjectDetachedEvent(project));
+        } catch (Exception e) {
+            // every kind of failure is reported exactly once
+            progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                    .fqpn(projectRelatable.getFQPN())
+                    .throwable(e)
+                    .state(State.FAILED)
+                    .build());
+            throw e;
+        }
+
+        progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                .fqpn(projectRelatable.getFQPN())
+                .message("Working copy removed")
+                .state(State.DONE)
+                .progressCurrent(1)
+                .progressTotal(1)
+                .build());
     }
 
 
