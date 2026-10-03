@@ -160,7 +160,6 @@ public class WorkingCopyService {
      */
     public WorkingCopy pullProject(@NonNull ProjectRelatable projectRelatable,
                                    @NonNull ProjectOperationProgressListener<Void> progressListener) {
-        final WorkingCopy result;
         try {
             final WorkingCopy workingCopy = this.require(projectRelatable);
 
@@ -171,30 +170,30 @@ public class WorkingCopyService {
                     progressListener.onProgress(this.toProgressWithoutResult(p));
                 }
             });
-            result = this.save(
+            final WorkingCopy result = this.save(
                     workingCopy.getFQPN(),
                     workingCopy.getURI(),
                     workingCopy.getDirectory(),
                     workingCopy.getCurrentBranch(),
                     pullResult.getLatestCommit().orElse(null)
             );
+            progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                    .fqpn(projectRelatable.getFQPN())
+                    .state(State.DONE)
+                    .progressCurrent(1)
+                    .progressTotal(1)
+                    .build());
+            return result;
         } catch (Exception e) {
             // every kind of failure is reported exactly once
-            progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+            ProjectOperationProgress<Void> progress = ProjectOperationProgress.<Void>builder()
                     .fqpn(projectRelatable.getFQPN())
                     .throwable(e)
                     .state(State.FAILED)
-                    .build());
-            throw e;
+                    .build();
+            progressListener.onProgress(progress);
+            throw new ProjectOperationFailedException(progress, e);
         }
-
-        progressListener.onProgress(ProjectOperationProgress.<Void>builder()
-                .fqpn(projectRelatable.getFQPN())
-                .state(State.DONE)
-                .progressCurrent(1)
-                .progressTotal(1)
-                .build());
-        return result;
     }
 
     private ProjectOperationProgress<Void> toProgressWithoutResult(ProjectOperationProgress<?> p) {
@@ -266,7 +265,17 @@ public class WorkingCopyService {
                 this.remove(projectRelatable.getFQPN());
                 return null;
             });
-            eventPublisher.publishEvent(new ProjectDetachedEvent(project));
+            try {
+                progressListener.onProgress(ProjectOperationProgress.<Void>builder()
+                        .fqpn(projectRelatable.getFQPN())
+                        .message("Working copy removed")
+                        .state(State.DONE)
+                        .progressCurrent(1)
+                        .progressTotal(1)
+                        .build());
+            } finally {
+                eventPublisher.publishEvent(new ProjectDetachedEvent(project));
+            }
         } catch (Exception e) {
             // every kind of failure is reported exactly once
             progressListener.onProgress(ProjectOperationProgress.<Void>builder()
@@ -277,13 +286,6 @@ public class WorkingCopyService {
             throw e;
         }
 
-        progressListener.onProgress(ProjectOperationProgress.<Void>builder()
-                .fqpn(projectRelatable.getFQPN())
-                .message("Working copy removed")
-                .state(State.DONE)
-                .progressCurrent(1)
-                .progressTotal(1)
-                .build());
     }
 
 
